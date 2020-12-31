@@ -1,0 +1,17 @@
+* text=auto eol=lf
+
+# Git
+.gitattributes  text
+.gitignore      text
+
+# Code
+*.py            text diff=python
+*.txt           text
+*.pyc           binary
+
+# Docs
+*.html          text diff=html
+*.pdf           binary
+
+# Samples
+*.als           binary
