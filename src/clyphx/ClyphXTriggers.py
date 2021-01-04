@@ -17,21 +17,21 @@
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from ActionList import ActionList
-from consts import *
+from consts import IS_LIVE_9
+
 if IS_LIVE_9:
     from functools import partial
 
 
 class ClyphXControlComponent(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Control component for ClyphX '
+    __doc__ = 'Control component for ClyphX'
 
     def __init__(self, parent):
         ControlSurfaceComponent.__init__(self)
         self._parent = parent
         self._control_list = {}
         self._xt_scripts = []
-
 
     def disconnect(self):
         self._control_list = {}
@@ -40,17 +40,14 @@ class ClyphXControlComponent(ControlSurfaceComponent):
         if IS_LIVE_9:
             ControlSurfaceComponent.disconnect(self)
 
-
     def on_enabled_changed(self):
         pass
-
 
     def update(self):
         pass
 
-
     def connect_script_instances(self, instanciated_scripts):
-        """ Try to connect to ClyphX_XT instances """
+        """Try to connect to ClyphX_XT instances."""
         ClyphX_XT = None
         for i in range (5):
             try:
@@ -64,39 +61,38 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                     from ClyphX_XTD.ClyphX_XT import ClyphX_XT
                 elif i == 4:
                     from ClyphX_XTE.ClyphX_XT import ClyphX_XT
-            except: pass
+            except:
+                pass
             if ClyphX_XT:
                 for i in instanciated_scripts:
                     if isinstance(i, ClyphX_XT) and not i in self._xt_scripts:
                         self._xt_scripts.append(i)
                         break
 
-
     def assign_new_actions(self, string):
-        """ Assign new actions to controls via xclips """
+        """Assign new actions to controls via xclips."""
         if self._xt_scripts:
             for x in self._xt_scripts:
                 x.assign_new_actions(string)
-         ident = string[string.index('[')+2:string.index(']')].strip()
+        ident = string[string.index('[')+2:string.index(']')].strip()
         actions = string[string.index(']')+2:].strip()
         for c, v in self._control_list.items():
             if ident == v['ident']:
                 new_actions = actions.split(',')
-                on_action = '[' + ident + '] ' + new_actions[0]
+                on_action = '[{}] {}'.format(ident, new_actions[0])
                 off_action = None
                 if on_action and len(new_actions) > 1:
                     if new_actions[1].strip() == '*':
                         off_action = on_action
                     else:
-                        off_action = '[' + ident + '] ' + new_actions[1]
+                        off_action = '[{}] {}'.format(ident, new_actions[1])
                 if on_action:
                     v['on_action'] = on_action
                     v['off_action'] = off_action
                 break
 
-
     def receive_midi(self, bytes):
-        """ Receive user-defined midi messages """
+        """Receive user-defined midi messages."""
         if self._control_list:
             ctrl_data = None
             if bytes[2] == 0 or bytes[0] < 144:
@@ -112,9 +108,10 @@ class ClyphXControlComponent(ControlSurfaceComponent):
             if ctrl_data:
                 self._parent.handle_action_list_trigger(self.song().view.selected_track, ctrl_data['name'])
 
-
     def get_user_control_settings(self, data, midi_map_handle):
-        """ Receives control data from user settings file and builds control dictionary """
+        """Receives control data from user settings file and builds control
+        dictionary.
+        """
         self._control_list = {}
         for d in data:
             status_byte = None
@@ -142,15 +139,20 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                         off_action = '[' + ctrl_name + '] ' + new_ctrl_data[4]
             except: pass
             if status_byte and channel != None and ctrl_num != None and on_action:
-                self._control_list[(status_byte + channel, ctrl_num)] = {'ident' : ctrl_name, 'on_action' : on_action, 'off_action' : off_action, 'name' : ActionList(on_action)}
+                self._control_list[(status_byte + channel, ctrl_num)] = {
+                    'ident':      ctrl_name,
+                    'on_action':  on_action,
+                    'off_action': off_action,
+                    'name':       ActionList(on_action),
+                }
                 if status_byte == 144:
                     Live.MidiMap.forward_midi_note(self._parent._c_instance.handle(), midi_map_handle, channel, ctrl_num)
                 else:
                     Live.MidiMap.forward_midi_cc(self._parent._c_instance.handle(), midi_map_handle, channel, ctrl_num)
 
-
     def rebuild_control_map(self, midi_map_handle):
-        """ Called from main when build_midi_map is called. """
+        """Called from main when build_midi_map is called.
+        """
         for key in self._control_list.keys():
             if key[0] >= 176:
                 Live.MidiMap.forward_midi_cc(self._parent._c_instance.handle(), midi_map_handle, key[0] - 176, key[1])
@@ -160,7 +162,7 @@ class ClyphXControlComponent(ControlSurfaceComponent):
 
 class ClyphXTrackComponent(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Track component that monitors play slot index and calls main script on changes '
+    __doc__ = 'Track component that monitors play slot index and calls main script on changes'
 
     def __init__(self, parent, track):
         ControlSurfaceComponent.__init__(self)
@@ -173,7 +175,6 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
         self._last_slot_index = -1
         self._triggered_clips = []
         self._triggered_lseq_clip = None
-
 
     def disconnect(self):
         self.remove_loop_jump_listener()
@@ -188,17 +189,16 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
         if IS_LIVE_9:
             ControlSurfaceComponent.disconnect(self)
 
-
     def on_enabled_changed(self):
         pass
-
 
     def update(self):
         pass
 
-
     def play_slot_index_changed(self):
-        """ Called on track play slot index changes to set up clips to trigger (on play and stop) and set up loop listener for LSEQ. """
+        """Called on track play slot index changes to set up clips to trigger
+        (on play and stop) and set up loop listener for LSEQ.
+        """
         self.remove_loop_jump_listener()
         new_clip = self.get_xclip(self._track.playing_slot_index)
         prev_clip = self.get_xclip(self._last_slot_index)
@@ -215,9 +215,8 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
         if self._clip and '(LSEQ)' in self._clip.name.upper() and not self._clip.loop_jump_has_listener(self.on_loop_jump):
             self._clip.add_loop_jump_listener(self.on_loop_jump)
 
-
     def get_xclip(self, slot_index):
-        """ Get the xclip associated with slot_index or None. """
+        """Get the xclip associated with slot_index or None."""
         clip = None
         if self._track and slot_index in xrange(len(self._track.clip_slots)):
             slot = self._track.clip_slots[slot_index]
@@ -227,16 +226,18 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
                     clip = slot.clip
         return clip
 
-
     def on_loop_jump(self):
-        """ Called on loop changes to increment loop count and set clip to trigger. """
+        """Called on loop changes to increment loop count and set clip to
+        trigger.
+        """
         self._loop_count += 1
         if self._clip:
             self._triggered_lseq_clip = self._clip
 
-
     def on_timer(self):
-        """ Continuous timer, calls main script if there are any triggered clips. """
+        """Continuous timer, calls main script if there are any triggered
+        clips.
+        """
         if self._track and (not self._track.mute or self._parent._process_xclips_if_track_muted):
             if self._triggered_clips:
                 for clip in self._triggered_clips:
@@ -246,7 +247,6 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
                 self._parent.handle_loop_seq_action_list(self._triggered_lseq_clip, self._loop_count)
                 self._triggered_lseq_clip = None
 
-
     def remove_loop_jump_listener(self):
         self._loop_count = 0
         if self._clip and self._clip.loop_jump_has_listener(self.on_loop_jump):
@@ -255,7 +255,7 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
 
 class ClyphXCueComponent(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Cue component that monitors cue points and calls main script on changes '
+    __doc__ = 'Cue component that monitors cue points and calls main script on changes'
 
     def __init__(self, parent):
         ControlSurfaceComponent.__init__(self)
@@ -269,7 +269,6 @@ class ClyphXCueComponent(ControlSurfaceComponent):
         self._sorted_times = []
         self.cue_points_changed()
 
-
     def disconnect(self):
         self.remove_cue_point_listeners()
         self.song().remove_current_song_time_listener(self.arrange_time_changed)
@@ -280,17 +279,17 @@ class ClyphXCueComponent(ControlSurfaceComponent):
         if IS_LIVE_9:
             ControlSurfaceComponent.disconnect(self)
 
-
     def on_enabled_changed(self):
         pass
-
 
     def update(self):
         pass
 
-
     def cue_points_changed(self):
-        """ Called on cue point changes to set up points to watch, cue points can't be named via the API so cue points can't perform any actions requiring naming """
+        """Called on cue point changes to set up points to watch, cue points
+        can't be named via the API so cue points can't perform any actions
+        requiring naming.
+        """
         self.remove_cue_point_listeners()
         self._sorted_times = []
         for cp in self.song().cue_points:
@@ -305,9 +304,10 @@ class ClyphXCueComponent(ControlSurfaceComponent):
         self._sorted_times = sorted(self._x_points.keys())
         self.set_x_point_time_to_watch()
 
-
     def arrange_time_changed(self):
-        """ Called on arrange time changed and schedules actions where necessary """
+        """Called on arrange time changed and schedules actions where
+        necessary.
+        """
         if self.song().is_playing:
             if self._x_point_time_to_watch_for != -1 and self._last_arrange_position < self.song().current_song_time:
                 if self.song().current_song_time >= self._x_point_time_to_watch_for and self._x_point_time_to_watch_for < self._last_arrange_position:
@@ -320,9 +320,8 @@ class ClyphXCueComponent(ControlSurfaceComponent):
                 self.set_x_point_time_to_watch()
         self._last_arrange_position = self.song().current_song_time
 
-
     def set_x_point_time_to_watch(self):
-        """ Determine which cue point time to watch for next """
+        """Determine which cue point time to watch for next."""
         if self._x_points:
             if self.song().is_playing:
                 for t in self._sorted_times:
@@ -332,10 +331,8 @@ class ClyphXCueComponent(ControlSurfaceComponent):
             else:
                 self._x_point_time_to_watch_for = -1
 
-
     def schedule_x_point_action_list(self, point):
         self._parent.handle_action_list_trigger(self.song().view.selected_track, self._x_points[point])
-
 
     def remove_cue_point_listeners(self):
         for cp in self.song().cue_points:

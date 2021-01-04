@@ -24,12 +24,11 @@
 # After saving this file, you will need to close/restart Live for your changes
 # to take effect.
 
-# For Windows 7/Vista users, depending on how your privileges are set up, you may
-# not be able to save changes you make to this file. You may receive an error
-# such as Access Denied when trying to save. If this occurs, you will need to
-# drag this file onto your desktop, then make your changes and save. When
-# done, drag the file back into the ClyphX folder.
-
+# For Windows 7/Vista users, depending on how your privileges are set up, you
+# may not be able to save changes you make to this file. You may receive an
+# error such as Access Denied when trying to save. If this occurs, you will
+# need todrag this file onto your desktop, then make your changes and save.
+# Whendone, drag the file back into the ClyphX folder.
 
 
 # ******************************* [SETTINGS] *******************************

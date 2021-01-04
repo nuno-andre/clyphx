@@ -19,11 +19,13 @@ from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.ControlSurface import ControlSurface
 from _Framework.SessionComponent import SessionComponent
 
-from consts import *
+from consts import IS_LIVE_9_5
 
 
 class CSLinker(ControlSurfaceComponent):
-    """ CSLinker links the SessionComponents of two control surface scripts in Live 9. """
+    """CSLinker links the SessionComponents of two control surface scripts in
+    Live 9.
+    """
 
     def __init__(self):
         ControlSurfaceComponent.__init__(self)
@@ -35,7 +37,7 @@ class CSLinker(ControlSurfaceComponent):
 
 
     def disconnect(self):
-        """ Extends standard to disconnect and remove slave objects. """
+        """Extends standard to disconnect and remove slave objects."""
         for obj in self._slave_objects:
             if obj:
                 obj.disconnect()
@@ -44,7 +46,7 @@ class CSLinker(ControlSurfaceComponent):
 
 
     def parse_settings(self, settings_string):
-        """ Parses settings data read from UserPrefs for linker settings. """
+        """Parses settings data read from UserPrefs for linker settings."""
         line_data = settings_string.split('=')
         if 'MATCHED' in line_data[0]:
             self._matched_link = line_data[1].strip() == 'TRUE'
@@ -62,14 +64,17 @@ class CSLinker(ControlSurfaceComponent):
                     if self._script_names:
                         self._script_names.append(line_data[1].strip())
                         if 'PUSH2' in self._script_names:
-                            self.canonical_parent.schedule_message(20, partial(self.connect_script_instances,
-                                                                               self.canonical_parent._control_surfaces()))
+                            self.canonical_parent.schedule_message(
+                                20, partial(self.connect_script_instances, self.canonical_parent._control_surfaces())
+                            )
                         else:
                             self.connect_script_instances(self.canonical_parent._control_surfaces())
 
 
     def connect_script_instances(self, instanciated_scripts):
-        """ Attempts to find the two specified scripts, find their SessionComponents and create slave objects for them. """
+        """Attempts to find the two specified scripts, find their
+        SessionComponents and create slave objects for them.
+        """
         if self._script_names:
             scripts = [None, None]
             found_scripts = False
@@ -123,19 +128,19 @@ class CSLinker(ControlSurfaceComponent):
 
 
     def on_track_list_changed(self):
-        """ Refreshes slave objects if horizontally linked. """
+        """Refreshes slave objects if horizontally linked."""
         if not self._matched_link and (self._horizontal_link or self._multi_axis_link):
             self._refresh_slave_objects()
 
 
     def on_scene_list_changed(self):
-        """ Refreshes slave objects if vertically linked. """
+        """Refreshes slave objects if vertically linked."""
         if not self._matched_link and (not self._horizontal_link or self._multi_axis_link):
             self._refresh_slave_objects()
 
 
     def _refresh_slave_objects(self):
-        """ Refreshes offsets of slave objects. """
+        """Refreshes offsets of slave objects."""
         for obj in self._slave_objects:
             if obj:
                 obj._on_offsets_changed()
@@ -146,7 +151,7 @@ class CSLinker(ControlSurfaceComponent):
 
 
 class SessionSlave(object):
-    """ SessionSlave is the base class for linking two SessionComponents. """
+    """SessionSlave is the base class for linking two SessionComponents."""
 
     def __init__(self, horz_link, multi_axis, self_comp, observed_comp, h_offset, v_offset):
         self._horizontal_link = horz_link
@@ -171,19 +176,24 @@ class SessionSlave(object):
 
 
     def _on_offsets_changed(self, arg_a=None, arg_b=None):
-        """ Called on offset changes to the observed SessionComponent to handle moving offsets if possible. """
+        """Called on offset changes to the observed SessionComponent to handle
+        moving offsets if possible.
+        """
         if self._horizontal_link or self._multi_axis_link:
             new_num_tracks = len(self._self_ssn_comp.tracks_to_use())
-            if new_num_tracks != self._num_tracks: # if track list changed, need to completely refresh offsets
+            if new_num_tracks != self._num_tracks:
+                # if track list changed, need to completely refresh offsets
                 self._num_tracks = new_num_tracks
                 self._last_self_track_offset = -1
                 self._last_observed_track_offset = -1
             observed_offset = self._observed_track_offset()
-            if observed_offset != self._last_observed_track_offset: # if observed offset unchanged, do nothing
+            if observed_offset != self._last_observed_track_offset:
+                # if observed offset unchanged, do nothing
                 self._last_observed_track_offset = observed_offset
                 if self._track_offset_change_possible():
                     self_offset = max(self._min_track_offset(), min(self._num_tracks, (self._last_observed_track_offset + self._h_offset)))
-                    if self_offset != self._last_self_track_offset: # if self offset unchanged, do nothing
+                    if self_offset != self._last_self_track_offset:
+                        # if self offset unchanged, do nothing
                         self._last_self_track_offset = self_offset
                         self._self_ssn_comp.set_offsets(self._last_self_track_offset, self._self_scene_offset())
                 else:
@@ -193,16 +203,19 @@ class SessionSlave(object):
                 new_num_scenes = len(self._self_ssn_comp.song().scenes)
             else:
                 new_num_scenes = len(self._self_ssn_comp.song.scenes)
-            if new_num_scenes != self._num_scenes: # if scene list changed, need to completely refresh offsets
+            if new_num_scenes != self._num_scenes:
+                # if scene list changed, need to completely refresh offsets
                 self._num_scenes = new_num_scenes
                 self._last_self_scene_offset = -1
                 self._last_observed_scene_offset = -1
             observed_offset = self._observed_scene_offset()
-            if observed_offset != self._last_observed_scene_offset: # if observed offset unchanged, do nothing
+            if observed_offset != self._last_observed_scene_offset:
+                # if observed offset unchanged, do nothing
                 self._last_observed_scene_offset = observed_offset
                 if self._scene_offset_change_possible():
                     self_offset = max(self._min_scene_offset(), min(self._num_scenes, (self._last_observed_scene_offset + self._v_offset)))
-                    if self_offset != self._last_self_scene_offset: # if self offset unchanged, do nothing
+                    if self_offset != self._last_self_scene_offset:
+                        # if self offset unchanged, do nothing
                         self._last_self_scene_offset = self_offset
                         self._self_ssn_comp.set_offsets(self._self_track_offset(), self._last_self_scene_offset)
                 else:
@@ -233,7 +246,8 @@ class SessionSlave(object):
 
 
     def _track_offset_change_possible(self):
-        """ Returns whether or not moving the track offset is possible. """
+        """Returns whether or not moving the track offset is possible.
+        """
         if hasattr(self._self_ssn_comp, 'width'):
             w = self._self_ssn_comp.width()
         else:
@@ -242,12 +256,14 @@ class SessionSlave(object):
 
 
     def _min_track_offset(self):
-        """ Returns the minimum track offset. """
+        """Returns the minimum track offset.
+        """
         return 0
 
 
     def _scene_offset_change_possible(self):
-        """ Returns whether or not moving the scene offset is possible. """
+        """Returns whether or not moving the scene offset is possible.
+        """
         if hasattr(self._self_ssn_comp, 'height'):
             h = self._self_ssn_comp.height()
         else:
@@ -256,14 +272,16 @@ class SessionSlave(object):
 
 
     def _min_scene_offset(self):
-        """ Returns the minimum scene offset. """
+        """Returns the minimum scene offset."""
         return 0
 
 
 class SessionSlaveSecondary(SessionSlave):
-    """ SessionSlaveSecondary is the second of the two linked slave objects.
-    This overrides the functions that return whether offsets can be changed as well as the functions that return minimum offsets. """
+    """SessionSlaveSecondary is the second of the two linked slave objects.
 
+    This overrides the functions that return whether offsets can be changed as
+    well as the functions that return minimum offsets.
+    """
 
     def _track_offset_change_possible(self):
         if hasattr(self._self_ssn_comp, 'width'):

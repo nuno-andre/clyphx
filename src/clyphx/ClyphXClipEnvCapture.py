@@ -19,7 +19,7 @@ from consts import IS_LIVE_9
 
 
 class ClyphXClipEnvCapture(ControlSurfaceComponent):
-    """ Captures mixer/device parameters as clip envelopes. """
+    """Captures mixer/device parameters as clip envelopes."""
 
     def disconnect(self):
         self._parent = None
@@ -78,7 +78,7 @@ class ClyphXClipEnvCapture(ControlSurfaceComponent):
             env.insert_step(clip.loop_start, 0.0, param.value)
 
     def _get_device_range(self, args, track):
-        """ Returns range of devices to capture """
+        """Returns range of devices to capture."""
         dev_args = args.replace('MIX', '')
         dev_args = dev_args.replace('DEV', '')
         start = 0
@@ -92,12 +92,14 @@ class ClyphXClipEnvCapture(ControlSurfaceComponent):
                     name_split = dev_args.split('-')
                     start = int(name_split[0].strip()) - 1
                     end = int(name_split[1].strip())
-                except: pass
+                except:
+                    pass
             else:
                 try:
                     start = int(dev_args) - 1
                     end = start + 1
-                except: pass
+                except:
+                    pass
         if start > len(track.devices) or start < 0 or end > len(track.devices) or end < start:
             return()
         return (start, end)

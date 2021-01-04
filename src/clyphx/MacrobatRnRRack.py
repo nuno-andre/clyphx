@@ -15,15 +15,17 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 import Live
-from consts import *
+from consts import IS_LIVE_9
+
 if IS_LIVE_9:
     from functools import partial
+
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
 
 class MacrobatRnRRack(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Rack on/off to Device Randomize/Reset '
+    __doc__ = 'Rack on/off to Device Randomize/Reset'
 
     def __init__(self, parent, rack, name, track):
         ControlSurfaceComponent.__init__(self)
@@ -32,7 +34,6 @@ class MacrobatRnRRack(ControlSurfaceComponent):
         self._devices_to_operate_on = []
         self._track = track
         self.setup_device(rack, name)
-
 
     def disconnect(self):
         self.remove_on_off_listeners()
@@ -43,18 +44,17 @@ class MacrobatRnRRack(ControlSurfaceComponent):
         if IS_LIVE_9:
             ControlSurfaceComponent.disconnect(self)
 
-
     def on_enabled_changed(self):
         pass
-
 
     def update(self):
         pass
 
-
     def setup_device(self, rack, name):
-        """ - Will not reset/randomize any other Macrobat racks except for MIDI Rack
-            - Allowable rack names are: ['NK RST', 'NK RST ALL', 'NK RND', 'NK RND ALL'] """
+        """
+        - Will not reset/randomize any other Macrobat racks except for MIDI Rack
+        - Allowable rack names are: ['NK RST', 'NK RST ALL', 'NK RND', 'NK RND ALL']
+        """
         self.remove_on_off_listeners()
         if rack:
             for p in rack.parameters:
@@ -62,14 +62,15 @@ class MacrobatRnRRack(ControlSurfaceComponent):
                     if not p.value_has_listener(self.on_off_changed):
                         self._on_off_param = [p, name]
                         if IS_LIVE_9:
-                            self._parent.schedule_message(5, partial(p.add_value_listener, self.on_off_changed))#---use this to get around device on/off switches getting turned on upon set load
+                            #---use this to get around device on/off switches getting turned on upon set load
+                            self._parent.schedule_message(5, partial(p.add_value_listener, self.on_off_changed))
                         else:
-                            self._parent.schedule_message(5, p.add_value_listener, self.on_off_changed)#---use this to get around device on/off switches getting turned on upon set load
+                            #---use this to get around device on/off switches getting turned on upon set load
+                            self._parent.schedule_message(5, p.add_value_listener, self.on_off_changed)
                         break
 
-
     def on_off_changed(self):
-        """ On/off changed, perform assigned function """
+        """On/off changed, perform assigned function."""
         if self._on_off_param and self._on_off_param[0]:
             mess_type = None
             is_reset = False
@@ -95,9 +96,8 @@ class MacrobatRnRRack(ControlSurfaceComponent):
                     else:
                         self._parent.schedule_message(1, self.do_device_randomize, mess_type)
 
-
     def do_device_randomize(self, params):
-        """ Randomize device params """
+        """Randomize device params."""
         if self._on_off_param and self._on_off_param[0]:
             self._devices_to_operate_on = []
             self.get_devices_to_operate_on(self._on_off_param[0].canonical_parent.canonical_parent.devices, params)
@@ -107,9 +107,8 @@ class MacrobatRnRRack(ControlSurfaceComponent):
                         if p.is_enabled and not p.is_quantized and p.name != 'Chain Selector':
                             p.value = (((p.max - p.min) / 127) * Live.Application.get_random_int(0, 128)) + p.min
 
-
     def do_device_reset(self, params):
-        """ Reset device params """
+        """Reset device params."""
         if self._on_off_param and self._on_off_param[0]:
             self._devices_to_operate_on = []
             self.get_devices_to_operate_on(self._on_off_param[0].canonical_parent.canonical_parent.devices, params)
@@ -119,15 +118,19 @@ class MacrobatRnRRack(ControlSurfaceComponent):
                         if p and p.is_enabled and not p.is_quantized and p.name != 'Chain Selector':
                             p.value = p.default_value
 
-
     def get_devices_to_operate_on(self, dev_list, devices_to_get):
-        """ Get next device on track, all devices on track or all devices on chain """
+        """Get next device on track, all devices on track or all devices on
+        chain.
+        """
         if devices_to_get == 'all':
             if self._parent._can_have_nested_devices and type(self._on_off_param[0].canonical_parent.canonical_parent) == Live.Chain.Chain:
                 dev_list = self._on_off_param[0].canonical_parent.canonical_parent.devices
             for d in dev_list:
                 name = self._parent.get_name(d.name)
-                if d and not name.startswith(('NK RND', 'NK RST', 'NK CHAIN MIX', 'NK DR', 'NK LEARN', 'NK RECEIVER', 'NK TRACK', 'NK SIDECHAIN')):
+                if d and not name.startswith(
+                    ('NK RND', 'NK RST', 'NK CHAIN MIX', 'NK DR',
+                    'NK LEARN', 'NK RECEIVER', 'NK TRACK', 'NK SIDECHAIN')
+                ):
                     self._devices_to_operate_on.append(d)
                     if self._parent._can_have_nested_devices and d.can_have_chains:
                         for c in d.chains:
@@ -135,17 +138,22 @@ class MacrobatRnRRack(ControlSurfaceComponent):
         else:
             self.get_next_device(self._on_off_param[0].canonical_parent, dev_list)
 
-
     def get_next_device(self, rnr_rack, dev_list, store_next = False):
-        """ Get the next non-RnR device on the track or in the chain """
+        """Get the next non-RnR device on the track or in the chain."""
         for d in dev_list:
             if d and not store_next:
                 if d == rnr_rack:
                     store_next = True
             elif d and store_next:
-                if not self._devices_to_operate_on or (self._parent._can_have_nested_devices and type(d.canonical_parent) == Live.Chain.Chain):
+                if not self._devices_to_operate_on or (
+                    self._parent._can_have_nested_devices and
+                    type(d.canonical_parent) == Live.Chain.Chain
+                ):
                     name = self._parent.get_name(d.name)
-                    if d and not name.startswith(('NK RND', 'NK RST', 'NK CHAIN MIX', 'NK DR', 'NK LEARN', 'NK RECEIVER', 'NK TRACK', 'NK SIDECHAIN')):
+                    if d and not name.startswith(
+                        ('NK RND', 'NK RST', 'NK CHAIN MIX', 'NK DR',
+                        'NK LEARN', 'NK RECEIVER', 'NK TRACK', 'NK SIDECHAIN')
+                    ):
                         self._devices_to_operate_on.append(d)
                         if self._parent._can_have_nested_devices and type(rnr_rack.canonical_parent) == Live.Chain.Chain:
                             return
@@ -155,9 +163,8 @@ class MacrobatRnRRack(ControlSurfaceComponent):
                 else:
                     return
 
-
     def remove_on_off_listeners(self):
-        """ Remove listeners """
+        """Remove listeners."""
         if self._on_off_param and self._on_off_param[0] and self._on_off_param[0].value_has_listener(self.on_off_changed):
             self._on_off_param[0].remove_value_listener(self.on_off_changed)
         self._on_off_param = []

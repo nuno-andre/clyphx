@@ -29,7 +29,7 @@ except:
 
 
 def adjust_property(obj, prop, min_v, max_v, arg, setter=None, v_list=None):
-    """ Adjusts the given property absolutely or relatively. """
+    """Adjusts the given property absolutely or relatively."""
     if arg:
         arg = arg[0].strip()
         current_v = getattr(obj, prop)
@@ -56,7 +56,7 @@ def adjust_property(obj, prop, min_v, max_v, arg, setter=None, v_list=None):
 
 
 def toggle_property(obj, prop, arg):
-    """ Toggles the given property or turns it off/on. """
+    """Toggles the given property or turns it off/on."""
     if arg:
         setattr(obj, prop, arg[0].strip() == 'ON')
     else:
@@ -64,7 +64,7 @@ def toggle_property(obj, prop, arg):
 
 
 def get_component(script, comp_name):
-    """ Returns the component of the given name. """
+    """Returns the component of the given name."""
     for c in script._components:
         if c.name == comp_name:
             return c
@@ -72,7 +72,7 @@ def get_component(script, comp_name):
 
 
 class ClyphXArsenalActions(ControlSurfaceComponent):
-    """ Actions related to Arsenal control surface scripts. """
+    """Actions related to Arsenal control surface scripts."""
 
     def __init__(self, parent):
         super(ControlSurfaceComponent, self).__init__()
@@ -85,14 +85,14 @@ class ClyphXArsenalActions(ControlSurfaceComponent):
         self._scripts = None
 
     def set_script(self, script):
-        """ Adds the given script to the dict of scripts to work with. """
+        """ Adds the given script to the dict of scripts to work with."""
         self._scripts[script.script_name.upper()] =\
             {'top' : script,
              'scl': get_component(script, 'Scale_Settings_Control'),
              'targets': get_component(script, 'Targets_Component')}
 
     def dispatch_action(self, track, xclip, ident, script_name, action):
-        """ Dispatches the action to the appropriate handler. """
+        """Dispatches the action to the appropriate handler."""
         script = self._scripts.get(script_name, None)
         if script:
             action_spec = action.split()
@@ -107,14 +107,18 @@ class ClyphXArsenalActions(ControlSurfaceComponent):
                         self._handle_scale_action(script, action_spec, xclip, ident)
 
     def _handle_mode_action(self, script, spec):
-        """ Handles selecting a specific mode or incrementing modes with wrapping. """
+        """Handles selecting a specific mode or incrementing modes with
+        wrapping.
+        """
         mc = (script['top'].matrix_modes_component if spec[0].startswith('M_MODE')
                      else script['top'].encoder_modes_component)
         if mc:
             adjust_property(mc, 'selected_mode_index', 0, mc.num_modes - 1, spec[1:])
 
     def _handle_lock_action(self, script, spec):
-        """ Handles toggling the locking of the current track or mode-specific locks. """
+        """Handles toggling the locking of the current track or mode-specific
+        locks.
+        """
         tc = script['targets']
         if tc:
             if 'MODES' in spec:
@@ -123,7 +127,8 @@ class ClyphXArsenalActions(ControlSurfaceComponent):
                 tc.toggle_lock()
 
     def _handle_scale_action(self, script, spec, xclip, ident):
-        """ Handles scale actions or dispatches them to the appropriate handler. """
+        """Handles scale actions or dispatches them to the appropriate handler.
+        """
         if script['scl']:
             scl = script['scl']
             if len(spec) == 1:
@@ -153,18 +158,18 @@ class ClyphXArsenalActions(ControlSurfaceComponent):
             scl._notify_scale_settings()
 
     def _capture_scale_settings(self, script, xclip, ident):
-        """ Captures the current scale type, tonic, in key state, offset and orientation
-        and adds them to the given xclip's name. """
+        """Captures the current scale type, tonic, in key state, offset and
+        orientation and adds them to the given xclip's name."""
         if type(xclip) is Live.Clip.Clip:
             comp = script['scl']
-            xclip.name = '%s %s SCL %s %s %s %s %s' % (ident, script['top'].script_name,
-                                                       comp._scales.page_index,
-                                                       comp.tonic, comp.in_key,
-                                                       comp._offsets.page_index,
-                                                       comp.orientation_is_horizontal)
+            xclip.name = '{} {} SCL {} {} {} {} {}'.format(
+                ident, script['top'].script_name, comp._scales.page_index,
+                comp.tonic, comp.in_key, comp._offsets.page_index,
+                comp.orientation_is_horizontal,
+            )
 
     def _recall_scale_settings(self, comp, spec):
-        """ Recalls previously stored scale settings. """
+        """Recalls previously stored scale settings."""
         if len(spec) >= 5:
             scale = parse_int(spec[1], None, 0, comp._scales.num_pages - 1)
             if scale is not None:
@@ -173,9 +178,10 @@ class ClyphXArsenalActions(ControlSurfaceComponent):
             if tonic is not None:
                 comp._tonics.set_page_index(tonic)
             comp._in_key = spec[3].strip() == 'TRUE'
-            if len(spec) == 5:  # deprecated
-                self._toggle_scale_offset(comp, ['ON'] if spec[4].strip() == 'TRUE'
-                                          else ['OFF'])
+            # deprecated
+            if len(spec) == 5:
+                value = ['ON'] if spec[4].strip() == 'TRUE' else ['OFF']
+                self._toggle_scale_offset(comp, value)
             else:
                 offset = parse_int(spec[4], None, 0, comp._offsets.num_pages - 1)
                 if offset is not None:
@@ -183,8 +189,10 @@ class ClyphXArsenalActions(ControlSurfaceComponent):
                 comp._orientation_is_horizontal = spec[5].strip() == 'TRUE'
 
     def _toggle_scale_offset(self, comp, arg):
-        """ Toggles between sequent and 4ths offsets.  This is deprecated, but maintained
-        for backwards compatibility. """
+        """Toggles between sequent and 4ths offsets.
+
+        This is deprecated, but maintained for backwards compatibility.
+        """
         offset = FOURTHS_OFFSET
         if (arg and arg[0].strip() == 'ON') or (not arg and comp._offsets.page_index):
             offset = SEQ_OFFSET

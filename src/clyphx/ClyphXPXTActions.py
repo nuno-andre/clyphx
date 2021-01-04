@@ -33,7 +33,7 @@ FULL_SEGMENT_OFFSETS = (0, 17, 34, 51)
 
 class ClyphXPXTActions(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Actions related to the PXT-Live/PXT-Live Plus control surface '
+    __doc__ = 'Actions related to the PXT-Live/PXT-Live Plus control surface'
 
     def __init__(self, parent):
         ControlSurfaceComponent.__init__(self)
@@ -44,7 +44,6 @@ class ClyphXPXTActions(ControlSurfaceComponent):
         self._encoders = None
         self._message_display_line = None
 
-
     def disconnect(self):
         self._script = None
         self._mono_seq_mode = None
@@ -54,17 +53,14 @@ class ClyphXPXTActions(ControlSurfaceComponent):
         self._parent = None
         ControlSurfaceComponent.disconnect(self)
 
-
     def on_enabled_changed(self):
         pass
-
 
     def update(self):
         pass
 
-
     def set_script(self, pxt_script):
-        """ Set the PXT script to connect to and get necessary components. """
+        """Set the PXT script to connect to and get necessary components."""
         self._script = pxt_script
         if self._script and self._script._components:
             self._message_display_line = self._script._display_lines[2]
@@ -76,9 +72,9 @@ class ClyphXPXTActions(ControlSurfaceComponent):
                 elif 'EncModeSelector' in comp_name:
                     self._encoders = c._encoders
 
-
     def dispatch_action(self, track, xclip, ident, action, args):
-        """ Dispatch action to proper action group handler. """
+        """Dispatch action to proper action group handler.
+        """
         if self._script:
             if args.startswith('MSG'):
                 self._display_message(args, xclip)
@@ -89,9 +85,10 @@ class ClyphXPXTActions(ControlSurfaceComponent):
             elif args.startswith('PSEQ') and self._poly_seq_mode and self._poly_seq_mode.is_enabled():
                 self._handle_poly_seq_action(args.replace('PSEQ', '').strip(), xclip, ident)
 
-
     def _handle_mono_seq_action(self, args, xclip, ident):
-        """ Handle note actions related to the note currently being sequenced in mono seq mode or capture mono seq mode settings. """
+        """Handle note actions related to the note currently being sequenced
+        in mono seq mode or capture mono seq mode settings.
+        """
         comp = self._mono_seq_mode
         clip = comp._midi_clip
         if clip:
@@ -105,9 +102,10 @@ class ClyphXPXTActions(ControlSurfaceComponent):
                 end = comp._position_component._end_position
                 self._parent._clip_actions.do_clip_note_action(clip, None, None, '', 'NOTES' + str(note) + ' @' + str(start) + '-' + str(end) + ' ' + args)
 
-
     def _handle_poly_seq_action(self, args, xclip, ident):
-        """ Handle note actions related to the notes currently being sequenced in poly seq mode or capture poly seq mode settings. """
+        """Handle note actions related to the notes currently being sequenced
+        in poly seq mode or capture poly seq mode settings.
+        """
         comp = self._poly_seq_mode
         clip = comp._midi_clip
         if clip:
@@ -135,9 +133,10 @@ class ClyphXPXTActions(ControlSurfaceComponent):
                     end = comp._position_component._end_position
                     self._parent._clip_actions.do_clip_note_action(clip, None, None, '', 'NOTES' + str(notes) + ' @' + str(start) + '-' + str(end) + ' ' + args)
 
-
     def _capture_seq_settings(self, xclip, ident, comp, is_mono):
-        """ Capture the settings of the given seq comp and store them in the given xclip. """
+        """Capture the settings of the given seq comp and store them in the
+        given xclip.
+        """
         if type(xclip) is Live.Clip.Clip and HAS_PXT:
             settings = ''
             # res settings
@@ -154,9 +153,8 @@ class ClyphXPXTActions(ControlSurfaceComponent):
             settings += str(scl_comp._offset_within_octave)
             xclip.name = ident + ' PXT ' + ('MSEQ' if is_mono else 'PSEQ') + ' CAP ' + settings
 
-
     def _recall_seq_settings(self, args, comp):
-        """ Recall the settings for the given seq comp. """
+        """Recall the settings for the given seq comp."""
         arg_array = args.replace('CAP', '').strip().split()
         if len(arg_array) >= 7:
             # res settings
@@ -179,9 +177,10 @@ class ClyphXPXTActions(ControlSurfaceComponent):
             scl_comp._scale = EDITABLE_SCALE if scl_index == -1 else SCALE_TYPES[scl_index]
             scl_comp._set_current_notes()
 
-
     def _handle_encoder_action(self, args):
-        """ Reset or randomize the values of the parameters the encoders are controlling. """
+        """Reset or randomize the values of the parameters the encoders are
+        controlling.
+        """
         if self._encoders:
             randomize = args == 'RND'
             for enc in self._encoders:
@@ -193,10 +192,12 @@ class ClyphXPXTActions(ControlSurfaceComponent):
                         else:
                             p.value = p.default_value
 
-
     def _display_message(self, args, xclip):
-        """ Temporarily displays a message in Push's display
-        Uses special handling to ensure that empty display spaces aren't written to. """
+        """Temporarily displays a message in Push's display.
+
+        Uses special handling to ensure that empty display spaces aren't
+        written to.
+        """
         if self._message_display_line:
             note_as_caps = args.replace('MSG', '', 1).strip()
             note_len = len(note_as_caps)
@@ -213,7 +214,6 @@ class ClyphXPXTActions(ControlSurfaceComponent):
                 self._message_display_line.write_momentary(offset, FULL_SEGMENT, note_at_og_case[offset:offset+FULL_SEGMENT], True)
             self._tasks.add(_Framework.Task.sequence(_Framework.Task.delay(15), self._revert_display))
 
-
     def _revert_display(self, args=None):
-        """ Reverts the display after showing temp message. """
+        """Reverts the display after showing temp message."""
         self._message_display_line.revert()

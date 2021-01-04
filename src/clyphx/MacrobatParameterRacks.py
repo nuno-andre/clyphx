@@ -17,7 +17,8 @@
 #---This module contains Learn, Chain Mix, DR, DR Multi, Receiver and Track Racks
 
 from _Generic.Devices import *
-from consts import *
+from consts import IS_LIVE_9
+
 if IS_LIVE_9:
     from functools import partial
     from MacrobatParameterRackTemplate9 import MacrobatParameterRackTemplate
@@ -29,7 +30,7 @@ LAST_PARAM = {}
 
 class MacrobatLearnRack(MacrobatParameterRackTemplate):
     __module__ = __name__
-    __doc__ = ' Macro 1 to learned param '
+    __doc__ = 'Macro 1 to learned param'
 
     def __init__(self, parent, rack, track):
         self._rack = rack
@@ -40,16 +41,14 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
             parent.schedule_message(8, parent.song().view.add_selected_parameter_listener, self.on_selected_parameter_changed)
         MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
 
-
     def disconnect(self):
         if self.song().view.selected_parameter_has_listener(self.on_selected_parameter_changed):
             self.song().view.remove_selected_parameter_listener(self.on_selected_parameter_changed)
         self._rack = None
         MacrobatParameterRackTemplate.disconnect(self)
 
-
     def setup_device(self, rack):
-        """ Set up macro 1 and learned param """
+        """Set up macro 1 and learned param."""
         MacrobatParameterRackTemplate.setup_device(self, rack)
         self._rack = rack
         param = self.song().view.selected_parameter
@@ -68,9 +67,8 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
             else:
                 self._get_initial_value = True
 
-
     def on_selected_parameter_changed(self):
-        """ Update rack on new param selected """
+        """Update rack on new param selected."""
         if self.song().view.selected_parameter and self._rack and not self.song().view.selected_parameter.canonical_parent == self._rack:
             LAST_PARAM[0] = self.song().view.selected_parameter
             self.setup_device(self._rack)
@@ -78,25 +76,23 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
 
 class MacrobatChainMixRack(MacrobatParameterRackTemplate):
     __module__ = __name__
-    __doc__ = ' Macros to params of Rack chains '
+    __doc__ = 'Macros to params of Rack chains'
 
     def __init__(self, parent, rack, track):
         self._rack = {}
         MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
 
-
     def disconnect(self):
         self._rack = None
         MacrobatParameterRackTemplate.disconnect(self)
 
-
     def setup_device(self, rack):
-        """ Set up macros and rack chain params """
+        """Set up macros and rack chain params."""
         MacrobatParameterRackTemplate.setup_device(self, rack)
         self._rack = self.get_rack()
         if self._rack:
             param_name = self._parent.get_name(rack.name[12:].strip())
-            for index in range(1,9):
+            for index in range(1, 9):
                 chain_to_edit = {}
                 macro = rack.parameters[index]
                 param = None
@@ -117,41 +113,42 @@ class MacrobatChainMixRack(MacrobatParameterRackTemplate):
             else:
                 self._get_initial_value = True
 
-
     def get_rack(self):
-        """ Get rack to operate on as well as the mixer params of its chains """
+        """Get rack to operate on as well as the mixer params of its chains."""
         rack_chains = {}
         if self._track and self._track.devices:
             for d in self._track.devices:
                 if d.class_name.endswith('GroupDevice') and not d.class_name.startswith('Midi'):
-                    for chain_index in range (len(d.chains)):
+                    for chain_index in range(len(d.chains)):
                         c = d.chains[chain_index]
-                        rack_chains[str(chain_index + 1)] = {'VOL' : c.mixer_device.volume, 'PAN' : c.mixer_device.panning, 'MUTE' : c.mixer_device.chain_activator}
+                        rack_chains[str(chain_index + 1)] = {
+                            'VOL':  c.mixer_device.volume,
+                            'PAN':  c.mixer_device.panning,
+                            'MUTE': c.mixer_device.chain_activator,
+                        }
                     break
         return rack_chains
 
 
 class MacrobatDRMultiRack(MacrobatParameterRackTemplate):
     __module__ = __name__
-    __doc__ = ' Macros to params of multiple Simplers/Samplers '
+    __doc__ = 'Macros to params of multiple Simplers/Samplers'
 
     def __init__(self, parent, rack, track):
         self._drum_rack = {}
         MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
 
-
     def disconnect(self):
         self._drum_rack = None
         MacrobatParameterRackTemplate.disconnect(self)
 
-
     def setup_device(self, rack):
-        """ Set up macros and drum rack params """
+        """Set up macros and drum rack params."""
         MacrobatParameterRackTemplate.setup_device(self, rack)
         self._drum_rack = self.get_drum_rack()
         if self._drum_rack:
             param_name = self._parent.get_name(rack.name[11:].strip())
-            for index in range(1,9):
+            for index in range(1, 9):
                 drum_to_edit = {}
                 macro = rack.parameters[index]
                 param = None
@@ -177,20 +174,18 @@ class MacrobatDRMultiRack(MacrobatParameterRackTemplate):
 
 class MacrobatDRRack(MacrobatParameterRackTemplate):
     __module__ = __name__
-    __doc__ = ' Macros to params of single Simpler/Sampler '
+    __doc__ = 'Macros to params of single Simpler/Sampler'
 
     def __init__(self, parent, rack, track):
         self._drum_rack = {}
         MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
 
-
     def disconnect(self):
         self._drum_rack = None
         MacrobatParameterRackTemplate.disconnect(self)
 
-
     def setup_device(self, rack):
-        """ Set up macros and drum rack params """
+        """Set up macros and drum rack params."""
         MacrobatParameterRackTemplate.setup_device(self, rack)
         self._drum_rack = self.get_drum_rack()
         if self._drum_rack:
@@ -221,14 +216,13 @@ class MacrobatDRRack(MacrobatParameterRackTemplate):
 
 class MacrobatReceiverRack(MacrobatParameterRackTemplate):
     __module__ = __name__
-    __doc__ = ' Macros to macros of other racks '
+    __doc__ = 'Macros to macros of other racks'
 
     def __init__(self, parent, rack, track):
         MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
 
-
     def setup_device(self, rack):
-        """ Set up receiver and send macros """
+        """Set up receiver and send macros."""
         MacrobatParameterRackTemplate.setup_device(self, rack)
         receiver_macros = self.get_ident_macros(rack)
         if receiver_macros:
@@ -251,9 +245,8 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
             else:
                 self._get_initial_value = True
 
-
     def get_sender_macros(self, dev_list):
-        """ Look through all devices/chains on all tracks for sender macros """
+        """Look through all devices/chains on all tracks for sender macros."""
         for d in dev_list:
             name = self._parent.get_name(d.name)
             if d and d.class_name.endswith('GroupDevice') and not name.startswith('NK RECEIVER'):
@@ -262,9 +255,8 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
                 for c in d.chains:
                     self.get_sender_macros(c.devices)
 
-
     def get_ident_macros(self, rack):
-        """ Get send and receiver macros """
+        """Get send and receiver macros."""
         ident_macros = []
         ident_names = []
         for macro in rack.parameters:
@@ -277,28 +269,25 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
                     ident_names.append(ident)
         return ident_macros
 
-
     def on_off_changed(self):
-        """ Receiver rack doesn't do reset """
+        """Receiver rack doesn't do reset."""
         pass
 
 
 class MacrobatTrackRack(MacrobatParameterRackTemplate):
     __module__ = __name__
-    __doc__ = ' Macros to track params '
+    __doc__ = 'Macros to track params'
 
     def __init__(self, parent, rack, track):
         self._rack = rack
         MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
 
-
     def disconnect(self):
         self._rack = None
         MacrobatParameterRackTemplate.disconnect(self)
 
-
     def setup_device(self, rack):
-        """ Setup macros and track mixer params """
+        """Setup macros and track mixer params."""
         MacrobatParameterRackTemplate.setup_device(self, rack)
         for index in range(1,9):
             macro = rack.parameters[index]

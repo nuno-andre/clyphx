@@ -18,7 +18,7 @@ from Push.handshake_component import HandshakeComponent
 
 
 class MockHandshakeTask(object):
-    """ Mock objects used to replace Push's handshake task. """
+    '''Mock objects used to replace Push's handshake task.'''
 
     def kill(self):
         pass
@@ -31,8 +31,9 @@ class MockHandshakeTask(object):
 
 
 class MockHandshake(HandshakeComponent):
-    """ Extended HandshakeComponent that overrides methods to allow for
-    emulation. """
+    '''Extended HandshakeComponent that overrides methods to allow for
+    emulation.
+    '''
 
     def __init__(self, *a, **k):
         super(MockHandshake, self).__init__(*a, **k)

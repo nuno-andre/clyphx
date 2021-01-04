@@ -16,13 +16,13 @@
 
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from MacrobatUserConfig import *
+from MacrobatUserConfig import SYSEX_LIST
 from consts import IS_LIVE_9
 
 
 class MacrobatMidiRack(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Macros To Midi CCs + PCs + SysEx '
+    __doc__ = 'Macros To Midi CCs + PCs + SysEx'
 
     def __init__(self, parent, rack, name):
         ControlSurfaceComponent.__init__(self)
@@ -34,7 +34,6 @@ class MacrobatMidiRack(ControlSurfaceComponent):
         self.build_sysex_list()
         self.setup_device(rack, name)
 
-
     def disconnect(self):
         self.remove_macro_listeners()
         self._macro_to_cc = []
@@ -45,22 +44,21 @@ class MacrobatMidiRack(ControlSurfaceComponent):
         if IS_LIVE_9:
             ControlSurfaceComponent.disconnect(self)
 
-
     def on_enabled_changed(self):
         pass
-
 
     def update(self):
         pass
 
-
     def setup_device(self, rack, name):
-        """ - Rack name needs to start with 'nK MIDI'
-            - Default channel is 0. Can change with '[CHn]' in rack name
-            - Macro names needs to start with = functions:
-              * [CCn] = Where n is the CC# to send
-              * [PC] = Program Change
-              * SysEx_identifier = Identifier specified in SysEx List in user config """
+        """
+        - Rack name needs to start with 'nK MIDI'
+        - Default channel is 0. Can change with '[CHn]' in rack name
+        - Macro names needs to start with = functions:
+          * [CCn] = Where n is the CC# to send
+          * [PC] = Program Change
+          * SysEx_identifier = Identifier specified in SysEx List in user config
+        """
         self.remove_macro_listeners()
         channel = self.check_for_channel(name)
         for p in rack.parameters:
@@ -80,27 +78,24 @@ class MacrobatMidiRack(ControlSurfaceComponent):
                         self._macro_to_sysex.append((p, sysex_entry, -1, rack))
                         p.add_value_listener(self.do_sysex)
 
-
     def do_cc(self):
-        """ Send out CC on macro value change """
+        """Send out CC on macro value change."""
         if self._macro_to_cc:
             for p in self._macro_to_cc:
                 if int(p[0].value) != p[2]:
                     self._parent._send_midi((int(176 + p[4]), p[1], int(p[0].value)))
                     self._macro_to_cc[self._macro_to_cc.index(p)] = ((p[0], p[1], int(p[0].value), p[3], p[4]))
 
-
     def do_pc(self):
-        """ Send out PC on macro value change """
+        """Send out PC on macro value change."""
         if self._macro_to_pc:
             for p in self._macro_to_pc:
                 if int(p[0].value) != p[1]:
                     self._parent._send_midi((int(192 + p[3]), int(p[0].value)))
                     self._macro_to_pc[self._macro_to_pc.index(p)] = ((p[0], int(p[0].value), p[2], p[3]))
 
-
     def do_sysex(self):
-        """ Send out SysEx on macro value change """
+        """Send out SysEx on macro value change."""
         if self._macro_to_sysex:
             for p in self._macro_to_sysex:
                 if int(p[0].value) != p[2]:
@@ -119,9 +114,8 @@ class MacrobatMidiRack(ControlSurfaceComponent):
                         self._parent._send_midi(tuple(new_string))
                 self._macro_to_sysex[self._macro_to_sysex.index(p)] = ((p[0], p[1], int(p[0].value), p[3]))
 
-
     def build_sysex_list(self):
-        """ Build SysEx list (in decimal) based on user-defined list """
+        """Build SysEx list (in decimal) based on user-defined list."""
         self._sysex_list = []
         if SYSEX_LIST:
             for s in SYSEX_LIST:
@@ -137,9 +131,8 @@ class MacrobatMidiRack(ControlSurfaceComponent):
                                     current_entry.append(int(byte, 16))
                         self._sysex_list.append((s[0], current_entry, s[2], s[3]))
 
-
     def check_sysex_list(self, name_string):
-        """ Check that SysEx list exists and identifier exists in list """
+        """Check that SysEx list exists and identifier exists in list."""
         result = None
         if self._sysex_list:
             for entry in self._sysex_list:
@@ -147,9 +140,8 @@ class MacrobatMidiRack(ControlSurfaceComponent):
                     result = [entry[1], entry[2], entry[3]]
         return result
 
-
     def check_for_channel(self, name):
-        """ Check for user-specified channel in rack name """
+        """Check for user-specified channel in rack name."""
         result = 0
         if '[CH' in name and ']' in name and not name.count('[') > 1 and not name.count(']') > 1:
             try:
@@ -160,9 +152,8 @@ class MacrobatMidiRack(ControlSurfaceComponent):
                 pass
         return result
 
-
     def check_for_cc_num(self, name):
-        """ Check for user-specified CC# in macro name """
+        """Check for user-specified CC# in macro name."""
         result = None
         if '[CC' in name and ']' in name and not name.count('[') > 1 and not name.count(']') > 1:
             try:
@@ -173,19 +164,20 @@ class MacrobatMidiRack(ControlSurfaceComponent):
                 pass
         return result
 
-
     def remove_macro_listeners(self):
-        """ Remove listeners """
+        """Remove listeners."""
         if self._macro_to_cc:
             for p in self._macro_to_cc:
                 if p[3] and p[0].value_has_listener(self.do_cc):
                     p[0].remove_value_listener(self.do_cc)
         self._macro_to_cc = []
+
         if self._macro_to_pc:
             for p in self._macro_to_pc:
                 if p[2] and p[0].value_has_listener(self.do_pc):
                     p[0].remove_value_listener(self.do_pc)
         self._macro_to_pc = []
+
         if self._macro_to_sysex:
             for p in self._macro_to_sysex:
                 if p[3] and p[0].value_has_listener(self.do_sysex):

@@ -19,8 +19,12 @@ from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from MacrobatMidiRack import MacrobatMidiRack
 from MacrobatRnRRack import MacrobatRnRRack
 from MacrobatSidechainRack import MacrobatSidechainRack
-from MacrobatParameterRacks import MacrobatLearnRack, MacrobatChainMixRack, MacrobatDRMultiRack, MacrobatDRRack, MacrobatReceiverRack, MacrobatTrackRack
+from MacrobatParameterRacks import (
+    MacrobatLearnRack, MacrobatChainMixRack, MacrobatDRMultiRack,
+    MacrobatDRRack, MacrobatReceiverRack, MacrobatTrackRack,
+)
 from consts import IS_LIVE_9, IS_LIVE_9_5
+
 if IS_LIVE_9_5:
     from MacrobatPushRack import MacrobatPushRack
 if IS_LIVE_9:
@@ -29,13 +33,12 @@ if IS_LIVE_9:
 
 class Macrobat(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = " Macrobat script component for ClyphX "
+    __doc__ = 'Macrobat script component for ClyphX'
 
     def __init__(self, parent):
         ControlSurfaceComponent.__init__(self)
         self._parent = parent
         self._current_tracks = []
-
 
     def disconnect(self):
         self._current_tracks = []
@@ -43,17 +46,14 @@ class Macrobat(ControlSurfaceComponent):
         if IS_LIVE_9:
             ControlSurfaceComponent.disconnect(self)
 
-
     def on_enabled_changed(self):
         pass
-
 
     def update(self):
         pass
 
-
     def setup_tracks(self, track):
-        """ Setup component tracks on ini and track list changes """
+        """Setup component tracks on ini and track list changes."""
         if not track in self._current_tracks:
             self._current_tracks.append(track)
             MacrobatTrackComponent(track, self._parent)
@@ -61,7 +61,7 @@ class Macrobat(ControlSurfaceComponent):
 
 class MacrobatTrackComponent(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Track component that monitors track devices '
+    __doc__ = 'Track component that monitors track devices'
 
     def __init__(self, track, parent):
         ControlSurfaceComponent.__init__(self)
@@ -72,7 +72,6 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
         self._update_in_progress = False
         self._has_learn_rack = False
         self.setup_devices()
-
 
     def disconnect(self):
         self.remove_listeners()
@@ -86,23 +85,21 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
         if IS_LIVE_9:
             ControlSurfaceComponent.disconnect(self)
 
-
     def update(self):
         if self._track and self.song().view.selected_track == self._track:
             self.setup_devices()
 
-
     def on_enabled_changed(self):
         pass
 
-
     def reallow_updates(self):
-        """ Reallow device updates, used to prevent updates happening in quick succession """
+        """Reallow device updates, used to prevent updates happening in quick
+        succession.
+        """
         self._update_in_progress = False
 
-
     def setup_devices(self):
-        """ Get devices on device/chain list and device name changes """
+        """Get devices on device/chain list and device name changes."""
         if self._track and not self._update_in_progress:
             self._update_in_progress = True
             self._has_learn_rack = False
@@ -110,16 +107,14 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
             self.get_devices(self._track.devices)
             self._parent.schedule_message(5, self.reallow_updates)
 
-
     def remove_listeners(self):
-        """ Disconnect Macrobat rack components """
+        """Disconnect Macrobat rack components."""
         for d in self._current_devices:
             d[0].disconnect()
         self._current_devices = []
 
-
     def get_devices(self, dev_list):
-        """ Go through device and chain lists and setup Macrobat racks """
+        """Go through device and chain lists and setup Macrobat racks."""
         for d in dev_list:
             self.setup_macrobat_rack(d)
             if not d.name_has_listener(self.setup_devices):
@@ -132,9 +127,8 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
                         c.add_devices_listener(self.setup_devices)
                     self.get_devices(c.devices)
 
-
     def setup_macrobat_rack(self, rack):
-        """ Setup Macrobat rack if meets criteria """
+        """Setup Macrobat rack if meets criteria."""
         if rack.class_name.endswith('GroupDevice'):
             name = self._parent.get_name(rack.name)
             m = None
@@ -166,9 +160,8 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
             if m:
                 self._current_devices.append((m, rack))
 
-
     def remove_devices(self, dev_list):
-        """ Remove all device listeners """
+        """Remove all device listeners."""
         for d in dev_list:
             if d.name_has_listener(self.setup_devices):
                 d.remove_name_listener(self.setup_devices)
@@ -179,7 +172,6 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
                     if c.devices_has_listener(self.setup_devices):
                         c.remove_devices_listener(self.setup_devices)
                     self.remove_devices(c.devices)
-
 
     def on_selected_track_changed(self):
         self.update()

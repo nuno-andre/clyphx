@@ -16,7 +16,7 @@
 
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import *
+from consts import KEYWORDS
 
 MAX_SCROLL_POS = 28
 
@@ -44,7 +44,7 @@ class ClyphXDRActions9(ControlSurfaceComponent):
 
 
     def scroll_selector(self, dr, track, xclip, ident, args):
-        """ Scroll Drum Rack selector up/down """
+        """Scroll Drum Rack selector up/down."""
         args = args.replace('SCROLL', '').strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args)
@@ -62,19 +62,19 @@ class ClyphXDRActions9(ControlSurfaceComponent):
 
 
     def unmute_all(self, dr, track, xclip, ident, args):
-        """ Unmute all pads in the Drum Rack """
+        """Unmute all pads in the Drum Rack."""
         for pad in dr.drum_pads:
             pad.mute = False
 
 
     def unsolo_all(self, dr, track, xclip, ident, args):
-        """ Unsolo all pads in the Drum Rack """
+        """Unsolo all pads in the Drum Rack."""
         for pad in dr.drum_pads:
             pad.solo = False
 
 
     def dispatch_pad_action(self, dr, track, xclip, ident, args):
-        """ Dispatches pad-based actions """
+        """Dispatches pad-based actions."""
         arg_split = args.split()
         if len(arg_split) > 1:
             pads = self._get_pads_to_operate_on(dr, arg_split[0].replace('PAD', '').strip())
@@ -98,7 +98,7 @@ class ClyphXDRActions9(ControlSurfaceComponent):
 
 
     def _mute_pads(self, pads, action_arg):
-        """ Toggles or turns on/off pad mute """
+        """Toggles or turns on/off pad mute."""
         for pad in pads:
             if action_arg in KEYWORDS:
                 pad.mute = KEYWORDS[action_arg]
@@ -107,7 +107,7 @@ class ClyphXDRActions9(ControlSurfaceComponent):
 
 
     def _solo_pads(self, pads, action_arg):
-        """ Toggles or turns on/off pad solo """
+        """Toggles or turns on/off pad solo."""
         for pad in pads:
             if action_arg in KEYWORDS:
                 pad.solo = KEYWORDS[action_arg]
@@ -116,21 +116,21 @@ class ClyphXDRActions9(ControlSurfaceComponent):
 
 
     def _adjust_pad_volume(self, pads, action_arg):
-        """ Adjust/set pad volume """
+        """Adjust/set pad volume."""
         for pad in pads:
             if pad.chains:
                 self._parent.do_parameter_adjustment(pad.chains[0].mixer_device.volume, action_arg)
 
 
     def _adjust_pad_pan(self, pads, action_arg):
-        """ Adjust/set pad pan """
+        """Adjust/set pad pan."""
         for pad in pads:
             if pad.chains:
                 self._parent.do_parameter_adjustment(pad.chains[0].mixer_device.panning, action_arg)
 
 
     def _adjust_pad_send(self, pads, action_arg, send):
-        """ Adjust/set pad send """
+        """Adjust/set pad send."""
         try:
             for pad in pads:
                 if pad.chains:
@@ -140,7 +140,7 @@ class ClyphXDRActions9(ControlSurfaceComponent):
 
 
     def _get_pads_to_operate_on(self, dr, pads):
-        """ Get the Drum Rack pad or pads to operate on """
+        """Get the Drum Rack pad or pads to operate on."""
         pads_to_operate_on = [dr.view.selected_drum_pad]
         if pads == 'ALL':
             pads_to_operate_on = dr.visible_drum_pads

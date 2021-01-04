@@ -20,14 +20,17 @@ from ClyphXControlSurfaceActions import ClyphXControlSurfaceActions, VisualMetro
 
 class ClyphXControlSurfaceActions9(ClyphXControlSurfaceActions):
     __module__ = __name__
-    __doc__ = ' Actions related to control surfaces. This is a specialized version for Live 9.'
+    __doc__ = 'Actions related to control surfaces. This is a specialized version for Live 9.'
 
     def __init__(self, parent):
         ClyphXControlSurfaceActions.__init__(self, parent)
 
     def handle_visual_metro(self, script, args):
-        """ Handle visual metro for APCs and Launchpad.
-        This is a specialized version for L9 that uses component guard to avoid dependency issues. """
+        """Handle visual metro for APCs and Launchpad.
+
+        This is a specialized version for L9 that uses component guard to avoid
+        dependency issues.
+        """
         if 'ON' in args and not script['metro']['component']:
             with self._parent.component_guard():
                 m = VisualMetro(self._parent, script['metro']['controls'], script['metro']['override'])

@@ -14,10 +14,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+# from builtins import range
+
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from ClyphXClipEnvCapture import ClyphXClipEnvCapture
-from consts import *
+from consts import (CLIP_GRID_STATES, IS_LIVE_9, IS_LIVE_9_1, KEYWORDS,
+                    NOTE_NAMES, OCTAVE_NAMES, R_QNTZ_STATES, WARP_MODES)
+
 if IS_LIVE_9:
     import random
 
@@ -26,45 +30,39 @@ ENV_TYPES = ('IRAMP', 'DRAMP', 'IPYR', 'DPYR', 'SQR', 'SAW')
 
 class ClyphXClipActions(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Clip-related actions '
+    __doc__ = 'Clip-related actions'
 
     def __init__(self, parent):
         ControlSurfaceComponent.__init__(self)
         self._parent = parent
         self._env_capture = ClyphXClipEnvCapture()
 
-
     def disconnect(self):
         self._parent = None
         if IS_LIVE_9:
             ControlSurfaceComponent.disconnect(self)
 
-
     def on_enabled_changed(self):
         pass
-
 
     def update(self):
         pass
 
-
     def set_clip_name(self, clip, track, xclip, ident, args):
-        """ Set clip's name """
+        """Set clip's name."""
         args = args.strip()
         if args:
             clip.name = args
 
-
     def set_clip_on_off(self, clip, track, xclip, ident, value = None):
-        """ Toggles or turns clip on/off """
+        """.Toggles or turns clip on/off."""
         if value in KEYWORDS:
             clip.muted = not(KEYWORDS[value])
         else:
             clip.muted = not(clip.muted)
 
-
     def set_warp(self, clip, track, xclip, ident, value = None):
-        """ Toggles or turns clip warp on/off """
+        """Toggles or turns clip warp on/off."""
         if clip.is_audio_clip:
             value = value.strip()
             if value in KEYWORDS:
@@ -72,9 +70,8 @@ class ClyphXClipActions(ControlSurfaceComponent):
             else:
                 clip.warping = not(clip.warping)
 
-
     def adjust_time_signature(self, clip, track, xclip, ident, args):
-        """ Adjust clip's time signature """
+        """Adjust clip's time signature."""
         if '/' in args:
             name_split = args.split('/')
             try:
@@ -82,9 +79,8 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 clip.signature_denominator = int(name_split[1].strip())
             except: pass
 
-
     def adjust_detune(self, clip, track, xclip, ident, args):
-        """ Adjust/set audio clip detune """
+        """Adjust/set audio clip detune."""
         if clip.is_audio_clip:
             args = args.strip()
             if args.startswith(('<', '>')):
@@ -93,11 +89,12 @@ class ClyphXClipActions(ControlSurfaceComponent):
             else:
                 try:
                     clip.pitch_fine = int(args)
-                except: pass
-
+                except:
+                    pass
 
     def adjust_transpose(self, clip, track, xclip, ident, args):
-        """ Adjust audio or midi clip transpose, also set audio clip transpose """
+        """Adjust audio or midi clip transpose, also set audio clip transpose.
+        """
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args)
@@ -109,11 +106,12 @@ class ClyphXClipActions(ControlSurfaceComponent):
             if clip.is_audio_clip:
                 try:
                     clip.pitch_coarse = int(args)
-                except: pass
-
+                except:
+                    pass
 
     def adjust_gain(self, clip, track, xclip, ident, args):
-        """ Adjust/set clip gain for Live 9. For settings, range is 0 - 127. """
+        """Adjust/set clip gain for Live 9. For settings, range is 0 - 127.
+        """
         if IS_LIVE_9 and clip.is_audio_clip:
             args = args.strip()
             if args.startswith(('<', '>')):
@@ -122,11 +120,13 @@ class ClyphXClipActions(ControlSurfaceComponent):
             else:
                 try:
                     clip.gain = int(args) * float(1.0 / 127.0)
-                except: pass
-
+                except:
+                    pass
 
     def adjust_start(self, clip, track, xclip, ident, args):
-        """ Adjust/set clip start exclusively for Live 9. In Live 8, same as adjust_loop_start. """
+        """Adjust/set clip start exclusively for Live 9. In Live 8, same as
+        adjust_loop_start.
+        """
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
@@ -140,11 +140,11 @@ class ClyphXClipActions(ControlSurfaceComponent):
                     clip.start_marker = float(args)
                 else:
                     clip.loop_start = float(args)
-            except: pass
-
+            except:
+                pass
 
     def adjust_loop_start(self, clip, track, xclip, ident, args):
-        """ Adjust/set clip loop start if loop is on or clip start otherwise. """
+        """Adjust/set clip loop start if loop is on or clip start otherwise."""
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
@@ -152,11 +152,13 @@ class ClyphXClipActions(ControlSurfaceComponent):
         else:
             try:
                 clip.loop_start = float(args)
-            except: pass
-
+            except:
+                pass
 
     def adjust_end(self, clip, track, xclip, ident, args):
-        """ Adjust/set clip end exclusively for Live 9. In Live 8, same as adjust_loop_end. """
+        """Adjust/set clip end exclusively for Live 9. In Live 8, same as
+        adjust_loop_end.
+        """
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
@@ -170,11 +172,11 @@ class ClyphXClipActions(ControlSurfaceComponent):
                     clip.end_marker = float(args)
                 else:
                     clip.loop_end = float(args)
-            except: pass
-
+            except:
+                pass
 
     def adjust_loop_end(self, clip, track, xclip, ident, args):
-        """ Adjust/set clip loop end if loop is on or close end otherwise. """
+        """Adjust/set clip loop end if loop is on or close end otherwise."""
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
@@ -182,11 +184,13 @@ class ClyphXClipActions(ControlSurfaceComponent):
         else:
             try:
                 clip.loop_end = float(args)
-            except: pass
-
+            except:
+                pass
 
     def adjust_cue_point(self, clip, track, xclip, ident, args):
-        """ Adjust clip's start point and fire (also stores cue point if not specified). Will not fire xclip itself as this causes a loop """
+        """Adjust clip's start point and fire (also stores cue point if not
+        specified). Will not fire xclip itself as this causes a loop.
+        """
         if clip.is_midi_clip or (clip.is_audio_clip and clip.warping):
             if args:
                 args = args.strip()
@@ -201,14 +205,16 @@ class ClyphXClipActions(ControlSurfaceComponent):
                         clip.looping = True
                     if clip != xclip:
                         clip.fire()
-                except: pass
+                except:
+                    pass
             else:
                 if type(xclip) is Live.Clip.Clip:
                     xclip.name = xclip.name.strip() + ' ' + str(clip.loop_start)
 
-
     def adjust_warp_mode(self, clip, track, xclip, ident, args):
-        """ Adjusts the warp mode of the clip. This cannot be applied if the warp mode is currently rex (5). """
+        """Adjusts the warp mode of the clip. This cannot be applied if the
+        warp mode is currently rex (5).
+        """
         if IS_LIVE_9 and clip.is_audio_clip and clip.warping and not clip.warp_mode == 5:
             args = args.strip()
             if args in WARP_MODES:
@@ -223,9 +229,8 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 if new_mode in range(7) and new_mode != 5:
                     clip.warp_mode = new_mode
 
-
     def adjust_grid_quantization(self, clip, track, xclip, ident, args):
-        """ Adjusts clip grid quantization. """
+        """Adjusts clip grid quantization."""
         if IS_LIVE_9:
             args = args.strip()
             if args in CLIP_GRID_STATES:
@@ -233,7 +238,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
 
     def set_triplet_grid(self, clip, track, xclip, ident, args):
-        """ Toggles or turns triplet grid on or off. """
+        """Toggles or turns triplet grid on or off."""
         if IS_LIVE_9:
             if args in KEYWORDS:
                 clip.view.grid_is_triplet = KEYWORDS[args]
@@ -247,9 +252,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
 
     def insert_envelope(self, clip, track, xclip, ident, args):
-        """ Inserts an envelope for the given parameter into the clip.
-        This doesn't apply to quantized parameters.
-        Requires 9.1 or later. """
+        """Inserts an envelope for the given parameter into the clip.
+
+        This doesn't apply to quantized parameters. Requires 9.1 or later.
+        """
         if IS_LIVE_9_1:
             args = args.strip()
             arg_array = args.split()
@@ -286,7 +292,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
 
     def _perform_envelope_insertion(self, clip, param, env_type, env_range):
-        """ Performs the actual insertion of the envelope into the clip. """
+        """Performs the actual insertion of the envelope into the clip."""
         env = clip.automation_envelope(param)
         if env:
             median = ((clip.loop_end - clip.loop_start) / 2.0) + clip.loop_start
@@ -321,9 +327,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
                         else:
                             env.insert_step(beat, 1.0, env_range[0])
 
-
     def clear_envelope(self, clip, track, xclip, ident, args):
-        """ Clears the envelope of the specified param or all envelopes from the given clip. """
+        """Clears the envelope of the specified param or all envelopes from
+        the given clip.
+        """
         if IS_LIVE_9_1:
             if args:
                 param = self._get_envelope_parameter(track, args.strip())
@@ -332,10 +339,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
             else:
                 clip.clear_all_envelopes()
 
-
     def show_envelope(self, clip, track, xclip, ident, args):
-        """ Shows the clip's envelope view and a particular envelope if specified.
-        Requires 9.1 or later. """
+        """Shows the clip's envelope view and a particular envelope if
+        specified. Requires 9.1 or later.
+        """
         if IS_LIVE_9_1:
             self.song().view.detail_clip = clip
             clip.view.show_envelope()
@@ -344,9 +351,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 if param:
                     clip.view.select_envelope_parameter(param)
 
-
     def _get_envelope_parameter(self, track, args):
-        """ Gets the selected, mixer or device parameter for envelope-related actions. """
+        """Gets the selected, mixer or device parameter for envelope-related
+        actions.
+        """
         param = None
         if 'SEL' in args:
             param = self.song().view.selected_parameter
@@ -355,31 +363,34 @@ class ClyphXClipActions(ControlSurfaceComponent):
         elif 'PAN' in args:
             param = track.mixer_device.panning
         elif 'SEND' in args:
-            param = self._parent._track_actions.get_send_parameter(track, args.replace('SEND', '').strip())
+            param = self._parent._track_actions.get_send_parameter(
+                track, args.replace('SEND', '').strip())
         elif 'DEV' in args:
             arg_array = args.split()
             if len(arg_array) > 1:
-                dev_array = self._parent.get_device_to_operate_on(track, arg_array[0], args.replace(arg_array[0], '').strip())
+                dev_array = self._parent.get_device_to_operate_on(
+                    track, arg_array[0], args.replace(arg_array[0], '').strip()
+                )
                 if len(dev_array) == 2:
                     param_array = dev_array[1].strip().split()
                     param = None
                     if len(param_array) > 1:
-                        param = self._parent._device_actions.get_banked_parameter(dev_array[0], param_array[0], param_array[1])
+                        param = self._parent._device_actions.get_banked_parameter(
+                            dev_array[0], param_array[0], param_array[1])
                     else:
-                        param = self._parent._device_actions.get_bob_parameter(dev_array[0], param_array[0])
+                        param = self._parent._device_actions.get_bob_parameter(
+                            dev_array[0], param_array[0])
         return param
 
-
     def hide_envelopes(self, clip, track, xclip, ident, args):
-        """ Hides the clip's envelope view. """
+        """Hides the clip's envelope view."""
         if IS_LIVE_9_1:
             clip.view.hide_envelope()
 
-
     def quantize(self, clip, track, xclip, ident, args):
-        """
-        Quantizes notes or warp markers to the given quantization value, at the (optional) given strength and with the (optional) percentage of swing.
-        Can optionally be applied to specific notes or ranges of notes.
+        """Quantizes notes or warp markers to the given quantization value, at
+        the (optional) given strength and with the (optional) percentage of
+        swing. Can optionally be applied to specific notes or ranges of notes.
         """
         if IS_LIVE_9:
             args = args.strip()
@@ -420,31 +431,36 @@ class ClyphXClipActions(ControlSurfaceComponent):
                         clip.quantize_pitch(note, rate_to_apply, strength)
                 self.song().swing_amount = current_swing
 
-
     def duplicate_clip_content(self, clip, track, xclip, ident, args):
-        """ Duplicates all the content in a MIDI clip and doubles loop length. Will also zoom out to show entire loop if loop is on. """
+        """Duplicates all the content in a MIDI clip and doubles loop length.
+        Will also zoom out to show entire loop if loop is on.
+        """
         if IS_LIVE_9 and clip.is_midi_clip:
             try:
                 clip.duplicate_loop()
-            except: pass
-
+            except:
+                pass
 
     def delete_clip(self, clip, track, xclip, ident, args):
-        """ Deletes the given clip. """
+        """Deletes the given clip."""
         if IS_LIVE_9:
             clip.canonical_parent.delete_clip()
 
-
     def duplicate_clip(self, clip, track, xclip, ident, args):
-        """ Duplicates the given clip. This will overwrite clips if any exist in the slots used for duplication. """
+        """Duplicates the given clip. This will overwrite clips if any exist
+        in the slots used for duplication.
+        """
         if IS_LIVE_9:
             try:
                 track.duplicate_clip_slot(list(track.clip_slots).index(clip.canonical_parent))
-            except: pass
-
+            except:
+                pass
 
     def chop_clip(self, clip, track, xclip, ident, args):
-        """ Duplicates the clip the number of times specified and sets evenly distributed start points across all duplicates. This will overwrite clips if any exist in the slots used for duplication. """
+        """Duplicates the clip the number of times specified and sets evenly
+        distributed start points across all duplicates. This will overwrite
+        clips if any exist in the slots used for duplication.
+        """
         if IS_LIVE_9:
             args = args.strip()
             num_chops = 8
@@ -464,9 +480,11 @@ class ClyphXClipActions(ControlSurfaceComponent):
                     dupe.name = clip.name + '-' + str(index + 1)
             except: pass
 
-
     def split_clip(self, clip, track, xclip, ident, args):
-        """ Duplicates the clip and sets each duplicate to have the length specified in args.  This will overwrite clips if any exist in the slots used for duplication. """
+        """Duplicates the clip and sets each duplicate to have the length
+        specified in args.  This will overwrite clips if any exist in the
+        slots used for duplication.
+        """
         if IS_LIVE_9:
             try:
                 bar_arg = float(args)
@@ -479,7 +497,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
                     slot_index = list(track.clip_slots).index(clip.canonical_parent)
                     current_start = clip.start_marker
                     actual_end = clip.end_marker
-                    for index in xrange(num_splits):
+                    for index in range(num_splits):
                         track.duplicate_clip_slot(slot_index + index)
                         dupe_start = (split_size * index) + current_start
                         dupe_end = dupe_start + split_size
@@ -490,19 +508,23 @@ class ClyphXClipActions(ControlSurfaceComponent):
                         dupe.start_marker = dupe_start
                         dupe.loop_start = dupe_start
                         dupe.name = clip.name + '-' + str(index + 1)
-            except: pass
-
+            except:
+                pass
 
     def do_clip_loop_action(self, clip, track, xclip, ident, args):
-        """ Handle clip loop actions  """
+        """Handle clip loop actions."""
         args = args.strip()
         if args == '' or args in KEYWORDS:
             self.set_loop_on_off(clip, args)
         else:
             if args.startswith('START'):
-                self.adjust_loop_start(clip, track, xclip, ident, args.replace('START', '', 1).strip())
+                self.adjust_loop_start(
+                    clip, track, xclip, ident, args.replace('START', '', 1).strip()
+                )
             elif args.startswith('END'):
-                self.adjust_loop_end(clip, track, xclip, ident, args.replace('END', '', 1).strip())
+                self.adjust_loop_end(
+                    clip, track, xclip, ident, args.replace('END', '', 1).strip()
+                )
             elif args == 'SHOW' and IS_LIVE_9:
                 clip.view.show_loop()
             if clip.looping:
@@ -518,23 +540,22 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 elif args.startswith('*'):
                     try:
                         new_end = (clip.loop_end - clip_stats['loop_length']) + (clip_stats['loop_length'] * float(args[1:]))
-                    except: pass
+                    except:
+                        pass
                 else:
                     self.do_loop_set(clip, args, clip_stats)
                     return()
                 self.set_new_loop_position(clip, new_start, new_end, clip_stats)
 
-
     def set_loop_on_off(self, clip, value = None):
-        """ Toggles or turns clip loop on/off """
+        """Toggles or turns clip loop on/off."""
         if value in KEYWORDS:
             clip.looping = KEYWORDS[value]
         else:
             clip.looping = not(clip.looping)
 
-
     def move_clip_loop_by_factor(self, clip, args, clip_stats):
-        """ Move clip loop by its length or by a specified factor """
+        """Move clip loop by its length or by a specified factor."""
         factor = clip_stats['loop_length']
         if args == '<':
             factor = -(factor)
@@ -547,9 +568,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
             new_start = 0.0
         self.set_new_loop_position(clip, new_start, new_end, clip_stats)
 
-
     def do_loop_set(self, clip, args, clip_stats):
-        """ Set loop length and (if clip is playing) position, quantizes to 1/4 by default or bar if specified """
+        """Set loop length and (if clip is playing) position, quantizes to 1/4
+        by default or bar if specified.
+        """
         try:
             qntz = False
             if 'B' in args:
@@ -567,11 +589,13 @@ class ClyphXClipActions(ControlSurfaceComponent):
                         start = start + (bar - distance)
             end = start + (bar * bars_to_loop)
             self.set_new_loop_position(clip, start, end, clip_stats)
-        except: pass
-
+        except:
+            pass
 
     def set_new_loop_position(self, clip, new_start, new_end, clip_stats):
-        """ For use with other clip loop actions, ensures that loop settings are within range and applies in correct order """
+        """For use with other clip loop actions, ensures that loop settings
+        are within range and applies in correct order.
+        """
         if new_end <= clip_stats['real_end'] and new_start >= 0:
             if new_end > clip.loop_start:
                 clip.loop_end = new_end
@@ -580,43 +604,42 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 clip.loop_start = new_start
                 clip.loop_end = new_end
 
-
     def do_clip_note_action(self, clip, track, xclip, ident, args):
-        """ Handle clip note actions """
+        """Handle clip note actions."""
         if clip.is_audio_clip:
             return()
         note_data = self.get_notes_to_operate_on(clip, args.strip())
         if note_data['notes_to_edit']:
+            args = (clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
             if note_data['args'] == '' or note_data['args'] in KEYWORDS:
-                self.set_notes_on_off(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.set_notes_on_off(*args)
             elif note_data['args'] == 'REV':
-                self.do_note_reverse(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_note_reverse(*args)
             elif note_data['args'] == 'INV':
-                self.do_note_invert(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_note_invert(*args)
             elif note_data['args'] == 'COMP':
-                self.do_note_compress(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_note_compress(*args)
             elif note_data['args'] == 'EXP':
-                self.do_note_expand(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_note_expand(*rgs)
             elif note_data['args'] == 'SCRN':
-                self.do_pitch_scramble(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_pitch_scramble(*args)
             elif note_data['args'] == 'SCRP':
-                self.do_position_scramble(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_position_scramble(*args)
             elif note_data['args'] in ('CMB', 'SPLIT'):
-                self.do_note_split_or_combine(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_note_split_or_combine(*args)
             elif note_data['args'].startswith(('GATE <', 'GATE >')):
-                self.do_note_gate_adjustment(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_note_gate_adjustment(*args)
             elif note_data['args'].startswith(('NUDGE <', 'NUDGE >')):
-                self.do_note_nudge_adjustment(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_note_nudge_adjustment(*args)
             elif note_data['args'] == 'DEL':
-                self.do_note_delete(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_note_delete(*args)
             elif note_data['args'] in ('VELO <<', 'VELO >>'):
-                self.do_note_crescendo(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
+                self.do_note_crescendo(*args)
             elif note_data['args'].startswith('VELO'):
-                self.do_note_velo_adjustment(clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
-
+                self.do_note_velo_adjustment(*args)
 
     def set_notes_on_off(self, clip, args, notes_to_edit, other_notes):
-        """ Toggles or turns note mute on/off """
+        """Toggles or turns note mute on/off."""
         edited_notes = []
         for n in notes_to_edit:
             new_mute = False
@@ -628,9 +651,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
 
-
     def do_note_pitch_adjustment(self, clip, factor):
-        """ Adjust note pitch. This isn't a note action, it's called via Clip Semi """
+        """Adjust note pitch. This isn't a note action, it's called via Clip
+        Semi.
+        """
         edited_notes = []
         note_data = self.get_notes_to_operate_on(clip)
         if note_data['notes_to_edit']:
@@ -643,7 +667,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
                     edited_notes.append((new_pitch, n[1], n[2], n[3], n[4]))
             if edited_notes:
                 self.write_all_notes(clip, edited_notes, note_data['other_notes'])
-
 
     def do_note_gate_adjustment(self, clip, args, notes_to_edit, other_notes):
         """ Adjust note gate """
@@ -659,7 +682,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
 
-
     def do_note_nudge_adjustment(self, clip, args, notes_to_edit, other_notes):
         """ Adjust note position """
         edited_notes = []
@@ -673,7 +695,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 edited_notes.append((n[0], new_pos, n[2], n[3], n[4]))
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
-
 
     def do_note_velo_adjustment(self, clip, args, notes_to_edit, other_notes):
         """ Adjust/set/randomize note velocity """
@@ -698,7 +719,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
 
-
     def do_pitch_scramble(self, clip, args, notes_to_edit, other_notes):
         """ Scrambles the pitches in the clip, but maintains rhythm. """
         if IS_LIVE_9:
@@ -709,7 +729,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 edited_notes.append((pitches[i], notes_to_edit[i][1], notes_to_edit[i][2], notes_to_edit[i][3], notes_to_edit[i][4]))
             if edited_notes:
                 self.write_all_notes(clip, edited_notes, other_notes)
-
 
     def do_position_scramble(self, clip, args, notes_to_edit, other_notes):
         """ Scrambles the position of notes in the clip, but maintains pitches. """
@@ -722,7 +741,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
             if edited_notes:
                 self.write_all_notes(clip, edited_notes, other_notes)
 
-
     def do_note_reverse(self, clip, args, notes_to_edit, other_notes):
         """ Reverse the position of notes """
         edited_notes = []
@@ -730,7 +748,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
             edited_notes.append((n[0], abs(clip.loop_end - (n[1] + n[2]) + clip.loop_start), n[2], n[3], n[4]))
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
-
 
     def do_note_invert(self, clip, args, notes_to_edit, other_notes):
         """ Inverts the pitch of notes. """
@@ -740,7 +757,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
 
-
     def do_note_compress(self, clip, args, notes_to_edit, other_notes):
         """ Compresses the position and duration of notes by half. """
         edited_notes = []
@@ -749,7 +765,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
 
-
     def do_note_expand(self, clip, args, notes_to_edit, other_notes):
         """ Expands the position and duration of notes by 2. """
         edited_notes = []
@@ -757,7 +772,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
             edited_notes.append((n[0], n[1] * 2, n[2] * 2, n[3], n[4]))
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
-
 
     def do_note_split_or_combine(self, clip, args, notes_to_edit, other_notes):
         """ Split notes into 2 equal parts or combine each consecutive set of 2 notes """
@@ -785,7 +799,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
 
-
     def do_note_crescendo(self, clip, args, notes_to_edit, other_notes):
         """ Applies crescendo/decrescendo to notes """
         edited_notes = []; last_pos = -1; pos_index = 0; new_pos = -1; new_index = 0
@@ -804,11 +817,9 @@ class ClyphXClipActions(ControlSurfaceComponent):
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
 
-
     def do_note_delete(self, clip, args, notes_to_edit, other_notes):
         """ Delete notes """
         self.write_all_notes(clip, [], other_notes)
-
 
     def get_clip_stats(self, clip):
         """ Get real length and end of looping clip """
@@ -818,7 +829,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
         clip.looping = 1
         loop_length = clip.loop_end - clip.loop_start
         return {'clip_length' : length, 'real_end' : end, 'loop_length' : loop_length}
-
 
     def get_notes_to_operate_on(self, clip, args = None):
         """ Get notes within loop braces to operate on """
@@ -845,7 +855,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 other_notes.append(n)
         return {'notes_to_edit' : notes_to_edit, 'other_notes' : other_notes, 'args' : new_args}
 
-
     def get_pos_range(self, clip, string):
         """ Get note position or range to operate on """
         pos_range = (clip.loop_start, clip.loop_end)
@@ -860,7 +869,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 if end != None:
                     pos_range = (start, end)
         return pos_range
-
 
     def get_note_range(self, string):
         """ Get note lane or range to operate on """
@@ -883,9 +891,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
                         note_range = (start_note_num, end_note_num + 1)
         return note_range
 
-
     def get_note_range_from_string(self, string):
-        """ Attempt to get note range (specified in ints) from string and return it or None if not specified or invalid. """
+        """Attempt to get note range (specified in ints) from string and
+        return it or None if not specified or invalid.
+        """
         result = None
         int_split = string.split('-')
         try:
@@ -897,12 +906,13 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 result = (start, end)
             else:
                 result = None
-        except: result = None
+        except:
+            result = None
         return result
 
-
     def get_note_name_from_string(self, string):
-        """ Get the first note name specified in the given string. """
+        """Get the first note name specified in the given string.
+        """
         result = None
         if len(string) >= 2:
             result = string[0:2].strip()
@@ -912,9 +922,9 @@ class ClyphXClipActions(ControlSurfaceComponent):
                     result = string[0:4].strip()
         return result
 
-
     def string_to_note(self, string):
-        """ Get note value from string """
+        """Get note value from string.
+        """
         converted_note = None
         base_note = None
         octave = None
@@ -932,9 +942,8 @@ class ClyphXClipActions(ControlSurfaceComponent):
             converted_note = base_note
         return converted_note
 
-
     def write_all_notes(self, clip, edited_notes, other_notes):
-        """ Writes new notes to clip """
+        """Writes new notes to clip."""
         edited_notes.extend(other_notes)
         clip.select_all_notes()
         clip.replace_selected_notes(tuple(edited_notes))

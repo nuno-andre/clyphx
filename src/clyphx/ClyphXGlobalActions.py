@@ -16,14 +16,18 @@
 
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import *
+from consts import IS_LIVE_9, IS_LIVE_9_5, KEYWORDS
+from consts import (AUDIO_DEVS, MIDI_DEVS, INS_DEVS,
+                    GQ_STATES, REPEAT_STATES, RQ_STATES)
+
+
 if IS_LIVE_9:
     from functools import partial
 
 
 class ClyphXGlobalActions(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Global actions '
+    __doc__ = 'Global actions'
 
     def __init__(self, parent):
         ControlSurfaceComponent.__init__(self)
@@ -44,7 +48,6 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         self._scenes_to_monitor = []
         self.setup_scene_listeners()
 
-
     def disconnect(self):
         self.remove_scene_listeners()
         self.song().remove_current_song_time_listener(self.on_time_changed)
@@ -55,29 +58,24 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         if IS_LIVE_9:
             ControlSurfaceComponent.disconnect(self)
 
-
     def on_enabled_changed(self):
         pass
-
 
     def update(self):
         pass
 
-
     def on_scene_triggered(self, index):
         self._last_scene_index = index
 
-
     def on_scene_list_changed(self):
         self.setup_scene_listeners()
-
 
     def make_instant_mapping_docs(self, *a):
         from InstantMappingMakeDoc import InstantMappingMakeDoc
         InstantMappingMakeDoc()
 
     def send_midi_message(self, track, xclip, ident, args):
-        """ Send formatted note/cc/pc message or raw midi message. """
+        """Send formatted note/cc/pc message or raw midi message."""
         status_values = {'NOTE': 144, 'CC': 176, 'PC': 192}
         message_to_send = []
         if args:
@@ -103,21 +101,23 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                                 self._parent.schedule_message(1, partial(self._parent._send_midi, tuple(message_to_send)))
                             else:
                                 self._parent.schedule_message(1, self._parent._send_midi, tuple(message_to_send))
-                    except: pass
-
+                    except:
+                        pass
 
     def convert_strings_to_ints(self, strings):
-        """ Convert list of strings of ints into list of ints. """
+        """Convert list of strings of ints into list of ints."""
         result = []
         try:
             for string in strings:
                 result.append(int(string))
-        except: result = []
+        except:
+            result = []
         return result
 
-
     def do_variable_assignment(self, track, xclip, ident, args):
-        """ Creates numbered variables for the name given in args from the offset given in args and in the quantity given in args """
+        """Creates numbered variables for the name given in args from the
+        offset given in args and in the quantity given in args.
+        """
         args = args.strip()
         arg_array = args.split()
         if len(arg_array) == 3:
@@ -126,11 +126,12 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 length = int(arg_array[2])
                 for index in range(length):
                     self._parent._user_variables[arg_array[0] + str(index + 1)] = str(index + start)
-            except: pass
-
+            except:
+                pass
 
     def create_audio_track(self, track, xclip, ident, value = None):
-        """ Creates audio track at end of track list or at the specified index. """
+        """Creates audio track at end of track list or at the specified index.
+        """
         if IS_LIVE_9:
             value = value.strip()
             if value:
@@ -142,9 +143,9 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             else:
                 self.song().create_audio_track(-1)
 
-
     def create_midi_track(self, track, xclip, ident, value = None):
-        """ Creates MIDI track at end of track list or at the specified index. """
+        """Creates MIDI track at end of track list or at the specified index.
+      ."""
         if IS_LIVE_9:
             value = value.strip()
             if value:
@@ -156,28 +157,28 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             else:
                 self.song().create_midi_track(-1)
 
-
     def create_return_track(self, track, xclip, ident, value = None):
-        """ Creates return track at end of return list. """
+        """Creates return track at end of return list.
+      ."""
         if IS_LIVE_9:
             self.song().create_return_track()
 
-
     def insert_and_configure_audio_track(self, track, xclip, ident, value = None):
-        """ Inserts an audio track next to the selected track routed from the
-        selected track and armed. """
+        """Inserts an audio track next to the selected track routed from the
+        selected track and armed.
+      ."""
         self._insert_and_configure_track()
 
-
     def insert_and_configure_midi_track(self, track, xclip, ident, value = None):
-        """ Inserts a midi track next to the selected track routed from the
-        selected track and armed. """
+        """Inserts a midi track next to the selected track routed from the
+        selected track and armed."""
         self._insert_and_configure_track(True)
 
-
     def _insert_and_configure_track(self, is_midi=False):
-        """ Handles inserting tracks and configuring them. This method will only
-        work if the selected track has the appropriate output/input for the insertion. """
+        """Handles inserting tracks and configuring them. This method will only
+        work if the selected track has the appropriate output/input for the
+        insertion.
+        """
         if IS_LIVE_9:
             sel_track = self.song().view.selected_track
             if is_midi and not sel_track.has_midi_input:
@@ -193,11 +194,11 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 new_track.name = 'From %s' % sel_track.name
                 new_track.current_input_routing = sel_track.name
                 new_track.arm = True
-            except: pass
-
+            except:
+                pass
 
     def create_scene(self, track, xclip, ident, value = None):
-        """ Creates scene at end of scene list or at the specified index. """
+        """Creates scene at end of scene list or at the specified index."""
         if IS_LIVE_9:
             current_name = None
             if type(xclip) is Live.Clip.Clip:
@@ -215,9 +216,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             if current_name:
                 self._parent.schedule_message(4, partial(self.refresh_xclip_name, (xclip, current_name)))
 
-
     def duplicate_scene(self, track, xclip, ident, args):
-        """ Duplicates the given scene. """
+        """Duplicates the given scene."""
         if IS_LIVE_9:
             current_name = None
             if type(xclip) is Live.Clip.Clip and args:
@@ -227,21 +227,25 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             if current_name:
                 self._parent.schedule_message(4, partial(self.refresh_xclip_name, (xclip, current_name)))
 
-
     def refresh_xclip_name(self, clip_info):
-        """ This is used for both dupe and create scene to prevent the action from getting triggered over and over again. """
+        """This is used for both dupe and create scene to prevent the action
+        from getting triggered over and over again.
+        """
         if clip_info[0]:
             clip_info[0].name = clip_info[1]
 
-
     def delete_scene(self, track, xclip, ident, args):
-        """ Deletes the given scene as long as it's not the last scene in the set. """
+        """Deletes the given scene as long as it's not the last scene in the
+        set.
+        """
         if IS_LIVE_9 and len(self.song().scenes) > 1:
             self.song().delete_scene(self.get_scene_to_operate_on(xclip, args.strip()))
 
-
     def swap_device_preset(self, track, xclip, ident, args):
-        """ Activates swapping for the selected device or swaps out the preset for the given device with the given preset or navigates forwards and back through presets. """
+        """Activates swapping for the selected device or swaps out the preset
+        for the given device with the given preset or navigates forwards and
+        back through presets.
+        """
         if IS_LIVE_9:
             device = track.view.selected_device
             if device:
@@ -281,7 +285,6 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                                             break
                                     break
 
-
     def _handle_swapping(self, device, browser_item, args):
         dev_items = self._create_device_items(browser_item, [])
         if args in ('<', '>'):
@@ -303,9 +306,10 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                     self._load_preset(item)
                     break
 
-
     def _get_current_preset_index(self, device, presets):
-        """ Returns the index of the current preset (based on the device's name) in the presets list. Returns -1 if not found. """
+        """Returns the index of the current preset (based on the device's name)
+        in the presets list. Returns -1 if not found.
+        """
         index = -1
         current_preset_name = device.name
         if device.can_have_chains:
@@ -318,16 +322,16 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 break
         return index
 
-
     def _load_preset(self, preset):
-        """ Loads the given preset. """
+        """Loads the given preset."""
         self.application().view.toggle_browse()
         self.application().browser.load_item(preset)
         self.application().view.toggle_browse()
 
-
     def _create_device_items(self, device, item_array):
-        """ Returns the array of loadable items for the given device and handles digging into sub-folders too. """
+        """Returns the array of loadable items for the given device and handles
+        digging into sub-folders too.
+        """
         for item in device.children:
             if item.is_folder:
                 self._create_device_items(item, item_array)
@@ -335,10 +339,9 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 item_array.append(item)
         return item_array
 
-
     def load_device(self, track, xclip, ident, args):
-        """ Loads one of Live's built-in devices onto the selected Track. """
-        # using a similar method for loading plugins doesn't seem to work!
+        """Loads one of Live's built-in devices onto the selected Track."""
+        # XXX: using a similar method for loading plugins doesn't seem to work!
         if IS_LIVE_9:
             args = args.strip()
             tag_target = None
@@ -377,9 +380,10 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                                     break
                             break
 
-
     def load_m4l(self, track, xclip, ident, args):
-        """ Loads M4L device onto the selected Track. The .amxd should be omitted by the user. """
+        """Loads M4L device onto the selected Track. The .amxd should be
+        omitted by the user.
+        """
         if IS_LIVE_9:
             args = args.strip() + '.AMXD'
             found_dev = False
@@ -414,21 +418,21 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                                 break
                         break
 
-
     def set_session_record(self, track, xclip, ident, value = None):
-        """ Toggles or turns on/off session record """
+        """Toggles or turns on/off session record."""
         if IS_LIVE_9:
             if value in KEYWORDS:
                 self.song().session_record = KEYWORDS[value]
             else:
                 self.song().session_record = not(self.song().session_record)
 
-
     def trigger_session_record(self, track, xclip, ident, value = None):
-        """ Triggers session record in all armed tracks for the specified fixed length. """
+        """Triggers session record in all armed tracks for the specified fixed
+        length.
+        """
         if IS_LIVE_9 and value:
-            # the below fixes an issue where Live will crash instead of creating a new
-            # scene when triggered via an X-Clip
+            # the below fixes an issue where Live will crash instead of
+            # creating a new scene when triggered via an X-Clip
             if type(xclip) is Live.Clip.Clip:
                 scene = list(xclip.canonical_parent.canonical_parent.clip_slots).index(xclip.canonical_parent)
                 for t in self.song().tracks:
@@ -441,194 +445,166 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             except: length = bar
             self.song().trigger_session_record(length)
 
-
     def _track_has_empty_slot(self, track, start):
-        """ Returns whether the given track has an empty slot existing after the starting
-        slot index. """
+        """Returns whether the given track has an empty slot existing after the
+        starting slot index.
+        """
         for s in track.clip_slots[start:]:
             if not s.has_clip:
                 return True
         return False
 
-
     def set_session_automation_record(self, track, xclip, ident, value = None):
-        """ Toggles or turns on/off session automation record """
+        """Toggles or turns on/off session automation record."""
         if IS_LIVE_9:
             if value in KEYWORDS:
                 self.song().session_automation_record = KEYWORDS[value]
             else:
                 self.song().session_automation_record = not(self.song().session_automation_record)
 
-
     def retrigger_recording_clips(self, track, xclip, ident, value = None):
-        """ Retriggers all clips that are currently recording. """
+        """Retriggers all clips that are currently recording."""
         for track in self.song().tracks:
             if track.playing_slot_index >= 0:
                 slot = track.clip_slots[track.playing_slot_index]
                 if slot.has_clip and slot.clip.is_recording:
                     slot.fire()
 
-
     def set_back_to_arrange(self, track, xclip, ident, value = None):
-        """ Triggers back to arrange button """
+        """Triggers back to arrange button."""
         self.song().back_to_arranger = 0
 
-
     def set_overdub(self, track, xclip, ident, value = None):
-        """ Toggles or turns on/off overdub """
+        """Toggles or turns on/off overdub."""
         if value in KEYWORDS:
             self.song().overdub = KEYWORDS[value]
         else:
             self.song().overdub = not(self.song().overdub)
 
-
     def set_metronome(self, track, xclip, ident, value = None):
-        """ Toggles or turns on/off metronome """
+        """Toggles or turns on/off metronome."""
         if value in KEYWORDS:
             self.song().metronome = KEYWORDS[value]
         else:
             self.song().metronome = not(self.song().metronome)
 
-
     def set_record(self, track, xclip, ident, value = None):
-        """ Toggles or turns on/off record """
+        """Toggles or turns on/off record."""
         if value in KEYWORDS:
             self.song().record_mode = KEYWORDS[value]
         else:
             self.song().record_mode = not(self.song().record_mode)
 
-
     def set_punch_in(self, track, xclip, ident, value = None):
-        """ Toggles or turns on/off punch in """
+        """Toggles or turns on/off punch in."""
         if value in KEYWORDS:
             self.song().punch_in = KEYWORDS[value]
         else:
             self.song().punch_in = not(self.song().punch_in)
 
-
     def set_punch_out(self, track, xclip, ident, value = None):
-        """ Toggles or turns on/off punch out """
+        """Toggles or turns on/off punch out."""
         if value in KEYWORDS:
             self.song().punch_out = KEYWORDS[value]
         else:
             self.song().punch_out = not(self.song().punch_out)
 
-
     def restart_transport(self, track, xclip, ident, value = None):
-        """ Restarts transport to 0.0 """
+        """Restarts transport to 0.0"""
         self.song().current_song_time = 0
 
-
     def set_stop_transport(self, track, xclip, ident, value = None):
-        """ Toggles transport """
+        """Toggles transport."""
         self.song().is_playing = not(self.song().is_playing)
 
-
     def set_continue_playback(self, track, xclip, ident, value = None):
-        """ Continue playback from stop point """
+        """Continue playback from stop point."""
         self.song().continue_playing()
 
-
     def set_stop_all(self, track, xclip, ident, value = None):
-        """ Stop all clips w/no quantization option for Live 9 """
+        """Stop all clips w/no quantization option for Live 9."""
         if IS_LIVE_9:
             self.song().stop_all_clips(not value.strip() == 'NQ')
         else:
             self.song().stop_all_clips()
 
-
     def set_tap_tempo(self, track, xclip, ident, value = None):
-        """ Tap tempo """
+        """Tap tempo."""
         self.song().tap_tempo()
 
-
     def set_undo(self, track, xclip, ident, value = None):
-        """ Triggers Live's undo """
+        """Triggers Live's undo."""
         if self.song().can_undo:
             self.song().undo()
 
-
     def set_redo(self, track, xclip, ident, value = None):
-        """ Triggers Live's redo """
+        """Triggers Live's redo."""
         if self.song().can_redo:
             self.song().redo()
 
-
     def move_up(self, track, xclip, ident, value = None):
-        """ Scroll up """
+        """Scroll up."""
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(0), '', False)
 
-
     def move_down(self, track, xclip, ident, value = None):
-        """ Scroll down """
+        """Scroll down."""
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(1), '', False)
 
-
     def move_left(self, track, xclip, ident, value = None):
-        """ Scroll left """
+        """Scroll left."""
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(2), '', False)
 
-
     def move_right(self, track, xclip, ident, value = None):
-        """ Scroll right """
+        """Scroll right."""
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(3), '', False)
 
-
     def move_to_first_device(self, track, xclip, ident, value = None):
-        """ Move to the first device on the track and scroll the view """
+        """Move to the first device on the track and scroll the view."""
         self.focus_devices()
         self.song().view.selected_track.view.select_instrument()
 
-
     def move_to_last_device(self, track, xclip, ident, value = None):
-        """ Move to the last device on the track and scroll the view """
+        """Move to the last device on the track and scroll the view."""
         self.focus_devices()
         if self.song().view.selected_track.devices:
             self.song().view.select_device(self.song().view.selected_track.devices[len(self.song().view.selected_track.devices) - 1])
             self.application().view.scroll_view(Live.Application.Application.View.NavDirection(3), 'Detail/DeviceChain', False)
             self.application().view.scroll_view(Live.Application.Application.View.NavDirection(2), 'Detail/DeviceChain', False)
 
-
     def move_to_prev_device(self, track, xclip, ident, value = None):
-        """ Move to the previous device on the track """
+        """Move to the previous device on the track."""
         self.focus_devices()
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(2), 'Detail/DeviceChain', False)
 
-
     def move_to_next_device(self, track, xclip, ident, value = None):
-        """ Move to the next device on the track """
+        """Move to the next device on the track."""
         self.focus_devices()
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(3), 'Detail/DeviceChain', False)
 
-
     def focus_devices(self):
-        """ Make sure devices are in focus and visible """
+        """Make sure devices are in focus and visible."""
         self.application().view.show_view('Detail')
         self.application().view.show_view('Detail/DeviceChain')
 
-
     def show_clip_view(self, track, xclip, ident, value = None):
-        """ Show clip view """
+        """Show clip view."""
         self.application().view.show_view('Detail')
         self.application().view.show_view('Detail/Clip')
 
-
     def show_track_view(self, track, xclip, ident, value = None):
-        """ Show track view """
+        """Show track view."""
         self.application().view.show_view('Detail')
         self.application().view.show_view('Detail/DeviceChain')
 
-
     def show_detail_view(self, track, xclip, ident, value = None):
-        """ Toggle between showing/hiding detail view """
+        """Toggle between showing/hiding detail view."""
         if self.application().view.is_view_visible('Detail'):
             self.application().view.hide_view('Detail')
         else:
             self.application().view.show_view('Detail')
 
-
     def toggle_browser(self, track, xclip, ident, value = None):
-        """ Hide/show browser and move focus to or from browser """
+        """Hide/show browser and move focus to or from browser."""
         if self.application().view.is_view_visible('Browser'):
             self.application().view.hide_view('Browser')
             self.application().view.focus_view('')
@@ -636,45 +612,41 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             self.application().view.show_view('Browser')
             self.application().view.focus_view('Browser')
 
-
     def toggle_detail_view(self, track, xclip, ident, value = None):
-        """ Toggle between clip and track view """
+        """Toggle between clip and track view."""
         self.application().view.show_view('Detail')
         if self.application().view.is_view_visible('Detail/Clip'):
             self.application().view.show_view('Detail/DeviceChain')
         else:
             self.application().view.show_view('Detail/Clip')
 
-
     def toggle_main_view(self, track, xclip, ident, value = None):
-        """ Toggle between session and arrange view """
+        """Toggle between session and arrange view."""
         if self.application().view.is_view_visible('Session'):
             self.application().view.show_view('Arranger')
         else:
             self.application().view.show_view('Session')
 
-
     def focus_browser(self, track, xclip, ident, value = None):
-        """ Move the focus to the browser, show browser first if necessary """
+        """Move the focus to the browser, show browser first if necessary."""
         if not self.application().view.is_view_visible('Browser'):
             self.application().view.show_view('Browser')
         self.application().view.focus_view('Browser')
 
-
     def focus_detail(self, track, xclip, ident, value = None):
-        """ Move the focus to the detail view, show detail first if necessary """
+        """Move the focus to the detail view, show detail first if necessary."""
         if not self.application().view.is_view_visible('Detail'):
             self.application().view.show_view('Detail')
         self.application().view.focus_view('Detail')
 
-
     def focus_main(self, track, xclip, ident, value = None):
-        """ Move the focus to the main focus """
+        """Move the focus to the main focu."""
         self.application().view.focus_view('')
 
-
     def adjust_horizontal_zoom(self, track, xclip, ident, value):
-        """ Horizontally zoom in in Arrange the number of times specified in value. This can accept ALL, but doesn't have any bearing. """
+        """Horizontally zoom in in Arrange the number of times specified in
+        value. This can accept ALL, but doesn't have any bearing.
+        """
         zoom_all = 'ALL' in value
         value = value.replace('ALL', '').strip()
         try: value = int(value)
@@ -683,9 +655,10 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         for index in range(abs(value) + 1):
             self.application().view.zoom_view(Live.Application.Application.View.NavDirection(direct), '', zoom_all)
 
-
     def adjust_vertical_zoom(self, track, xclip, ident, value):
-        """ Vertically zoom in on the selected track in Arrange the number of times specified in value. This can accept ALL for zooming all tracks. """
+        """Vertically zoom in on the selected track in Arrange the number of
+        times specified in value. This can accept ALL for zooming all tracks.
+        """
         zoom_all = 'ALL' in value
         value = value.replace('ALL', '').strip()
         try: value = int(value)
@@ -694,9 +667,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         for index in range(abs(value) + 1):
             self.application().view.zoom_view(Live.Application.Application.View.NavDirection(direct), '', zoom_all)
 
-
     def adjust_tempo(self, track, xclip, ident, args):
-        """ Adjust/set tempo or apply smooth synced ramp """
+        """Adjust/set tempo or apply smooth synced ramp."""
         self._tempo_ramp_active = False
         self._tempo_ramp_settings = []
         args = args.strip()
@@ -718,24 +690,24 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                     if target_tempo >= 20.0 and target_tempo <= 999.0:
                         self._tempo_ramp_settings = [target_tempo, (target_tempo - self.song().tempo) / ramp_factor]
                         self._tempo_ramp_active = True
-                except: pass
+                except:
+                    pass
         else:
             try:
                 self.song().tempo = float(args)
-            except: pass
-
+            except:
+                pass
 
     def on_time_changed(self):
-        """ Smooth BPM changes synced to tempo """
+        """Smooth BPM changes synced to tempo."""
         if self._tempo_ramp_active and self._tempo_ramp_settings and self.song().is_playing:
             time = int(str(self.song().get_current_beats_song_time()).split('.')[2])
             if self._last_beat != time:
                 self._last_beat = time
                 self._tasks.add(self.apply_tempo_ramp)
 
-
     def apply_tempo_ramp(self, arg=None):
-        """ Apply tempo smoothing """
+        """Apply tempo smoothing."""
         target_reached = False
         if self._tempo_ramp_settings[1] > 0:
             target_reached = self._tempo_ramp_settings[0] <= self.song().tempo
@@ -749,9 +721,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         else:
             self.song().tempo += self._tempo_ramp_settings[1]
 
-
     def adjust_groove(self, track, xclip, ident, args):
-        """ Adjust/set global groove """
+        """Adjust/set global groove."""
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
@@ -759,11 +730,11 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         else:
             try:
                 self.song().groove_amount = int(args) * float(1.3125 / 131.0)
-            except: pass
-
+            except:
+                pass
 
     def set_note_repeat(self, track, xclip, ident, args):
-        """ Set/toggle note repeat """
+        """Set/toggle note repeat."""
         if IS_LIVE_9:
             args = args.strip()
             if args in REPEAT_STATES:
@@ -778,9 +749,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 self._repeat_enabled = not self._repeat_enabled
                 self._parent._c_instance.note_repeat.enabled = self._repeat_enabled
 
-
     def adjust_swing(self, track, xclip, ident, args):
-        """ Adjust swing amount for use with note repeat """
+        """Adjust swing amount for use with note repeat."""
         if IS_LIVE_9:
             args = args.strip()
             if args.startswith(('<', '>')):
@@ -789,11 +759,11 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             else:
                 try:
                     self.song().swing_amount = int(args) * 0.01
-                except: pass
-
+                except:
+                    pass
 
     def adjust_global_quantize(self, track, xclip, ident, args):
-        """ Adjust/set/toggle global quantization """
+        """Adjust/set/toggle global quantization."""
         args = args.strip()
         if args in GQ_STATES:
             self.song().clip_trigger_quantization = GQ_STATES[args]
@@ -809,9 +779,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             else:
                 self.song().clip_trigger_quantization = self._last_gqntz
 
-
     def adjust_record_quantize(self, track, xclip, ident, args):
-        """ Adjust/set/toggle record quantization """
+        """Adjust/set/toggle record quantization."""
         args = args.strip()
         if args in RQ_STATES:
             self.song().midi_recording_quantization = RQ_STATES[args]
@@ -827,46 +796,43 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             else:
                 self.song().midi_recording_quantization = self._last_rqntz
 
-
     def adjust_time_signature(self, track, xclip, ident, args):
-        """ Adjust global time signature """
+        """Adjust global time signature."""
         if '/' in args:
             name_split = args.split('/')
             try:
                 self.song().signature_numerator = int(name_split[0].strip())
                 self.song().signature_denominator = int(name_split[1].strip())
-            except: pass
-
+            except:
+                pass
 
     def set_jump_all(self, track, xclip, ident, args):
-        """ Jump arrange position forward/backward """
-        try: self.song().jump_by(float(args.strip()))
-        except: pass
-
+        """Jump arrange position forward/backward."""
+        try:
+            self.song().jump_by(float(args.strip()))
+        except:
+            pass
 
     def set_unarm_all(self, track, xclip, ident, args):
-        """ Unarm all armable tracks """
+        """Unarm all armable track."""
         for t in self.song().tracks:
             if t.can_be_armed and t.arm:
                 t.arm = 0
 
-
     def set_unmute_all(self, track, xclip, ident, args):
-        """ Unmute all tracks """
+        """Unmute all track."""
         for t in (tuple(self.song().tracks) + tuple(self.song().return_tracks)):
             if t.mute:
                 t.mute = 0
 
-
     def set_unsolo_all(self, track, xclip, ident, args):
-        """ Unsolo all tracks """
+        """Unsolo all track."""
         for t in (tuple(self.song().tracks) + tuple(self.song().return_tracks)):
             if t.solo:
                 t.solo = 0
 
-
     def set_fold_all(self, track, xclip, ident, value):
-        """ Toggle or turn/on fold for all tracks """
+        """Toggle or turn/on fold for all track."""
         state_to_set = None
         for t in self.song().tracks:
             if t.is_foldable:
@@ -877,13 +843,13 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 else:
                     t.fold_state = state_to_set
 
-
     def set_scene(self, track, xclip, ident, args):
-        """ Sets scene to play (doesn't launch xclip) """
+        """Sets scene to play (doesn't launch xclip."""
         args = args.strip()
         scene_to_launch = self.get_scene_to_operate_on(xclip, args)
         if args != '':
-            if 'RND' in args and len(self.song().scenes) > 1:#--Don't allow randomization unless more than 1 scene
+            #--Don't allow randomization unless more than 1 scene
+            if 'RND' in args and len(self.song().scenes) > 1:
                 num_scenes = len(self.song().scenes)
                 rnd_range = [0, num_scenes]
                 if '-' in args:
@@ -901,7 +867,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 if scene_to_launch == self._last_scene_index:
                     while scene_to_launch == self._last_scene_index:
                         scene_to_launch = Live.Application.get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
-            elif args.startswith(('<', '>')) and len(self.song().scenes) > 1:#--Don't allow adjustment unless more than 1 scene
+            #--Don't allow adjustment unless more than 1 scene
+            elif args.startswith(('<', '>')) and len(self.song().scenes) > 1:
                 factor = self._parent.get_adjustment_factor(args)
                 if factor < len(self.song().scenes):
                     scene_to_launch = self._last_scene_index + factor
@@ -915,7 +882,6 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 pass
             else:
                 t.clip_slots[scene_to_launch].fire()
-
 
     def get_scene_to_operate_on(self, xclip, args):
         scene = list(self.song().scenes).index(self.song().view.selected_scene)
@@ -936,22 +902,24 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 try:
                     if int(args) in range(len(self.song().scenes) + 1):
                         scene = int(args)-1
-                except: pass
+                except:
+                    pass
         return scene
 
-
     def set_locator(self, track, xclip, ident, args):
-        """ Set/delete a locator at the current playback position """
+        """Set/delete a locator at the current playback position."""
         self.song().set_or_delete_cue()
 
-
     def do_locator_loop_action(self, track, xclip, ident, args):
-        """ Same as do_locator_action with name argument, but also sets arrangement loop start to pos of locator. """
+        """Same as do_locator_action with name argument, but also sets
+        arrangement loop start to pos of locator.
+        """
         self.do_locator_action(track, xclip, ident, args, True)
 
-
     def do_locator_action(self, track, xclip, ident, args, move_loop_too=False):
-        """ Jump between locators or to a particular locator. Can also move loop start to pos of locator if specified. """
+        """Jump between locators or to a particular locator. Can also move loop
+        start to pos of locator if specified.
+        """
         args = args.strip()
         if args == '>' and self.song().can_jump_to_next_cue:
             self.song().jump_to_next_cue()
@@ -965,11 +933,11 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                         if move_loop_too:
                             self.song().loop_start = cp.time
                         break
-            except: pass
-
+            except:
+                pass
 
     def do_loop_action(self, track, xclip, ident, args):
-        """ Handle arrange loop actions """
+        """Handle arrange loop action."""
         args = args.strip()
         if args == '' or args in KEYWORDS:
             self.set_loop_on_off(args)
@@ -984,24 +952,24 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             elif args.startswith('*'):
                 try:
                     new_length = self.song().loop_length * float(args[1:])
-                except: pass
+                except:
+                    pass
             else:
                 try:
                     new_length = float(args) * ((4.0 / self.song().signature_denominator) * self.song().signature_numerator)
-                except: pass
+                except:
+                    pass
             self.set_new_loop_position(new_start, new_length)
 
-
     def set_loop_on_off(self, value = None):
-        """ Toggles or turns on/off arrange loop """
+        """Toggles or turns on/off arrange loop."""
         if value in KEYWORDS:
             self.song().loop = KEYWORDS[value]
         else:
             self.song().loop = not(self.song().loop)
 
-
     def move_loop_by_factor(self, args):
-        """ Move arrangement loop by its length or by a specified factor """
+        """Move arrangement loop by its length or by a specified factor."""
         factor = self.song().loop_length
         if args == '<':
             factor = -(factor)
@@ -1012,16 +980,18 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             new_start = 0.0
         self.set_new_loop_position(new_start, self.song().loop_length)
 
-
     def set_new_loop_position(self, new_start, new_length):
-        """ For use with other loop actions, ensures that loop settings are within range """
+        """For use with other loop actions, ensures that loop settings are
+        within range.
+        """
         if new_start >= 0 and new_length >= 0 and new_length <= self.song().song_length:
             self.song().loop_start = new_start
             self.song().loop_length = new_length
 
-
     def setup_scene_listeners(self):
-        """ Setup listeners for all scenes in set and check that last index is in current scene range. """
+        """Setup listeners for all scenes in set and check that last index is
+        in current scene range.
+        """
         self.remove_scene_listeners()
         scenes = self.song().scenes
         if not self._last_scene_index in range(len(scenes)):
@@ -1031,7 +1001,6 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             listener = lambda index = index:self.on_scene_triggered(index)
             if not scenes[index].is_triggered_has_listener(listener):
                 scenes[index].add_is_triggered_listener(listener)
-
 
     def remove_scene_listeners(self):
         if self._scenes_to_monitor:

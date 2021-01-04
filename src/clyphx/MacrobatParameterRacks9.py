@@ -17,7 +17,7 @@
 #---This module contains CS and DR Pad Mix Rack.
 
 from _Generic.Devices import *
-from consts import *
+from consts import IS_LIVE_9
 from functools import partial
 from MacrobatParameterRackTemplate9 import MacrobatParameterRackTemplate
 from _Framework.SubjectSlot import Subject, SlotManager, subject_slot
@@ -26,7 +26,7 @@ from _Framework.SubjectSlot import Subject, SlotManager, subject_slot
 class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
 
     __module__ = __name__
-    __doc__ = ' Macros to mixer params of selected DR pad '
+    __doc__ = 'Macros to mixer params of selected DR pad'
 
     def __init__(self, parent, rack, track):
         self._drum_rack = {}
@@ -43,7 +43,7 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
 
 
     def setup_device(self, rack):
-        """ Set up macros and drum rack params """
+        """Set up macros and drum rack params."""
         MacrobatParameterRackTemplate.setup_device(self, rack)
         self._rack = rack
         self._drum_rack = self.get_drum_rack()
@@ -97,8 +97,9 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
 
 
 class CSWrapper(Subject, SlotManager):
-    """ Wrapper for a chain selector that limits the max value to the number
-    of chains in the rack. """
+    """Wrapper for a chain selector that limits the max value to the number of
+    chains in the rack.
+    """
 
     __subject_events__ = ('value',)
 
@@ -141,7 +142,7 @@ class CSWrapper(Subject, SlotManager):
 
 class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
     __module__ = __name__
-    __doc__ = ' Macro 1 to chain selector'
+    __doc__ = 'Macro 1 to chain selector'
 
     def __init__(self, parent, rack, track):
         self._rack = rack
@@ -160,7 +161,8 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
 
 
     def setup_device(self, rack):
-        """ Set up macro 1 and chain selector """
+        """Set up macro 1 and chain selector.
+        """
         MacrobatParameterRackTemplate.setup_device(self, rack)
         self._rack = rack
         if self._rack:

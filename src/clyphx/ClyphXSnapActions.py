@@ -17,14 +17,16 @@
 import Live
 import math
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import *
+from consts import IS_LIVE_9
+
+
 if IS_LIVE_9:
     from functools import partial
 
 
 class ClyphXSnapActions(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Snapshot-related actions '
+    __doc__ = 'Snapshot-related actions'
 
     def __init__(self, parent):
         ControlSurfaceComponent.__init__(self)

@@ -18,13 +18,14 @@ from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.SessionComponent import SessionComponent
 from consts import IS_LIVE_9_5
 SessionRingComponent = None
+
 if IS_LIVE_9_5:
     from ableton.v2.control_surface.components.session_ring import SessionRingComponent
 
 
 class Push_APC_Combiner(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = ' Class that syncs Push and APC40 session grids for proper emulation. '
+    __doc__ = 'Class that syncs Push and APC40 session grids for proper emulation.'
 
     def __init__(self, parent):
         ControlSurfaceComponent.__init__(self)
@@ -33,7 +34,6 @@ class Push_APC_Combiner(ControlSurfaceComponent):
         self._push_session = None
         self._apc = None
         self._apc_session = None
-
 
     def disconnect(self):
         self._remove_listeners()
@@ -44,17 +44,16 @@ class Push_APC_Combiner(ControlSurfaceComponent):
         self._parent = None
         ControlSurfaceComponent.disconnect(self)
 
-
     def on_enabled_changed(self):
         pass
-
 
     def update(self):
         pass
 
-
     def set_up_scripts(self, scripts):
-        """ Remove current listeners, get Push/APC scripts, set up listeners and also set feedback delay on APC+Push encoders. """
+        '''Remove current listeners, get Push/APC scripts, set up listeners
+        and also set feedback delay on APC+Push encoders.
+        '''
         self._remove_listeners()
         for script in scripts:
             script_name = script.__class__.__name__
@@ -75,13 +74,13 @@ class Push_APC_Combiner(ControlSurfaceComponent):
                     self._apc_session.add_offset_listener(self._on_apc_offset_changed)
                     self._on_apc_offset_changed()
 
-
     def _get_session_component(self, script):
-        """ Get the session component for the given script. """
+        '''Get the session component for the given script.
+        '''
         comp = None
         if script and script._components:
             for c in script.components:
-                if isinstance (c, SessionComponent):
+                if isinstance(c, SessionComponent):
                     comp = c
                     break
         if comp is None:
@@ -89,16 +88,16 @@ class Push_APC_Combiner(ControlSurfaceComponent):
                 return script._session_ring
         return comp
 
-
     def _on_apc_offset_changed(self):
-        """ Update Push offset on APC offset changed and suppress its highlight. """
+        '''Update Push offset on APC offset changed and suppress its highlight.
+        '''
         if self._push_session and self._apc_session:
-            self._push_session.set_offsets(self._apc_session.track_offset(), self._apc_session.scene_offset())
+            self._push_session.set_offsets(self._apc_session.track_offset(),
+                                           self._apc_session.scene_offset())
             if IS_LIVE_9_5:
                 self._push_session._session_ring.hide_highlight()
             else:
                 self._push._set_session_highlight(-1, -1, -1, -1, False)
-
 
     def _remove_listeners(self):
         if self._apc_session and self._apc_session.offset_has_listener(self._on_apc_offset_changed):

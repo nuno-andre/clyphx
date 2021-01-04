@@ -16,27 +16,40 @@
 
 from __future__ import with_statement
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import *
+from consts import KEYWORDS, NOTE_NAMES
+import Live
+
 
 UNWRITABLE_INDEXES = (17, 35, 53)
 
-MATRIX_MODES = {'SESSION': 'session',
-                'NOTE': 'note'}
-TRACK_MODES = {'STOP': 'stop',
-               'SOLO': 'solo',
-               'MUTE': 'mute'}
-MAIN_MODES = {'VOLUME': 'volumes',
-              'PAN': 'pan_sends',
-              'TRACK': 'track',
-              'CLIP': 'clip',
-              'DEVICE': 'device'}
-P2_MAIN_MODES = {'DEVICE': 'device',
-                 'MIX': 'mix',
-                 'CLIP': 'clip'}
+MATRIX_MODES = {
+    'SESSION': 'session',
+    'NOTE':    'note',
+}
+
+TRACK_MODES = {
+    'STOP': 'stop',
+    'SOLO': 'solo',
+    'MUTE': 'mute',
+}
+
+MAIN_MODES = {
+    'VOLUME': 'volumes',
+    'PAN':    'pan_sends',
+    'TRACK':  'track',
+    'CLIP':   'clip',
+    'DEVICE': 'device',
+}
+
+P2_MAIN_MODES = {
+    'DEVICE': 'device',
+    'MIX':    'mix',
+    'CLIP':   'clip',
+}
 
 
 class ClyphXPushActions(ControlSurfaceComponent):
-    """ Actions related to Push/Push2 ???? control surface script. """
+    """Actions related to Push/Push2 ???? control surface script."""
 
     def __init__(self, parent):
         super(ClyphXPushActions, self).__init__()
@@ -56,7 +69,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
         super(ClyphXPushActions, self).disconnect()
 
     def set_script(self, push_script, is_push2=False):
-        """ Set the Push script to connect to and get necessary components. """
+        """Set the Push script to connect to and get necessary components."""
         self._script = push_script
         self._is_push2 = is_push2
         if self._script and self._script._components:
@@ -76,7 +89,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
                     self._scales_component = s_mode._enableable
 
     def handle_session_offset(self, session, last_pos, args, parser):
-        """  Special offset handling for use with 9.5. """
+        """Special offset handling for use with 9.5."""
         try:
             new_track = session.track_offset
             new_scene = session.scene_offset
@@ -91,7 +104,8 @@ class ClyphXPushActions(ControlSurfaceComponent):
                 return
             session.set_offsets(new_track, new_scene)
             return return_val
-        except: pass
+        except:
+            pass
 
     def get_session_offsets(self, session):
         return session.track_offset, session.scene_offset
@@ -100,7 +114,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
         return session.num_tracks, session.num_scenes
 
     def dispatch_action(self, track, xclip, ident, action, args):
-        """ Dispatch action to proper action group handler. """
+        """Dispatch action to proper action group handler."""
         if self._script:
             if args.startswith('SCL') and self._ins_component:
                 self._handle_scale_action(args.replace('SCL', '').strip(), xclip, ident)
@@ -116,7 +130,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
                 self._handle_mode_selection(args.replace('MODE', '').strip())
 
     def _handle_mode_selection(self, mode_name):
-        """ Handles switching to one of Push's mode if possible. """
+        """Handles switching to one of Push's mode if possible."""
         mode_component = None
         mode_dict = None
         if mode_name in MATRIX_MODES:
@@ -146,8 +160,9 @@ class ClyphXPushActions(ControlSurfaceComponent):
                         mode_component.selected_mode = mode_dict[mode_name]
 
     def _display_message(self, args, xclip):
-        """ Temporarily displays a message in Push's display.  Uses special handling to
-        ensure that empty display spaces aren't written to. """
+        """Temporarily displays a message in Push's display. Uses special
+        handling to ensure that empty display spaces aren't written to.
+        """
         note_as_caps = args.replace('MSG', '', 1).strip()
         note_len = len(note_as_caps)
         start_index = xclip.name.upper().find(note_as_caps)
@@ -160,7 +175,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
         self._script.show_notification(note_at_og_case)
 
     def _handle_scale_action(self, args, xclip, ident):
-        """ Handles actions related to scale settings. """
+        """Handles actions related to scale settings."""
         if args:
             arg_array = args.split()
             array_len = len(arg_array)
@@ -239,7 +254,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
                         break
 
     def _capture_scale_settings(self, xclip, ident):
-        """ Captures scale settings and writes them to X-Clip's name. """
+        """Captures scale settings and writes them to X-Clip's name."""
         if type(xclip) is Live.Clip.Clip:
             root = str(self._ins_component._note_layout.root_note)
             if self._is_push2:
@@ -255,7 +270,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
                                                             fixed, inkey, orient)
 
     def _recall_scale_settings(self, arg_array):
-        """ Recalls scale settings from X-Trigger name. """
+        """Recalls scale settings from X-Trigger name."""
         try:
             self._ins_component._note_layout.root_note = int(arg_array[0])
             if self._is_push2:
@@ -268,16 +283,20 @@ class ClyphXPushActions(ControlSurfaceComponent):
         except: pass
 
     def _update_scale_display_and_buttons(self):
-        """ Updates Push's scale display and buttons to indicate current settings. """
+        """Updates Push's scale display and buttons to indicate current
+        settings.
+        """
         if not self._is_push2:
             self._scales_component._update_data_sources()
             self._scales_component.update()
 
     def _handle_sequence_action(self, args):
-        """ Handle note actions related to the note currently being sequenced. """
+        """Handle note actions related to the note currently being sequenced.
+        """
         c = self.song().view.detail_clip
         clip = c if c and c.is_midi_clip else None
         note = self._script._drum_component.selected_note
         if clip and note != None:
-            self._parent._clip_actions.do_clip_note_action(clip, None, None, '',
-                                                           'NOTES%s %s' % (note, args))
+            self._parent._clip_actions.do_clip_note_action(
+                clip, None, None, '', 'NOTES%s %s' % (note, args)
+            )
