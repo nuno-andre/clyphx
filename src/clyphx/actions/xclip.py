@@ -22,7 +22,7 @@ import random
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from .xclip_env_capture import ClyphXClipEnvCapture
-from ..consts import IS_LIVE_9_1, KEYWORDS
+from ..consts import KEYWORDS
 from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES, WARP_MODES,
                       NOTE_NAMES, OCTAVE_NAMES)
 
@@ -236,49 +236,47 @@ class ClyphXClipActions(ControlSurfaceComponent):
         clip.view.grid_is_triplet = KEYWORDS.get(args, not(clip.view.grid_is_triplet))
 
     def capture_to_envelope(self, clip, track, xclip, ident, args):
-        if IS_LIVE_9_1:
-            self._env_capture.capture(clip, track, args)
+        self._env_capture.capture(clip, track, args)
 
     def insert_envelope(self, clip, track, xclip, ident, args):
         """Inserts an envelope for the given parameter into the clip.
 
         This doesn't apply to quantized parameters. Requires 9.1 or later.
         """
-        if IS_LIVE_9_1:
-            args = args.strip()
-            arg_array = args.split()
-            if len(arg_array) > 1:
-                # used to determine whether env_type is last arg...
-                #   otherwise a range is specified
-                last_arg_index = len(arg_array) - 1
-                env_type_index = last_arg_index
-                env_type = None
-                for index in range(len(arg_array)):
-                    if arg_array[index] in ENV_TYPES:
-                        env_type_index = index
-                        env_type = arg_array[index]
-                        break
-                if env_type:
-                    env_param_spec = ''
-                    for i in range(env_type_index):
-                        env_param_spec += '{} '.format(arg_array[i])
-                    param = self._get_envelope_parameter(track, env_param_spec)
-                    if param and not param.is_quantized:
-                        env_range = (param.min, param.max)
-                        # calculate range if specified in args
-                        if env_type_index != last_arg_index:
-                            try:
-                                min_factor = int(arg_array[-2])
-                                max_factor = int(arg_array[-1])
-                                if 0 <= min_factor and max_factor < 101 and min_factor < max_factor:
-                                    env_range = ((min_factor / 100.0) * param.max, (max_factor / 100.0) * param.max)
-                            except:
-                                pass
-                        self.song().view.detail_clip = clip
-                        clip.view.show_envelope()
-                        clip.view.select_envelope_parameter(param)
-                        clip.clear_envelope(param)
-                        self._perform_envelope_insertion(clip, param, env_type, env_range)
+        args = args.strip()
+        arg_array = args.split()
+        if len(arg_array) > 1:
+            # used to determine whether env_type is last arg...
+            #   otherwise a range is specified
+            last_arg_index = len(arg_array) - 1
+            env_type_index = last_arg_index
+            env_type = None
+            for index in range(len(arg_array)):
+                if arg_array[index] in ENV_TYPES:
+                    env_type_index = index
+                    env_type = arg_array[index]
+                    break
+            if env_type:
+                env_param_spec = ''
+                for i in range(env_type_index):
+                    env_param_spec += '{} '.format(arg_array[i])
+                param = self._get_envelope_parameter(track, env_param_spec)
+                if param and not param.is_quantized:
+                    env_range = (param.min, param.max)
+                    # calculate range if specified in args
+                    if env_type_index != last_arg_index:
+                        try:
+                            min_factor = int(arg_array[-2])
+                            max_factor = int(arg_array[-1])
+                            if 0 <= min_factor and max_factor < 101 and min_factor < max_factor:
+                                env_range = ((min_factor / 100.0) * param.max, (max_factor / 100.0) * param.max)
+                        except:
+                            pass
+                    self.song().view.detail_clip = clip
+                    clip.view.show_envelope()
+                    clip.view.select_envelope_parameter(param)
+                    clip.clear_envelope(param)
+                    self._perform_envelope_insertion(clip, param, env_type, env_range)
 
     def _perform_envelope_insertion(self, clip, param, env_type, env_range):
         """Performs the actual insertion of the envelope into the clip."""
@@ -320,25 +318,23 @@ class ClyphXClipActions(ControlSurfaceComponent):
         """Clears the envelope of the specified param or all envelopes from
         the given clip.
         """
-        if IS_LIVE_9_1:
-            if args:
-                param = self._get_envelope_parameter(track, args.strip())
-                if param:
-                    clip.clear_envelope(param)
-            else:
-                clip.clear_all_envelopes()
+        if args:
+            param = self._get_envelope_parameter(track, args.strip())
+            if param:
+                clip.clear_envelope(param)
+        else:
+            clip.clear_all_envelopes()
 
     def show_envelope(self, clip, track, xclip, ident, args):
         """Shows the clip's envelope view and a particular envelope if
         specified. Requires 9.1 or later.
         """
-        if IS_LIVE_9_1:
-            self.song().view.detail_clip = clip
-            clip.view.show_envelope()
-            if args:
-                param = self._get_envelope_parameter(track, args.strip())
-                if param:
-                    clip.view.select_envelope_parameter(param)
+        self.song().view.detail_clip = clip
+        clip.view.show_envelope()
+        if args:
+            param = self._get_envelope_parameter(track, args.strip())
+            if param:
+                clip.view.select_envelope_parameter(param)
 
     def _get_envelope_parameter(self, track, args):
         """Gets the selected, mixer or device parameter for envelope-related
@@ -373,8 +369,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def hide_envelopes(self, clip, track, xclip, ident, args):
         """Hides the clip's envelope view."""
-        if IS_LIVE_9_1:
-            clip.view.hide_envelope()
+        clip.view.hide_envelope()
 
     def quantize(self, clip, track, xclip, ident, args):
         """Quantizes notes or warp markers to the given quantization
@@ -397,14 +392,14 @@ class ClyphXClipActions(ControlSurfaceComponent):
             strength = 1.0
             swing_to_apply = 0.0
             current_swing = self.song().swing_amount
-            if len(arg_array) > (1 + array_offset):
+            if len(arg_array) > 1 + array_offset:
                 try:
                     strength = float(arg_array[1 + array_offset]) / 100.0
                     if strength > 1.0 or strength < 0.0:
                         strength = 1.0
                 except:
                     strength = 1.0
-            if len(arg_array) > (2 + array_offset):
+            if len(arg_array) > 2 + array_offset:
                 try:
                     swing_to_apply = float(arg_array[2 + array_offset]) / 100.0
                     if swing_to_apply > 1.0 or swing_to_apply < 0.0:

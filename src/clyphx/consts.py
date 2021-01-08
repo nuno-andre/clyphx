@@ -30,7 +30,6 @@ if LIVE_VERSION < (9, 1, 0):
     raise RuntimeError('Live releases earlier than 9.1 are not supported')
 
 IS_LIVE_10 = LIVE_VERSION >= (10, 0, 0)
-IS_LIVE_9_1 = LIVE_VERSION >= (9, 1, 0)
 IS_LIVE_9_5 = LIVE_VERSION >= (9, 5, 0)
 
 
