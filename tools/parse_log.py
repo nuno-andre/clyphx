@@ -49,4 +49,5 @@ def get_last_report():
         parse_log(logfile.read())
 
 
-get_last_report()
+if __name__ == '__main__':
+    get_last_report()

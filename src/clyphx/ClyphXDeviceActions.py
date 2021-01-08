@@ -17,6 +17,7 @@
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Generic.Devices import *
+from _Generic.Devices import DEVICE_DICT, DEVICE_BOB_DICT
 from consts import IS_LIVE_9, KEYWORDS, LOOPER_STATES
 
 
@@ -69,9 +70,11 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
                 factor = self._parent.get_adjustment_factor(args)
                 new_index = list(device.chains).index(device.view.selected_chain) + factor
             else:
-                try: new_index = int(args) - 1
-                except: new_index = list(device.chains).index(device.view.selected_chain)
-            if new_index in range(len(device.chains)):
+                try:
+                    new_index = int(args) - 1
+                except:
+                    new_index = list(device.chains).index(device.view.selected_chain)
+            if 0 <= new_index < len(device.chains):
                 device.view.selected_chain = device.chains[new_index]
 
     def adjust_best_of_bank_param(self, device, track, xclip, ident, args):
@@ -133,27 +136,27 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
         """Toggles or turns device on/off."""
         on_off = self.get_device_on_off(device)
         if on_off and on_off.is_enabled:
-            if value in KEYWORDS:
+            try:
                 on_off.value = KEYWORDS[value]
-            else:
+            except KeyError:
                 on_off.value = not(on_off.value)
 
     def set_looper_on_off(self, track, xclip, ident, value = None):
         """Toggles or turns looper on/off."""
         self.get_looper(track)
         if self._looper_data and self._looper_data['Looper'] and self._looper_data['Device On'].is_enabled:
-            if value in KEYWORDS:
+            try:
                 self._looper_data['Device On'].value = KEYWORDS[value]
-            else:
+            except KeyError:
                 self._looper_data['Device On'].value = not(self._looper_data['Device On'].value)
 
     def set_looper_rev(self, track, xclip, ident, value = None):
         """Toggles or turns looper reverse on/off."""
         self.get_looper(track)
         if self._looper_data and self._looper_data['Looper'] and self._looper_data['Reverse'].is_enabled:
-            if value in KEYWORDS:
+            try:
                 self._looper_data['Reverse'].value = KEYWORDS[value]
-            else:
+            except KeyError:
                 self._looper_data['Reverse'].value = not(self._looper_data['Reverse'].value)
 
     def set_looper_state(self, track, xclip, ident, value = None):
@@ -234,7 +237,7 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
             try:
                 bank_num = int(bank_string[1])-1
                 param_num = int(param_string[1])-1
-                if param_num in range (8) and bank_num in range (8) and bank_num <= number_of_parameter_banks(device):
+                if 0 <= param_num < 8 and 0 <= bank_num < 8 and bank_num <= number_of_parameter_banks(device):
                     param_bank = device_bank[bank_num]
                     parameter = get_parameter_by_name(device, param_bank[param_num])
                     if parameter:

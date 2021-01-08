@@ -83,10 +83,10 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             if len(byte_array) >= 2:
                 if len(byte_array) >= 3 and byte_array[0] in status_values:
                     data_bytes = self.convert_strings_to_ints(byte_array[1:])
-                    if data_bytes and data_bytes[0] in range(1, 17):
+                    if data_bytes and 1 <= data_bytes[0] < 17:
                         message_to_send = [status_values[byte_array[0]] + data_bytes[0] - 1]
                         for byte in data_bytes[1:]:
-                            if byte in range(128):
+                            if 0 <= byte < 128:
                                 message_to_send.append(byte)
                         if (byte_array[0] != 'PC' and len(message_to_send) != 3) or (byte_array[0] == 'PC' and len(message_to_send) != 2):
                             return
@@ -95,7 +95,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 if message_to_send:
                     try:
                         self._parent._send_midi(tuple(message_to_send))
-                        if byte_array[0] == 'NOTE': #---send matching note off for note messages
+                        #---send matching note off for note messages
+                        if byte_array[0] == 'NOTE':
                             message_to_send[-1] = 0
                             if IS_LIVE_9:
                                 self._parent.schedule_message(1, partial(self._parent._send_midi, tuple(message_to_send)))
@@ -158,20 +159,20 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 self.song().create_midi_track(-1)
 
     def create_return_track(self, track, xclip, ident, value = None):
-        """Creates return track at end of return list.
-      ."""
+        """Creates return track at end of return list."""
         if IS_LIVE_9:
             self.song().create_return_track()
 
     def insert_and_configure_audio_track(self, track, xclip, ident, value = None):
         """Inserts an audio track next to the selected track routed from the
         selected track and armed.
-      ."""
+        """
         self._insert_and_configure_track()
 
     def insert_and_configure_midi_track(self, track, xclip, ident, value = None):
         """Inserts a midi track next to the selected track routed from the
-        selected track and armed."""
+        selected track and armed.
+        """
         self._insert_and_configure_track(True)
 
     def _insert_and_configure_track(self, is_midi=False):
@@ -297,10 +298,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 new_index = -1
             self._load_preset(dev_items[new_index])
         else:
-            if device.can_have_chains:
-                args = args + '.ADG'
-            else:
-                args = args + '.ADV'
+            args += '.ADG' if device.can_have_chains else '.ADV'
             for item in dev_items:
                 if item.name.upper() == args:
                     self._load_preset(item)
@@ -311,11 +309,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         in the presets list. Returns -1 if not found.
         """
         index = -1
-        current_preset_name = device.name
-        if device.can_have_chains:
-            current_preset_name = current_preset_name + '.adg'
-        else:
-            current_preset_name = current_preset_name + '.adv'
+        current_preset_name = device.name + ('.adg' if device.can_have_chains else '.adv')
+
         for item_index in range(len(presets)):
             if presets[item_index].name == current_preset_name:
                 index = item_index
@@ -421,9 +416,9 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
     def set_session_record(self, track, xclip, ident, value = None):
         """Toggles or turns on/off session record."""
         if IS_LIVE_9:
-            if value in KEYWORDS:
+            try:
                 self.song().session_record = KEYWORDS[value]
-            else:
+            except KeyError:
                 self.song().session_record = not(self.song().session_record)
 
     def trigger_session_record(self, track, xclip, ident, value = None):
@@ -457,9 +452,9 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
     def set_session_automation_record(self, track, xclip, ident, value = None):
         """Toggles or turns on/off session automation record."""
         if IS_LIVE_9:
-            if value in KEYWORDS:
+            try:
                 self.song().session_automation_record = KEYWORDS[value]
-            else:
+            except KeyError:
                 self.song().session_automation_record = not(self.song().session_automation_record)
 
     def retrigger_recording_clips(self, track, xclip, ident, value = None):
@@ -476,37 +471,37 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
 
     def set_overdub(self, track, xclip, ident, value = None):
         """Toggles or turns on/off overdub."""
-        if value in KEYWORDS:
+        try:
             self.song().overdub = KEYWORDS[value]
-        else:
+        except KeyError:
             self.song().overdub = not(self.song().overdub)
 
     def set_metronome(self, track, xclip, ident, value = None):
         """Toggles or turns on/off metronome."""
-        if value in KEYWORDS:
+        try:
             self.song().metronome = KEYWORDS[value]
-        else:
+        except KeyError:
             self.song().metronome = not(self.song().metronome)
 
     def set_record(self, track, xclip, ident, value = None):
         """Toggles or turns on/off record."""
-        if value in KEYWORDS:
+        try:
             self.song().record_mode = KEYWORDS[value]
-        else:
+        except KeyError:
             self.song().record_mode = not(self.song().record_mode)
 
     def set_punch_in(self, track, xclip, ident, value = None):
         """Toggles or turns on/off punch in."""
-        if value in KEYWORDS:
+        try:
             self.song().punch_in = KEYWORDS[value]
-        else:
+        except KeyError:
             self.song().punch_in = not(self.song().punch_in)
 
     def set_punch_out(self, track, xclip, ident, value = None):
         """Toggles or turns on/off punch out."""
-        if value in KEYWORDS:
+        try:
             self.song().punch_out = KEYWORDS[value]
-        else:
+        except KeyError:
             self.song().punch_out = not(self.song().punch_out)
 
     def restart_transport(self, track, xclip, ident, value = None):
@@ -770,7 +765,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         elif args in ('<', '>'):
             factor = self._parent.get_adjustment_factor(args)
             new_gq = self.song().clip_trigger_quantization + factor
-            if new_gq in range (14):
+            if 0 <= new_gq < 14:
                 self.song().clip_trigger_quantization = new_gq
         else:
             if self.song().clip_trigger_quantization != 0:
@@ -900,8 +895,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 scene = list(self.song().scenes).index(self.song().view.selected_scene)
             else:
                 try:
-                    if int(args) in range(len(self.song().scenes) + 1):
-                        scene = int(args)-1
+                    if 0 <= int(args) < len(self.song().scenes) + 1:
+                        scene = int(args) - 1
                 except:
                     pass
         return scene
@@ -963,9 +958,9 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
 
     def set_loop_on_off(self, value = None):
         """Toggles or turns on/off arrange loop."""
-        if value in KEYWORDS:
+        try:
             self.song().loop = KEYWORDS[value]
-        else:
+        except KeyError:
             self.song().loop = not(self.song().loop)
 
     def move_loop_by_factor(self, args):

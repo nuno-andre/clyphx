@@ -17,10 +17,10 @@
 #---This module contains CS and DR Pad Mix Rack.
 
 from _Generic.Devices import *
-from consts import IS_LIVE_9
-from functools import partial
-from MacrobatParameterRackTemplate9 import MacrobatParameterRackTemplate
 from _Framework.SubjectSlot import Subject, SlotManager, subject_slot
+from functools import partial
+from ..consts import IS_LIVE_9
+from .parameter_rack_template import MacrobatParameterRackTemplate
 
 
 class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
@@ -34,13 +34,11 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
         self._selected_chain = None
         MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
 
-
     def disconnect(self):
         self._drum_rack = None
         self._rack = None
         self._selected_chain = None
         MacrobatParameterRackTemplate.disconnect(self)
-
 
     def setup_device(self, rack):
         """Set up macros and drum rack params."""
@@ -75,16 +73,13 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
                             self._param_macros[index] = (macro, param)
                 self._tasks.add(self.get_initial_value)
 
-
     @subject_slot('selected_drum_pad')
     def _on_selected_pad_changed(self):
         self.setup_device(self._rack)
 
-
     @subject_slot('sends')
     def _on_sends_changed(self):
         self.setup_device(self._rack)
-
 
     def _set_selected_chain(self):
         self._selected_chain = None
@@ -100,7 +95,6 @@ class CSWrapper(Subject, SlotManager):
     """Wrapper for a chain selector that limits the max value to the number of
     chains in the rack.
     """
-
     __subject_events__ = ('value',)
 
     def __init__(self, cs):
@@ -149,16 +143,13 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
         self._wrapper = None
         MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
 
-
     def disconnect(self):
         self._rack = None
         self._wrapper = None
         MacrobatParameterRackTemplate.disconnect(self)
 
-
     def scale_macro_value_to_param(self, macro, param):
         return (((param.max - param.min) / 126.0) * macro.value) + param.min
-
 
     def setup_device(self, rack):
         """Set up macro 1 and chain selector.
@@ -183,7 +174,6 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
                     self._tasks.add(self.get_initial_value)
                 else:
                     self._get_initial_value = True
-
 
     @subject_slot('chains')
     def _on_chains_changed(self):

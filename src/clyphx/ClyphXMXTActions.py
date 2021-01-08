@@ -80,7 +80,7 @@ class ClyphXMXTActions(ControlSurfaceComponent):
             note = comp._note_lane_component._note
             start = comp._position_component._start_position
             end = comp._position_component._end_position
-            self._parent._clip_actions.do_clip_note_action(clip, None, None, '', 'NOTES' + str(note) + ' @' + str(start) + '-' + str(end) + ' ' + args)
+            self._parent._clip_actions.do_clip_note_action(clip, None, None, '', 'NOTES @{}-{} {}'.format(note, start, end, args))
 
     def _handle_encoder_action(self, args):
         """Reset or randomize the values of the parameters the encoders are

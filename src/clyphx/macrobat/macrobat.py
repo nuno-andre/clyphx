@@ -16,19 +16,19 @@
 
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from MacrobatMidiRack import MacrobatMidiRack
-from MacrobatRnRRack import MacrobatRnRRack
-from MacrobatSidechainRack import MacrobatSidechainRack
-from MacrobatParameterRacks import (
+from .midi_rack import MacrobatMidiRack
+from .rn_r_rack import MacrobatRnRRack
+from .sidechain_rack import MacrobatSidechainRack
+from .parameter_racks import (
     MacrobatLearnRack, MacrobatChainMixRack, MacrobatDRMultiRack,
     MacrobatDRRack, MacrobatReceiverRack, MacrobatTrackRack,
 )
-from consts import IS_LIVE_9, IS_LIVE_9_5
+from ..consts import IS_LIVE_9, IS_LIVE_9_5
 
 if IS_LIVE_9_5:
-    from MacrobatPushRack import MacrobatPushRack
+    from .push_rack import MacrobatPushRack
 if IS_LIVE_9:
-    from MacrobatParameterRacks9 import MacrobatChainSelectorRack, MacrobatDRPadMixRack
+    from .parameter_racks9 import MacrobatChainSelectorRack, MacrobatDRPadMixRack
 
 
 class Macrobat(ControlSurfaceComponent):
@@ -136,17 +136,18 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
                 m = MacrobatReceiverRack(self._parent, rack, self._track)
             elif name.startswith('NK TRACK') and not self._track.has_midi_output:
                 m = MacrobatTrackRack(self._parent, rack, self._track)
-            elif name.startswith('NK DR MULTI') and self._parent._can_have_nested_devices:
-                m = MacrobatDRMultiRack(self._parent, rack, self._track)
             elif name.startswith('NK DR PAD MIX') and IS_LIVE_9_5:
                 m = MacrobatDRPadMixRack(self._parent, rack, self._track)
-            elif name.startswith('NK CHAIN MIX') and self._parent._can_have_nested_devices:
-                m = MacrobatChainMixRack(self._parent, rack, self._track)
-            elif name.startswith('NK DR') and self._parent._can_have_nested_devices:
-                m = MacrobatDRRack(self._parent, rack, self._track)
-            elif name.startswith('NK LEARN') and self._parent._can_have_nested_devices and self._track == self.song().master_track and not self._has_learn_rack:
-                m = MacrobatLearnRack(self._parent, rack, self._track)
-                self._has_learn_rack = True
+            elif self._parent._can_have_nested_devices:
+                if name.startswith('NK DR MULTI'):
+                    m = MacrobatDRMultiRack(self._parent, rack, self._track)
+                elif name.startswith('NK CHAIN MIX'):
+                    m = MacrobatChainMixRack(self._parent, rack, self._track)
+                elif name.startswith('NK DR'):
+                    m = MacrobatDRRack(self._parent, rack, self._track)
+                elif name.startswith('NK LEARN') and self._track == self.song().master_track and not self._has_learn_rack:
+                    m = MacrobatLearnRack(self._parent, rack, self._track)
+                    self._has_learn_rack = True
             elif name.startswith('NK MIDI'):
                 m = MacrobatMidiRack(self._parent, rack, name)
             elif name.startswith(('NK RST', 'NK RND')):

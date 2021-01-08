@@ -72,9 +72,7 @@ class ClyphXM4LBrowserInterface(ControlSurfaceComponent):
         if device:
             if self.application().view.browse_mode:
                 self.application().view.toggle_browse()
-            if device.class_name == 'PluginDevice' or self._track_contains_browser():
-                pass
-            else:
+            if device.class_name != 'PluginDevice' and not self._track_contains_browser():
                 tag_to_use = None
                 device_to_use = device.class_display_name
                 if device.can_have_drum_pads:
@@ -87,11 +85,12 @@ class ClyphXM4LBrowserInterface(ControlSurfaceComponent):
                     tag_to_use = 'MIDI Effects'
                 elif device.type == Live.Device.DeviceType.instrument:
                     tag_to_use = 'Instruments'
-        if tag_to_use and device_to_use:
-            self.application().view.toggle_browse()
-            self._selected_tag = self._browser[tag_to_use]
-            self._selected_device = self._selected_tag['devices'][device_to_use]
-            items = sorted(self._selected_device['folders'].keys()) + sorted(self._selected_device['items'])
+
+                if tag_to_use and device_to_use:
+                    self.application().view.toggle_browse()
+                    self._selected_tag = self._browser[tag_to_use]
+                    self._selected_device = self._selected_tag['devices'][device_to_use]
+                    items = sorted(self._selected_device['folders'].keys()) + sorted(self._selected_device['items'])
         return items
 
     def deactivate_hotswap(self):
@@ -109,8 +108,9 @@ class ClyphXM4LBrowserInterface(ControlSurfaceComponent):
         self._selected_item = self._selected_folder[item_name]
 
     def get_browser_tags(self):
-        """Returns the list of browser tags.
-        Also, initializes browser if it hasn't already been initialized."""
+        """Returns the list of browser tags. Also, initializes browser if it
+        hasn't already been initialized.
+        """
         if not self._browser:
             for tag in self.application().browser.tags:
                 if tag.name in BROWSER_TAGS:
@@ -185,18 +185,12 @@ class ClyphXM4LBrowserInterface(ControlSurfaceComponent):
 
     def _create_items_for_device(self, device):
         """Creates dict of loadable items for the given device or folder."""
-        items_dict = {}
-        for child in device.children:
-            if child.is_loadable and not child.name == 'Drum Rack':
-                items_dict[child.name] = child
-        if len(items_dict) == 1:
-            items_dict[' '] = {}
-        return items_dict
+        items = {c.name: c for c in device.children if c.is_loadable and c.name != 'Drum Rack'}
+        if len(items) == 1:
+            items[' '] = {}
+        return items
 
     def _create_folders_for_device(self, device):
         """Creates dict of folders for the given device."""
-        folders_dict = {}
-        for child in device.children:
-            if child.is_folder:
-                folders_dict[child.name + ' >'] = self._create_items_for_device(child)
-        return folders_dict
+        return {'{} >'.format(c.name): self._create_items_for_device(c)
+                for c in device.children if c.is_folder}

@@ -77,18 +77,22 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                 if len(arg_array) > 0:
                     specified_slot = arg_array[0].strip()
                     if specified_slot != 'SEL':
-                        try: slot = int(specified_slot) - 1
-                        except: pass
+                        try:
+                            slot = int(specified_slot) - 1
+                        except:
+                            pass
                 if len(arg_array) > 1:
-                    try: length = float(arg_array[1].strip()) * bar
-                    except: pass
-            if slot in xrange(len(self.song().scenes)):
+                    try:
+                        length = float(arg_array[1].strip()) * bar
+                    except:
+                        pass
+            if 0 <= slot < len(self.song().scenes):
                 if not track.clip_slots[slot].has_clip:
                     track.clip_slots[slot].create_clip(length)
 
     def set_name(self, track, xclip, ident, args):
         """Set track's name."""
-        if track in tuple(self.song().tracks) + tuple(self.song().return_tracks):
+        if track in self.song().tracks or track in self.song().return_tracks:
             args = args.strip()
             if args:
                 track.name = args
@@ -104,31 +108,31 @@ class ClyphXTrackActions(ControlSurfaceComponent):
             for i in range(len(track.clip_slots)):
                 slot = track.clip_slots[i]
                 if slot.has_clip:
-                    slot.clip.name = name + ' ' + str(i + 1)
+                    slot.clip.name = '{} {}'.format(name, i + 1)
 
     def set_mute(self, track, xclip, ident, value = None):
         """Toggles or turns on/off track mute.
         """
-        if track in tuple(self.song().tracks) + tuple(self.song().return_tracks):
-            if value in KEYWORDS:
+        if track in self.song().tracks or track in self.song().return_tracks:
+            try:
                 track.mute = KEYWORDS[value]
-            else:
+            except KeyError:
                 track.mute = not(track.mute)
 
     def set_solo(self, track, xclip, ident, value = None):
         """Toggles or turns on/off track solo."""
-        if track in tuple(self.song().tracks) + tuple(self.song().return_tracks):
-            if value in KEYWORDS:
+        if track in self.song().tracks or track in self.song().return_tracks:
+            try:
                 track.solo = KEYWORDS[value]
-            else:
+            except KeyError:
                 track.solo = not(track.solo)
 
     def set_arm(self, track, xclip, ident, value = None):
         """Toggles or turns on/off track arm."""
         if track in self.song().tracks and track.can_be_armed:
-            if value in KEYWORDS:
+            try:
                 track.arm = KEYWORDS[value]
-            else:
+            except KeyError:
                 track.arm = not(track.arm)
 
     def set_fold(self, track, xclip, ident, value = None):
@@ -244,10 +248,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                 if type(xclip) is Live.Clip.Clip:
                     slot_to_play = xclip.canonical_parent.canonical_parent.playing_slot_index
                 else:
-                    if play_slot >= 0:
-                        slot_to_play = play_slot
-                    else:
-                        slot_to_play = select_slot
+                    slot_to_play = play_slot if play_slot >= 0 else select_slot
             elif args == 'SEL':
                 slot_to_play = select_slot
             #--Don't allow randomization unless more than 1 scene
@@ -259,11 +260,15 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                     if len(rnd_range_data) == 2:
                         new_min = 0
                         new_max = num_scenes
-                        try: new_min = int(rnd_range_data[0]) - 1
-                        except: new_min = 0
-                        try: new_max = int(rnd_range_data[1])
-                        except: new_max = num_scenes
-                        if new_min in range(num_scenes) and new_max in range(num_scenes + 1) and new_min < new_max - 1:
+                        try:
+                            new_min = int(rnd_range_data[0]) - 1
+                        except:
+                            new_min = 0
+                        try:
+                            new_max = int(rnd_range_data[1])
+                        except:
+                            new_max = num_scenes
+                        if 0 <= new_min and new_max < num_scenes + 1 and new_min < new_max - 1:
                             rnd_range = [new_min, new_max]
                 slot_to_play = Live.Application.get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
                 if slot_to_play == play_slot:

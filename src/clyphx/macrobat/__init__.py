@@ -14,11 +14,4 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
-import Live
-from .clyphx import ClyphX
-
-
-def create_instance(c_instance):
-    return ClyphX(c_instance)
+from .macrobat import Macrobat

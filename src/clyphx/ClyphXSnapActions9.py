@@ -428,10 +428,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
 
     def _get_snap_device_range(self, args, track):
         """Returns range of devices to snapshot."""
-        dev_args = args.replace('MIX', '')
-        dev_args = dev_args.replace('PLAY', '')
-        dev_args = dev_args.replace('DEV', '')
-        dev_args = dev_args.replace('IO', '')
+        dev_args = args.replace('MIX', '').replace('PLAY', '').replace('DEV', '').replace('IO', '')
         start = 0
         end = start + 1
         if dev_args:
@@ -443,12 +440,14 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                     name_split = dev_args.split('-')
                     start = int(name_split[0].strip()) - 1
                     end = int(name_split[1].strip())
-                except: pass
+                except:
+                    pass
             else:
                 try:
                     start = int(dev_args) - 1
                     end = start + 1
-                except: pass
+                except:
+                    pass
         if start > len(track.devices) or start < 0 or end > len(track.devices) or end < start:
             return()
         return (start, end)

@@ -8,6 +8,7 @@
 *.py            text diff=python
 *.txt           text
 *.pyc           binary
+*.ps1           text encoding=utf-16le eol=crlf
 
 # Docs
 *.html          text diff=html

@@ -24,7 +24,8 @@ try:
     from _NKFW.Scales import SCALE_TYPES
     from _NKFW.ScalesComponent import EDITABLE_SCALE
     HAS_PXT = True
-except: pass
+except:
+    pass
 
 UNWRITABLE_INDEXES = (17, 35, 53)
 FULL_SEGMENT = 17
@@ -73,8 +74,7 @@ class ClyphXPXTActions(ControlSurfaceComponent):
                     self._encoders = c._encoders
 
     def dispatch_action(self, track, xclip, ident, action, args):
-        """Dispatch action to proper action group handler.
-        """
+        """Dispatch action to proper action group handler."""
         if self._script:
             if args.startswith('MSG'):
                 self._display_message(args, xclip)
@@ -100,7 +100,9 @@ class ClyphXPXTActions(ControlSurfaceComponent):
                 note = comp._note_lane_components[comp._selected_lane_index]._note
                 start = comp._position_component._start_position
                 end = comp._position_component._end_position
-                self._parent._clip_actions.do_clip_note_action(clip, None, None, '', 'NOTES' + str(note) + ' @' + str(start) + '-' + str(end) + ' ' + args)
+                self._parent._clip_actions.do_clip_note_action(
+                    clip, None, None, '', 'NOTES{} @{}-{} {}'.format(note, start, end, args)
+                )
 
     def _handle_poly_seq_action(self, args, xclip, ident):
         """Handle note actions related to the notes currently being sequenced
@@ -118,40 +120,45 @@ class ClyphXPXTActions(ControlSurfaceComponent):
                 end = comp._position_component._end_position
                 notes = None
                 if 'ALL' in args:
-                    notes = str(comp._note_lane_components[0]._note) + '-' + str(comp._note_lane_components[-1]._note)
+                    notes = '{}-{}'.format(comp._note_lane_components[0]._note,
+                                           comp._note_lane_components[-1]._note)
                     args = args.replace('ALL', '')
                 else:
                     lane_spec = args.split()[0]
                     try:
                         lane_num = int(lane_spec) - 1
-                        if lane_num in range(comp._num_note_lanes):
+                        if 0 <= lane_num < comp._num_note_lanes:
                             notes = str(comp._note_lane_components[lane_num]._note)
                         args = args.replace(lane_spec, '')
-                    except: pass
+                    except:
+                        pass
                 if notes:
                     start = comp._position_component._start_position
                     end = comp._position_component._end_position
-                    self._parent._clip_actions.do_clip_note_action(clip, None, None, '', 'NOTES' + str(notes) + ' @' + str(start) + '-' + str(end) + ' ' + args)
+                    self._parent._clip_actions.do_clip_note_action(
+                        clip, None, None, '', 'NOTES{} @{}-{} {}'.format(notes, start, end, args)
+                    )
 
     def _capture_seq_settings(self, xclip, ident, comp, is_mono):
         """Capture the settings of the given seq comp and store them in the
         given xclip.
         """
-        if type(xclip) is Live.Clip.Clip and HAS_PXT:
-            settings = ''
-            # res settings
-            settings += str(SEQ_RESOLUTIONS.index(comp._resolution_component._resolution)) + ' '
-            # velo settings
+        if isinstance(xclip, Live.Clip.Clip) and HAS_PXT:
+            settings = list()
+
+            # resolution settings
+            settings += [SEQ_RESOLUTIONS.index(comp._resolution_component._resolution)]
+            # velocity settings
             velo_comp = comp._velocity_component
-            settings += str(velo_comp._fixed_velocity) + ' '
-            settings += str(velo_comp._velocity_type) + ' '
+            settings += [velo_comp._fixed_velocity, velo_comp._velocity_type]
             # scale settings
             scl_comp = comp._scales_component
-            settings += str(scl_comp._scale_index) + ' '
-            settings += str(scl_comp._root_note) + ' '
-            settings += str(scl_comp._octave_offset) + ' '
-            settings += str(scl_comp._offset_within_octave)
-            xclip.name = ident + ' PXT ' + ('MSEQ' if is_mono else 'PSEQ') + ' CAP ' + settings
+            settings += [scl_comp._scale_index, scl_comp._root_note,
+                         scl_comp._octave_offset, scl_comp._offset_within_octave]
+
+            xclip.name = '{} PXT {} CAP {}'.format(ident,
+                                                   'MSEQ' if is_mono else 'PSEQ',
+                                                   ' '.join(map(str, settings)))
 
     def _recall_seq_settings(self, args, comp):
         """Recall the settings for the given seq comp."""
@@ -212,7 +219,8 @@ class ClyphXPXTActions(ControlSurfaceComponent):
             for i in range(num_segments):
                 offset = FULL_SEGMENT_OFFSETS[i]
                 self._message_display_line.write_momentary(offset, FULL_SEGMENT, note_at_og_case[offset:offset+FULL_SEGMENT], True)
-            self._tasks.add(_Framework.Task.sequence(_Framework.Task.delay(15), self._revert_display))
+            self._tasks.add(_Framework.Task.sequence(_Framework.Task.delay(15),
+                                                     self._revert_display))
 
     def _revert_display(self, args=None):
         """Reverts the display after showing temp message."""

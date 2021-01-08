@@ -15,9 +15,9 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import with_statement
+import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from consts import KEYWORDS, NOTE_NAMES
-import Live
 
 
 UNWRITABLE_INDEXES = (17, 35, 53)

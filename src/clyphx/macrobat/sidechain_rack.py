@@ -15,12 +15,12 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 import Live
-from consts import IS_LIVE_9
+from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+
+from ..consts import IS_LIVE_9
 
 if IS_LIVE_9:
     from functools import partial
-
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
 
 class MacrobatSidechainRack(ControlSurfaceComponent):

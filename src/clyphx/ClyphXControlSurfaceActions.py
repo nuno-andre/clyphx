@@ -68,20 +68,20 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         for index in range (len(instanciated_scripts)):
             script = instanciated_scripts[index]
             self._scripts[index] = {
-                'script': script,
-                'name': None,
-                'repeat': False,
-                'mixer': None,
-                'device': None,
+                'script':        script,
+                'name':          None,
+                'repeat':        False,
+                'mixer':         None,
+                'device':        None,
                 'last_ring_pos': None,
-                'session': None,
-                'track_link': False,
-                'scene_link': False,
+                'session':       None,
+                'track_link':    False,
+                'scene_link':    False,
                 'centered_link': False,
-                'color': False,
+                'color':         False,
             }
             script_name = script.__class__.__name__
-            if isinstance (script, (ControlSurface, CS)):
+            if isinstance(script, (ControlSurface, CS)):
                 if script_name == 'GenericScript':
                     script_name = script._suggested_input_port
                 if script_name.startswith('Arsenal'):
@@ -98,7 +98,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                     else:
                         self._scripts[index]['name'] = script_name.upper()
                         for c in script.components:
-                            if isinstance (c, SessionComponent):
+                            if isinstance(c, SessionComponent):
                                 self._scripts[index]['session'] = c
                                 if script_name.startswith('APC'):
                                     self._scripts[index]['color'] = {
@@ -122,9 +122,9 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                                         'component': None,
                                         'override':  script._selector,
                                     }
-                            if isinstance (c, MixerComponent):
+                            if isinstance(c, MixerComponent):
                                 self._scripts[index]['mixer'] = c
-                            if isinstance (c, DeviceComponent):
+                            if isinstance(c, DeviceComponent):
                                 self._scripts[index]['device'] = c
                         if script_name == 'Push':
                             self._scripts[index]['session'] = script._session_ring
@@ -148,7 +148,6 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         """Dispatch Push-related actions to PushActions."""
         if self._push_actions:
             self._push_actions.dispatch_action(track, xclip, ident, action, args)
-
 
     def dispatch_pxt_action(self, track, xclip, ident, action, args):
         """Dispatch PXT-related actions to PXTActions."""
@@ -199,6 +198,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                 script_spec = script_info.strip('SURFACE')
             elif 'CS' in script_info:
                 script_spec = script_info.strip('CS')
+
             if len(script_spec) == 1:
                 script = int(script_spec) - 1
                 if not self._scripts.has_key(script):
@@ -208,7 +208,8 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                 for k, v in self._scripts.items():
                     if v['name'] == script_spec:
                         script = k
-        except: script = None
+        except:
+            script = None
         return script
 
     def handle_note_repeat(self, script, script_index, args):
@@ -257,7 +258,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                 track_start = None
                 track_end = None
         if track_start != None and track_end != None:
-            if track_start in list(range(len(mixer._channel_strips) + 1)) and track_end in list(range(len(mixer._channel_strips) + 1)) and track_start < track_end:
+            if 0 <= track_start and track_end < len(mixer._channel_strips) + 1 and track_start < track_end:
                 track_list = []
                 if self._scripts[script_key]['name'] == 'PUSH':
                     offset, _ = self._push_actions.get_session_offsets(self._scripts[script_key]['session'])
@@ -266,7 +267,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                     offset = mixer._track_offset
                     tracks_to_use = mixer.tracks_to_use()
                 for index in range(track_start, track_end):
-                    if index + offset in list(range(len(tracks_to_use))):
+                    if 0 <= (index + offset) < len(tracks_to_use):
                         track_list.append(tracks_to_use[index + offset])
                 if track_list:
                     self._parent.action_dispatch(track_list, xclip, new_action, new_args, ident)
@@ -289,9 +290,10 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         else:
             try:
                 offset = int(args)
-                if offset + t_offset in list(range(len(tracks))):
+                if 0 <= (offset + t_offset) < len(tracks):
                     new_offset = offset + t_offset
-            except: new_offset = None
+            except:
+                new_offset = None
         if new_offset >= 0:
             if session:
                 session.set_offsets(new_offset, s_offset)
@@ -351,7 +353,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                         if name == item.name.upper():
                             index = i
                             break
-                    arg_string = arg_string.replace(spec_id + '"' + name + '"', '', 1).strip()
+                    arg_string = arg_string.replace('{}"{}"'.format(spec_id, name), '', 1).strip()
                     break
         return (index, arg_string)
 
@@ -364,7 +366,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         self._scripts[script_index]['centered_link'] = 'CENTER' in args
 
     def handle_session_colors(self, session, colors, args):
-        """ Handle changing clip launch LED colors."""
+        """Handle changing clip launch LED colors."""
         args = args.split()
         if len(args) == 3:
             for a in args:
@@ -417,7 +419,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                                     new_trk_id = 0
                             else:
                                 centered_id = new_trk_id - mid_point
-                                if centered_id in list(range(len(self.song().visible_tracks))):
+                                if 0 <= centered_id < len(self.song().visible_tracks):
                                     new_trk_id = centered_id
                         session.set_offsets(new_trk_id, s_offset)
                     except: pass
@@ -448,7 +450,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                                 new_scn_id = 0
                         else:
                             centered_id = new_scn_id - mid_point
-                            if centered_id in list(range(len(self.song().scenes))):
+                            if 0 <= centered_id < len(self.song().scenes):
                                 new_scn_id = centered_id
                     session.set_offsets(t_offset, new_scn_id)
                 except:

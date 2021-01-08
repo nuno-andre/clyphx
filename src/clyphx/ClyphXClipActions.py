@@ -55,10 +55,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
             clip.name = args
 
     def set_clip_on_off(self, clip, track, xclip, ident, value = None):
-        """.Toggles or turns clip on/off."""
-        if value in KEYWORDS:
+        """Toggles or turns clip on/off."""
+        try:
             clip.muted = not(KEYWORDS[value])
-        else:
+        except KeyError:
             clip.muted = not(clip.muted)
 
     def set_warp(self, clip, track, xclip, ident, value = None):
@@ -163,9 +163,11 @@ class ClyphXClipActions(ControlSurfaceComponent):
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
             if IS_LIVE_9 and clip.looping:
-                clip.end_marker = max((clip.start_marker - factor), (clip.end_marker + factor))
+                clip.end_marker = max((clip.start_marker - factor),
+                                      (clip.end_marker + factor))
             else:
-                clip.loop_end = max((clip.loop_start - factor), (clip.loop_end + factor))
+                clip.loop_end = max((clip.loop_start - factor),
+                                    (clip.loop_end + factor))
         else:
             try:
                 if IS_LIVE_9 and clip.looping:
@@ -236,7 +238,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
             if args in CLIP_GRID_STATES:
                 clip.view.grid_quantization = CLIP_GRID_STATES[args]
 
-
     def set_triplet_grid(self, clip, track, xclip, ident, args):
         """Toggles or turns triplet grid on or off."""
         if IS_LIVE_9:
@@ -245,11 +246,9 @@ class ClyphXClipActions(ControlSurfaceComponent):
             else:
                 clip.view.grid_is_triplet = not(clip.view.grid_is_triplet)
 
-
     def capture_to_envelope(self, clip, track, xclip, ident, args):
         if IS_LIVE_9_1:
             self._env_capture.capture(clip, track, args)
-
 
     def insert_envelope(self, clip, track, xclip, ident, args):
         """Inserts an envelope for the given parameter into the clip.
@@ -289,7 +288,6 @@ class ClyphXClipActions(ControlSurfaceComponent):
                         clip.view.select_envelope_parameter(param)
                         clip.clear_envelope(param)
                         self._perform_envelope_insertion(clip, param, env_type, env_range)
-
 
     def _perform_envelope_insertion(self, clip, param, env_type, env_range):
         """Performs the actual insertion of the envelope into the clip."""
@@ -549,9 +547,9 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def set_loop_on_off(self, clip, value = None):
         """Toggles or turns clip loop on/off."""
-        if value in KEYWORDS:
+        try:
             clip.looping = KEYWORDS[value]
-        else:
+        except KeyError:
             clip.looping = not(clip.looping)
 
     def move_clip_loop_by_factor(self, clip, args, clip_stats):
@@ -669,7 +667,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 self.write_all_notes(clip, edited_notes, note_data['other_notes'])
 
     def do_note_gate_adjustment(self, clip, args, notes_to_edit, other_notes):
-        """ Adjust note gate """
+        """Adjust note gate."""
         edited_notes = []
         factor = self._parent.get_adjustment_factor(args.split()[1], True)
         for n in notes_to_edit:
@@ -683,7 +681,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_nudge_adjustment(self, clip, args, notes_to_edit, other_notes):
-        """ Adjust note position """
+        """Adjust note position."""
         edited_notes = []
         factor = self._parent.get_adjustment_factor(args.split()[1], True)
         for n in notes_to_edit:
@@ -697,7 +695,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_velo_adjustment(self, clip, args, notes_to_edit, other_notes):
-        """ Adjust/set/randomize note velocity """
+        """Adjust/set/randomize note velocity."""
         edited_notes = []
         args = args.replace('VELO ', '')
         args = args.strip()
@@ -720,37 +718,52 @@ class ClyphXClipActions(ControlSurfaceComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_pitch_scramble(self, clip, args, notes_to_edit, other_notes):
-        """ Scrambles the pitches in the clip, but maintains rhythm. """
+        """Scrambles the pitches in the clip, but maintains rhythm."""
         if IS_LIVE_9:
             edited_notes = []
             pitches = [n[0] for n in notes_to_edit]
             random.shuffle(pitches)
             for i in range(len(notes_to_edit)):
-                edited_notes.append((pitches[i], notes_to_edit[i][1], notes_to_edit[i][2], notes_to_edit[i][3], notes_to_edit[i][4]))
+                edited_notes.append((
+                    pitches[i],
+                    notes_to_edit[i][1],
+                    notes_to_edit[i][2],
+                    notes_to_edit[i][3],
+                    notes_to_edit[i][4],
+                ))
             if edited_notes:
                 self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_position_scramble(self, clip, args, notes_to_edit, other_notes):
-        """ Scrambles the position of notes in the clip, but maintains pitches. """
+        """Scrambles the position of notes in the clip, but maintains pitches.
+        """
         if IS_LIVE_9:
             edited_notes = []
             positions = [n[1] for n in notes_to_edit]
             random.shuffle(positions)
             for i in range(len(notes_to_edit)):
-                edited_notes.append((notes_to_edit[i][0], positions[i], notes_to_edit[i][2], notes_to_edit[i][3], notes_to_edit[i][4]))
+                edited_notes.append((
+                    notes_to_edit[i][0],
+                    positions[i],
+                    notes_to_edit[i][2],
+                    notes_to_edit[i][3],
+                    notes_to_edit[i][4],
+                ))
             if edited_notes:
                 self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_reverse(self, clip, args, notes_to_edit, other_notes):
-        """ Reverse the position of notes """
+        """Reverse the position of notes."""
         edited_notes = []
         for n in notes_to_edit:
-            edited_notes.append((n[0], abs(clip.loop_end - (n[1] + n[2]) + clip.loop_start), n[2], n[3], n[4]))
+            edited_notes.append(
+                (n[0], abs(clip.loop_end - (n[1] + n[2]) + clip.loop_start), n[2], n[3], n[4])
+            )
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_invert(self, clip, args, notes_to_edit, other_notes):
-        """ Inverts the pitch of notes. """
+        """ Inverts the pitch of notes."""
         edited_notes = []
         for n in notes_to_edit:
             edited_notes.append((127 - n[0], n[1], n[2], n[3], n[4]))
@@ -758,7 +771,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_compress(self, clip, args, notes_to_edit, other_notes):
-        """ Compresses the position and duration of notes by half. """
+        """Compresses the position and duration of notes by half."""
         edited_notes = []
         for n in notes_to_edit:
             edited_notes.append((n[0], n[1] / 2, n[2] / 2, n[3], n[4]))
@@ -766,7 +779,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_expand(self, clip, args, notes_to_edit, other_notes):
-        """ Expands the position and duration of notes by 2. """
+        """Expands the position and duration of notes by 2."""
         edited_notes = []
         for n in notes_to_edit:
             edited_notes.append((n[0], n[1] * 2, n[2] * 2, n[3], n[4]))
@@ -774,7 +787,9 @@ class ClyphXClipActions(ControlSurfaceComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_split_or_combine(self, clip, args, notes_to_edit, other_notes):
-        """ Split notes into 2 equal parts or combine each consecutive set of 2 notes """
+        """Split notes into 2 equal parts or combine each consecutive set of 2
+        notes.
+        """
         edited_notes = [] ; current_note = [] ; check_next_instance = False
         if args == 'SPLIT':
             for n in notes_to_edit:
@@ -788,7 +803,13 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 edited_notes.append(n)
                 if current_note and check_next_instance:
                     if current_note[0] == n[0] and current_note[1] + current_note[2] == n[1]:
-                        edited_notes[edited_notes.index(current_note)] = [current_note[0], current_note[1], current_note[2] + n[2], current_note[3], current_note[4]]
+                        edited_notes[edited_notes.index(current_note)] = [
+                            current_note[0],
+                            current_note[1],
+                            current_note[2] + n[2],
+                            current_note[3],
+                            current_note[4],
+                        ]
                         edited_notes.remove(n)
                         current_note = [] ; check_next_instance = False
                     else:
@@ -800,7 +821,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_crescendo(self, clip, args, notes_to_edit, other_notes):
-        """ Applies crescendo/decrescendo to notes """
+        """Applies crescendo/decrescendo to notes."""
         edited_notes = []; last_pos = -1; pos_index = 0; new_pos = -1; new_index = 0
         sorted_notes = sorted(notes_to_edit, key=lambda note: note[1], reverse=False)
         if args == 'VELO <<':
@@ -818,20 +839,24 @@ class ClyphXClipActions(ControlSurfaceComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_delete(self, clip, args, notes_to_edit, other_notes):
-        """ Delete notes """
+        """Delete notes."""
         self.write_all_notes(clip, [], other_notes)
 
     def get_clip_stats(self, clip):
-        """ Get real length and end of looping clip """
+        """Get real length and end of looping clip."""
         clip.looping = 0
         length = clip.length
         end = clip.loop_end
         clip.looping = 1
         loop_length = clip.loop_end - clip.loop_start
-        return {'clip_length' : length, 'real_end' : end, 'loop_length' : loop_length}
+        return {
+            'clip_length': length,
+            'real_end':    end,
+            'loop_length': loop_length,
+        }
 
     def get_notes_to_operate_on(self, clip, args = None):
-        """ Get notes within loop braces to operate on """
+        """Get notes within loop braces to operate on."""
         notes_to_edit = []
         other_notes = []
         new_args = None
@@ -853,10 +878,14 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 notes_to_edit.append(n)
             else:
                 other_notes.append(n)
-        return {'notes_to_edit' : notes_to_edit, 'other_notes' : other_notes, 'args' : new_args}
+        return {
+            'notes_to_edit': notes_to_edit,
+            'other_notes':   other_notes,
+            'args':          new_args,
+        }
 
     def get_pos_range(self, clip, string):
-        """ Get note position or range to operate on """
+        """Get note position or range to operate on."""
         pos_range = (clip.loop_start, clip.loop_end)
         user_range = string.split('-')
         try: start = float(user_range[0].replace('@', ''))
@@ -871,7 +900,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
         return pos_range
 
     def get_note_range(self, string):
-        """ Get note lane or range to operate on """
+        """Get note lane or range to operate on."""
         note_range = (0,128)
         string = string.replace('NOTES', '')
         if len(string) > 1:
@@ -911,8 +940,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
         return result
 
     def get_note_name_from_string(self, string):
-        """Get the first note name specified in the given string.
-        """
+        """Get the first note name specified in the given string."""
         result = None
         if len(string) >= 2:
             result = string[0:2].strip()
@@ -923,8 +951,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
         return result
 
     def string_to_note(self, string):
-        """Get note value from string.
-        """
+        """Get note value from string."""
         converted_note = None
         base_note = None
         octave = None

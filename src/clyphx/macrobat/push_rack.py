@@ -16,7 +16,7 @@
 
 from __future__ import with_statement
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import NOTE_NAMES
+from ..consts import NOTE_NAMES
 
 
 class MacrobatPushRack(ControlSurfaceComponent):

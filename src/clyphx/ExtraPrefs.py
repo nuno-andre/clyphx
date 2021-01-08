@@ -71,9 +71,10 @@ class ExtraPrefs(ControlSurfaceComponent):
                 self._clip_record = True
             elif 'DEFAULT_INSERTED_MIDI_CLIP_LENGTH' in d[0]:
                 try:
-                    if int(d[1].strip()) in range (2,17):
+                    if 2 <= int(d[1].strip()) < 17:
                         self._midi_clip_length = int(d[1].strip())
-                except: pass
+                except:
+                    pass
             self.on_selected_track_changed()
 
     def on_selected_track_changed(self):
@@ -88,7 +89,11 @@ class ExtraPrefs(ControlSurfaceComponent):
             tracks = list(tuple(self.song().visible_tracks) + tuple(self.song().return_tracks))
             tracks.append(self.song().master_track)
             if self.song().view.selected_track in tracks:
-                self._parent._set_session_highlight(tracks.index(self.song().view.selected_track), list(self.song().scenes).index(self.song().view.selected_scene), 1, 1, True)
+                self._parent._set_session_highlight(
+                    tracks.index(self.song().view.selected_track),
+                    list(self.song().scenes).index(self.song().view.selected_scene),
+                    1, 1, True,
+                )
         else:
             self._parent._set_session_highlight(-1, -1, -1, -1, False)
         if self._exclusive_arm and track != self._last_track:
@@ -123,7 +128,7 @@ class ExtraPrefs(ControlSurfaceComponent):
                     t.fold_state = 0 if t == track else 1
 
     def do_exclusive_arm(self, track):
-        """Called on track change.  Disarams all tracks except for the current
+        """Called on track change.  Disarms all tracks except for the current
         track.
         """
         for t in self.song().tracks:

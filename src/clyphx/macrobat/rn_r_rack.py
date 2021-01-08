@@ -15,12 +15,11 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 import Live
-from consts import IS_LIVE_9
+from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..consts import IS_LIVE_9
 
 if IS_LIVE_9:
     from functools import partial
-
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
 
 class MacrobatRnRRack(ControlSurfaceComponent):
@@ -85,16 +84,11 @@ class MacrobatRnRRack(ControlSurfaceComponent):
                 mess_type = 'next'
                 is_reset = True
             if mess_type:
+                action = self.do_device_reset if is_reset else self.do_device_randomize
                 if IS_LIVE_9:
-                    if is_reset:
-                        self._parent.schedule_message(1, partial(self.do_device_reset, mess_type))
-                    else:
-                        self._parent.schedule_message(1, partial(self.do_device_randomize, mess_type))
+                    self._parent.schedule_message(1, partial(action, mess_type))
                 else:
-                    if is_reset:
-                        self._parent.schedule_message(1, self.do_device_reset, mess_type)
-                    else:
-                        self._parent.schedule_message(1, self.do_device_randomize, mess_type)
+                    self._parent.schedule_message(1, action, mess_type)
 
     def do_device_randomize(self, params):
         """Randomize device params."""

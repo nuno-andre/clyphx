@@ -127,16 +127,16 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                     status_byte = 144
                 elif new_ctrl_data[0].strip() == 'CC':
                     status_byte = 176
-                if int(new_ctrl_data[1].strip()) in range(1,17):
+                if 1 <= int(new_ctrl_data[1].strip()) < 17:
                     channel = int(new_ctrl_data[1].strip()) - 1
-                if int(new_ctrl_data[2].strip()) in range(128):
+                if 0 <= int(new_ctrl_data[2].strip()) < 128:
                     ctrl_num = int(new_ctrl_data[2].strip())
-                on_action = '[' + ctrl_name + '] ' + new_ctrl_data[3]
+                on_action = '[{}] {}'.format(ctrl_name, new_ctrl_data[3])
                 if on_action and len(new_ctrl_data) > 4:
                     if new_ctrl_data[4].strip() == '*':
                         off_action = on_action
                     else:
-                        off_action = '[' + ctrl_name + '] ' + new_ctrl_data[4]
+                        off_action = '[{}] {}'.format(ctrl_name, new_ctrl_data[4])
             except: pass
             if status_byte and channel != None and ctrl_num != None and on_action:
                 self._control_list[(status_byte + channel, ctrl_num)] = {
@@ -146,9 +146,10 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                     'name':       ActionList(on_action),
                 }
                 if status_byte == 144:
-                    Live.MidiMap.forward_midi_note(self._parent._c_instance.handle(), midi_map_handle, channel, ctrl_num)
+                    fn = Live.MidiMap.forward_midi_note
                 else:
-                    Live.MidiMap.forward_midi_cc(self._parent._c_instance.handle(), midi_map_handle, channel, ctrl_num)
+                    fn = Live.MidiMap.forward_midi_cc
+                fn(self._parent._c_instance.handle(), midi_map_handle, channel, ctrl_num)
 
     def rebuild_control_map(self, midi_map_handle):
         """Called from main when build_midi_map is called.
@@ -218,7 +219,7 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
     def get_xclip(self, slot_index):
         """Get the xclip associated with slot_index or None."""
         clip = None
-        if self._track and slot_index in xrange(len(self._track.clip_slots)):
+        if self._track and 0 <= slot_index < len(self._track.clip_slots):
             slot = self._track.clip_slots[slot_index]
             if slot.has_clip and not slot.clip.is_recording and not slot.clip.is_triggered:
                 clip_name = slot.clip.name

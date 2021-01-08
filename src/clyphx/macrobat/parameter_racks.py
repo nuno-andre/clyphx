@@ -17,13 +17,11 @@
 #---This module contains Learn, Chain Mix, DR, DR Multi, Receiver and Track Racks
 
 from _Generic.Devices import *
-from consts import IS_LIVE_9
+from ..consts import IS_LIVE_9
+from .parameter_rack_template import MacrobatParameterRackTemplate
 
 if IS_LIVE_9:
     from functools import partial
-    from MacrobatParameterRackTemplate9 import MacrobatParameterRackTemplate
-else:
-    from MacrobatParameterRackTemplate8 import MacrobatParameterRackTemplate
 
 LAST_PARAM = {}
 
@@ -295,8 +293,10 @@ class MacrobatTrackRack(MacrobatParameterRackTemplate):
             if macro.is_enabled:
                 name = self._parent.get_name(macro.name)
                 if name.startswith('SEND') and not self._track == self.song().master_track:
-                    try: param = self._track.mixer_device.sends[ord(name[5]) - 65]
-                    except: param = None
+                    try:
+                        param = self._track.mixer_device.sends[ord(name[5]) - 65]
+                    except:
+                        param = None
                 elif name.startswith('VOL'):
                     param = self._track.mixer_device.volume
                 elif name.startswith('PAN'):

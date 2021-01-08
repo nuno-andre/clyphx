@@ -22,10 +22,14 @@ from __future__ import unicode_literals
 import Live
 
 app = Live.Application.get_application()
-IS_LIVE_10 = app.get_major_version() == 10
-IS_LIVE_9 = app.get_major_version() >= 9
-IS_LIVE_9_1 = IS_LIVE_10 or (IS_LIVE_9 and app.get_minor_version() >= 1)
-IS_LIVE_9_5 = IS_LIVE_10 or (IS_LIVE_9 and app.get_minor_version() >= 5)
+LIVE_VERSION = (app.get_major_version(),
+                app.get_minor_version(),
+                app.get_bugfix_version())
+
+IS_LIVE_10 = LIVE_VERSION >= (10, 0, 0)
+IS_LIVE_9 = LIVE_VERSION >= (9, 0, 0)
+IS_LIVE_9_1 = LIVE_VERSION >= (9, 1, 0)
+IS_LIVE_9_5 = LIVE_VERSION >= (9, 5, 0)
 
 
 GLOBAL_ACTIONS = {

@@ -16,8 +16,9 @@
 
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from MacrobatUserConfig import SYSEX_LIST
-from consts import IS_LIVE_9
+
+from .user_config import SYSEX_LIST
+from ..consts import IS_LIVE_9
 
 
 class MacrobatMidiRack(ControlSurfaceComponent):
@@ -122,12 +123,12 @@ class MacrobatMidiRack(ControlSurfaceComponent):
                 if len(s) == 4:
                     bytes = s[1].split()
                     current_entry = []
-                    if bytes[0] == 'F0' and bytes[-1] == 'F7' and s[2] in range (128) and s[3] in range (128):
+                    if bytes[0] == 'F0' and bytes[-1] == 'F7' and 0 <= s[2] < 128 and 0 <= s[3] < 128:
                         for byte in bytes:
                             if byte == 'nn':
                                 current_entry.append(-1)
                             else:
-                                if int(byte, 16) in range (248):
+                                if 0 <= int(byte, 16) < 248:
                                     current_entry.append(int(byte, 16))
                         self._sysex_list.append((s[0], current_entry, s[2], s[3]))
 
@@ -137,7 +138,7 @@ class MacrobatMidiRack(ControlSurfaceComponent):
         if self._sysex_list:
             for entry in self._sysex_list:
                 if self._parent.get_name(entry[0]) == name_string:
-                    result = [entry[1], entry[2], entry[3]]
+                    result = entry[1:4]
         return result
 
     def check_for_channel(self, name):
@@ -146,7 +147,7 @@ class MacrobatMidiRack(ControlSurfaceComponent):
         if '[CH' in name and ']' in name and not name.count('[') > 1 and not name.count(']') > 1:
             try:
                 get_ch = int(name[name.index('[')+3:name.index(']')])
-                if get_ch in range (1, 17):
+                if 1 <= get_ch < 17:
                     result = get_ch - 1
             except:
                 pass
@@ -158,7 +159,7 @@ class MacrobatMidiRack(ControlSurfaceComponent):
         if '[CC' in name and ']' in name and not name.count('[') > 1 and not name.count(']') > 1:
             try:
                 get_cc = int(name[name.index('[')+3:name.index(']')])
-                if get_cc in range (128):
+                if 0 <= get_cc < 128:
                     result = get_cc
             except:
                 pass
