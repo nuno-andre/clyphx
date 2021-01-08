@@ -14,9 +14,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, unicode_literals
+
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import GQ_STATES, IS_LIVE_9, KEYWORDS, MON_STATES, XFADE_STATES
+from ..consts import IS_LIVE_9, KEYWORDS
+from ..consts import GQ_STATES, MON_STATES, XFADE_STATES
 
 
 class ClyphXTrackActions(ControlSurfaceComponent):
@@ -114,41 +117,29 @@ class ClyphXTrackActions(ControlSurfaceComponent):
         """Toggles or turns on/off track mute.
         """
         if track in self.song().tracks or track in self.song().return_tracks:
-            try:
-                track.mute = KEYWORDS[value]
-            except KeyError:
-                track.mute = not(track.mute)
+            track.mute = KEYWORDS.get(value, not(track.mute))
 
     def set_solo(self, track, xclip, ident, value = None):
         """Toggles or turns on/off track solo."""
         if track in self.song().tracks or track in self.song().return_tracks:
-            try:
-                track.solo = KEYWORDS[value]
-            except KeyError:
-                track.solo = not(track.solo)
+            track.solo = KEYWORDS.get(value, not(track.solo))
 
     def set_arm(self, track, xclip, ident, value = None):
         """Toggles or turns on/off track arm."""
         if track in self.song().tracks and track.can_be_armed:
-            try:
-                track.arm = KEYWORDS[value]
-            except KeyError:
-                track.arm = not(track.arm)
+            track.arm = KEYWORDS.get(value, not(track.arm))
 
     def set_fold(self, track, xclip, ident, value = None):
         """Toggles or turns on/off track fold."""
         if track.is_foldable:
-            if value in KEYWORDS:
-                track.fold_state = KEYWORDS[value]
-            else:
-                track.fold_state = not(track.fold_state)
+            track.fold_state = KEYWORDS.get(value, not(track.fold_state))
 
     def set_monitor(self, track, xclip, ident, args):
         """Toggles or sets monitor state."""
         if track in self.song().tracks and not track.is_foldable:
-            if args in MON_STATES:
+            try:
                 track.current_monitoring_state = MON_STATES[args]
-            else:
+            except KeyError:
                 if track.current_monitoring_state == 2:
                     track.current_monitoring_state = 0
                 else:
@@ -157,9 +148,9 @@ class ClyphXTrackActions(ControlSurfaceComponent):
     def set_xfade(self, track, xclip, ident, args):
         """Toggles or sets crossfader assignment."""
         if track != self.song().master_track:
-            if args in XFADE_STATES:
+            try:
                 track.mixer_device.crossfade_assign = XFADE_STATES[args]
-            else:
+            except KeyError:
                 if track.mixer_device.crossfade_assign == 2:
                     track.mixer_device.crossfade_assign = 0
                 else:
@@ -209,11 +200,14 @@ class ClyphXTrackActions(ControlSurfaceComponent):
         if IS_LIVE_9:
             slot_to_play = self._get_slot_index_to_play(track, xclip, args.strip())
             if slot_to_play != -1:
-                track.clip_slots[slot_to_play].fire(force_legato=True, launch_quantization=self.song().clip_trigger_quantization)
+                track.clip_slots[slot_to_play].fire(
+                    force_legato=True,
+                    launch_quantization=self.song().clip_trigger_quantization,
+                )
 
     def set_play_w_force_qntz(self, track, xclip, ident, args):
         """Plays the clip with a specific quantization regardless of
-        launch/global quantization.  This will not launch empty slots.
+        launch/global quantization. This will not launch empty slots.
         """
         self._handle_force_qntz_play(track, xclip, args, False)
 
@@ -230,7 +224,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
             arg_array = args.split()
             qntz_spec = arg_array[0]
             if 'BAR' in args:
-                qntz_spec = arg_array[0] + ' ' + arg_array[1]
+                qntz_spec = '{} {}'.format(arg_array[0], arg_array[1])
             if qntz_spec in GQ_STATES.keys():
                 qntz_to_use = GQ_STATES[qntz_spec]
                 slot_to_play = self._get_slot_index_to_play(track, xclip, args.replace(qntz_spec, '').strip())
@@ -245,7 +239,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
             play_slot = track.playing_slot_index
             select_slot = list(self.song().scenes).index(self.song().view.selected_scene)
             if args == '':
-                if type(xclip) is Live.Clip.Clip:
+                if isinstance(xclip, Live.Clip.Clip):
                     slot_to_play = xclip.canonical_parent.canonical_parent.playing_slot_index
                 else:
                     slot_to_play = play_slot if play_slot >= 0 else select_slot
@@ -282,7 +276,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                 if factor < len(self.song().scenes):
                     #---Only launch slots that contain clips
                     if abs(factor) == 1:
-                        for index in range (len(self.song().scenes)):
+                        for index in range(len(self.song().scenes)):
                             play_slot += factor
                             if play_slot >= len(self.song().scenes):
                                 play_slot = 0
@@ -304,7 +298,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                         break
             else:
                 try:
-                    if int(args) in range(len(self.song().scenes) + 1):
+                    if 0 <= int(args) < len(self.song().scenes) + 1:
                         slot_to_play = int(args)-1
                 except:
                     pass
@@ -396,7 +390,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
         args = args.strip()
         if args in ('<', '>'):
             factor = self._parent.get_adjustment_factor(args)
-            if current_routing + factor in range(len(routings)):
+            if 0 <= (current_routing + factor) < len(routings):
                 new_routing = routings[current_routing + factor]
         else:
             for i in routings:

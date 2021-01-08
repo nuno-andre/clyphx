@@ -14,9 +14,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, unicode_literals
+
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import KEYWORDS
+from ..consts import KEYWORDS
 
 MAX_SCROLL_POS = 28
 
@@ -92,18 +94,12 @@ class ClyphXDRActions9(ControlSurfaceComponent):
     def _mute_pads(self, pads, action_arg):
         '''Toggles or turns on/off pad mute.'''
         for pad in pads:
-            if action_arg in KEYWORDS:
-                pad.mute = KEYWORDS[action_arg]
-            else:
-                pad.mute = not pad.mute
+            pad.mute = KEYWORDS.get(action_arg, not pad.mute)
 
     def _solo_pads(self, pads, action_arg):
         '''Toggles or turns on/off pad solo.'''
         for pad in pads:
-            if action_arg in KEYWORDS:
-                pad.solo = KEYWORDS[action_arg]
-            else:
-                pad.solo = not pad.solo
+            pad.solo = KEYWORDS.get(action_arg, not pad.solo)
 
     def _adjust_pad_volume(self, pads, action_arg):
         '''Adjust/set pad volume.'''
@@ -135,7 +131,7 @@ class ClyphXDRActions9(ControlSurfaceComponent):
         elif pads:
             try:
                 index = int(pads) - 1
-                if index in range(16):
+                if 0 <= index < 16:
                     pads_to_operate_on = [dr.visible_drum_pads[index]]
             except:
                 pass

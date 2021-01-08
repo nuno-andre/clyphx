@@ -14,13 +14,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, unicode_literals
+
 # from builtins import range
 
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ClyphXClipEnvCapture import ClyphXClipEnvCapture
-from consts import (CLIP_GRID_STATES, IS_LIVE_9, IS_LIVE_9_1, KEYWORDS,
-                    NOTE_NAMES, OCTAVE_NAMES, R_QNTZ_STATES, WARP_MODES)
+from .xclip_env_capture import ClyphXClipEnvCapture
+from ..consts import IS_LIVE_9, IS_LIVE_9_1, KEYWORDS
+from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES, WARP_MODES,
+                      NOTE_NAMES, OCTAVE_NAMES)
 
 if IS_LIVE_9:
     import random
@@ -56,19 +59,12 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def set_clip_on_off(self, clip, track, xclip, ident, value = None):
         """Toggles or turns clip on/off."""
-        try:
-            clip.muted = not(KEYWORDS[value])
-        except KeyError:
-            clip.muted = not(clip.muted)
+        clip.muted = not(KEYWORDS.get(value, clip.muted))
 
     def set_warp(self, clip, track, xclip, ident, value = None):
         """Toggles or turns clip warp on/off."""
         if clip.is_audio_clip:
-            value = value.strip()
-            if value in KEYWORDS:
-                clip.warping = KEYWORDS[value]
-            else:
-                clip.warping = not(clip.warping)
+            clip.warping = KEYWORDS.get(value.strip(), not(clip.warping))
 
     def adjust_time_signature(self, clip, track, xclip, ident, args):
         """Adjust clip's time signature."""
@@ -77,7 +73,8 @@ class ClyphXClipActions(ControlSurfaceComponent):
             try:
                 clip.signature_numerator = int(name_split[0].strip())
                 clip.signature_denominator = int(name_split[1].strip())
-            except: pass
+            except:
+                pass
 
     def adjust_detune(self, clip, track, xclip, ident, args):
         """Adjust/set audio clip detune."""
@@ -228,7 +225,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
                     new_mode = 6
                 elif new_mode == 5 and '<' in args:
                     new_mode = 4
-                if new_mode in range(7) and new_mode != 5:
+                if 0 <= new_mode < 7 and new_mode != 5:
                     clip.warp_mode = new_mode
 
     def adjust_grid_quantization(self, clip, track, xclip, ident, args):
@@ -241,10 +238,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
     def set_triplet_grid(self, clip, track, xclip, ident, args):
         """Toggles or turns triplet grid on or off."""
         if IS_LIVE_9:
-            if args in KEYWORDS:
-                clip.view.grid_is_triplet = KEYWORDS[args]
-            else:
-                clip.view.grid_is_triplet = not(clip.view.grid_is_triplet)
+            clip.view.grid_is_triplet = KEYWORDS.get(args, not(clip.view.grid_is_triplet))
 
     def capture_to_envelope(self, clip, track, xclip, ident, args):
         if IS_LIVE_9_1:
@@ -259,7 +253,8 @@ class ClyphXClipActions(ControlSurfaceComponent):
             args = args.strip()
             arg_array = args.split()
             if len(arg_array) > 1:
-                # used to determine whether env_type is last arg...otherwise a range is specified
+                # used to determine whether env_type is last arg...
+                #   otherwise a range is specified
                 last_arg_index = len(arg_array) - 1
                 env_type_index = last_arg_index
                 env_type = None
@@ -270,8 +265,8 @@ class ClyphXClipActions(ControlSurfaceComponent):
                         break
                 if env_type:
                     env_param_spec = ''
-                    for index in range(env_type_index):
-                        env_param_spec += arg_array[index] + ' '
+                    for i in range(env_type_index):
+                        env_param_spec += '{} '.format(arg_array[i])
                     param = self._get_envelope_parameter(track, env_param_spec)
                     if param and not param.is_quantized:
                         env_range = (param.min, param.max)
@@ -280,9 +275,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
                             try:
                                 min_factor = int(arg_array[-2])
                                 max_factor = int(arg_array[-1])
-                                if min_factor in range(101) and max_factor in range(101) and min_factor < max_factor:
+                                if 0 <= min_factor and max_factor < 101 and min_factor < max_factor:
                                     env_range = ((min_factor / 100.0) * param.max, (max_factor / 100.0) * param.max)
-                            except: pass
+                            except:
+                                pass
                         self.song().view.detail_clip = clip
                         clip.view.show_envelope()
                         clip.view.select_envelope_parameter(param)
@@ -411,13 +407,15 @@ class ClyphXClipActions(ControlSurfaceComponent):
                         strength = float(arg_array[1 + array_offset]) / 100.0
                         if strength > 1.0 or strength < 0.0:
                             strength = 1.0
-                    except: strength = 1.0
+                    except:
+                        strength = 1.0
                 if len(arg_array) > (2 + array_offset):
                     try:
                         swing_to_apply = float(arg_array[2 + array_offset]) / 100.0
                         if swing_to_apply > 1.0 or swing_to_apply < 0.0:
                             swing_to_apply = 0.0
-                    except: swing_to_apply = 0.0
+                    except:
+                        swing_to_apply = 0.0
                 self.song().swing_amount = swing_to_apply
                 # apply standard qntz to all
                 if array_offset == 0:
@@ -463,20 +461,23 @@ class ClyphXClipActions(ControlSurfaceComponent):
             args = args.strip()
             num_chops = 8
             if args:
-                try: num_chops = int(args)
-                except: pass
+                try:
+                    num_chops = int(args)
+                except:
+                    pass
             slot_index = list(track.clip_slots).index(clip.canonical_parent)
             current_start = clip.start_marker
             chop_length = (clip.loop_end - current_start) / num_chops
             try:
-                for index in range(num_chops - 1):
-                    track.duplicate_clip_slot(slot_index + index)
-                    dupe_start = (chop_length * (index + 1)) + current_start
-                    dupe = track.clip_slots[slot_index + index + 1].clip
+                for i in range(num_chops - 1):
+                    track.duplicate_clip_slot(slot_index + i)
+                    dupe_start = (chop_length * (i + 1)) + current_start
+                    dupe = track.clip_slots[slot_index + i + 1].clip
                     dupe.start_marker = dupe_start
                     dupe.loop_start = dupe_start
-                    dupe.name = clip.name + '-' + str(index + 1)
-            except: pass
+                    dupe.name = clip.name + '-' + str(i + 1)
+            except:
+                pass
 
     def split_clip(self, clip, track, xclip, ident, args):
         """Duplicates the clip and sets each duplicate to have the length
@@ -547,10 +548,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def set_loop_on_off(self, clip, value = None):
         """Toggles or turns clip loop on/off."""
-        try:
-            clip.looping = KEYWORDS[value]
-        except KeyError:
-            clip.looping = not(clip.looping)
+        clip.looping = KEYWORDS.get(value, not(clip.looping))
 
     def move_clip_loop_by_factor(self, clip, args, clip_stats):
         """Move clip loop by its length or by a specified factor."""
@@ -582,9 +580,9 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 if qntz:
                     distance = start % bar
                     if distance <= bar / 2:
-                        start = start - distance
+                        start -= distance
                     else:
-                        start = start + (bar - distance)
+                        start += bar - distance
             end = start + (bar * bars_to_loop)
             self.set_new_loop_position(clip, start, end, clip_stats)
         except:
@@ -658,11 +656,11 @@ class ClyphXClipActions(ControlSurfaceComponent):
         if note_data['notes_to_edit']:
             for n in note_data['notes_to_edit']:
                 new_pitch = n[0] + factor
-                if not new_pitch in range (128):
+                if 0 <= new_pitch < 128:
+                    edited_notes.append((new_pitch, n[1], n[2], n[3], n[4]))
+                else:
                     edited_notes = []
                     return()
-                else:
-                    edited_notes.append((new_pitch, n[1], n[2], n[3], n[4]))
             if edited_notes:
                 self.write_all_notes(clip, edited_notes, note_data['other_notes'])
 
@@ -705,11 +703,11 @@ class ClyphXClipActions(ControlSurfaceComponent):
             elif args.startswith(('<', '>')):
                 factor = self._parent.get_adjustment_factor(args)
                 new_velo = n[3] + factor
-                if not new_velo in range (128):
+                if 0 <= new_velo < 128:
+                    edited_notes.append((n[0], n[1], n[2], new_velo, n[4]))
+                else:
                     edited_notes = []
                     return()
-                else:
-                    edited_notes.append((n[0], n[1], n[2], new_velo, n[4]))
             else:
                 try:
                     edited_notes.append((n[0], n[1], n[2], float(args), n[4]))
@@ -874,7 +872,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
         all_notes = clip.get_selected_notes()
         clip.deselect_all_notes()
         for n in all_notes:
-            if n[0] in range(note_range[0], note_range[1]) and n[1] < pos_range[1] and n[1] >= pos_range[0]:
+            if note_range[0] <= n[0] < note_range[1] and pos_range[0] <= n[1] < pos_range[1]:
                 notes_to_edit.append(n)
             else:
                 other_notes.append(n)
@@ -888,14 +886,18 @@ class ClyphXClipActions(ControlSurfaceComponent):
         """Get note position or range to operate on."""
         pos_range = (clip.loop_start, clip.loop_end)
         user_range = string.split('-')
-        try: start = float(user_range[0].replace('@', ''))
-        except: start = None
-        if start != None and start >= 0.0:
+        try:
+            start = float(user_range[0].replace('@', ''))
+        except:
+            start = None
+        if start is not None and start >= 0.0:
             pos_range = (start, start)
             if len(user_range) > 1:
-                try: end = float(user_range[1])
-                except: end = None
-                if end != None:
+                try:
+                    end = float(user_range[1])
+                except:
+                    end = None
+                if end is not None:
                     pos_range = (start, end)
         return pos_range
 
@@ -931,7 +933,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
             end = start + 1
             if(len(int_split) > 1):
                 end = int(int_split[1]) + 1
-            if start < end and start in range(128) and end in range(129):
+            if 0 <= start and end < 129 and start < end:
                 result = (start, end)
             else:
                 result = None
@@ -965,7 +967,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 if o in string:
                     base_note = base_note + (OCTAVE_NAMES.index(o) * 12)
                     break
-        if base_note in range (128):
+        if 0 <= base_note < 128:
             converted_note = base_note
         return converted_note
 

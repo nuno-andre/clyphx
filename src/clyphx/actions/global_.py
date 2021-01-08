@@ -14,12 +14,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, unicode_literals
+
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import IS_LIVE_9, IS_LIVE_9_5, KEYWORDS
-from consts import (AUDIO_DEVS, MIDI_DEVS, INS_DEVS,
-                    GQ_STATES, REPEAT_STATES, RQ_STATES)
-
+from ..consts import IS_LIVE_9, IS_LIVE_9_5, KEYWORDS
+from ..consts import (AUDIO_DEVS, MIDI_DEVS, INS_DEVS,
+                      GQ_STATES, REPEAT_STATES, RQ_STATES)
 
 if IS_LIVE_9:
     from functools import partial
@@ -125,8 +126,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             try:
                 start = int(arg_array[1])
                 length = int(arg_array[2])
-                for index in range(length):
-                    self._parent._user_variables[arg_array[0] + str(index + 1)] = str(index + start)
+                for i in range(length):
+                    self._parent._user_variables[arg_array[0] + str(i + 1)] = str(i + start)
             except:
                 pass
 
@@ -140,7 +141,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                     index = int(value) - 1
                     if index in range(len(self.song().tracks)):
                         self.song().create_audio_track(index)
-                except: pass
+                except:
+                    pass
             else:
                 self.song().create_audio_track(-1)
 
@@ -152,7 +154,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             if value:
                 try:
                     index = int(value) - 1
-                    if index in range(len(self.song().tracks)):
+                    if 0 <= index < len(self.song().tracks):
                         self.song().create_midi_track(index)
                 except: pass
             else:
@@ -209,7 +211,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             if value:
                 try:
                     index = int(value) - 1
-                    if index in range(len(self.song().scenes)):
+                    if 0 <= index < len(self.song().scenes):
                         self.song().create_scene(index)
                 except: pass
             else:
@@ -416,10 +418,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
     def set_session_record(self, track, xclip, ident, value = None):
         """Toggles or turns on/off session record."""
         if IS_LIVE_9:
-            try:
-                self.song().session_record = KEYWORDS[value]
-            except KeyError:
-                self.song().session_record = not(self.song().session_record)
+            self.song().session_record = KEYWORDS.get(value, not(self.song().session_record))
 
     def trigger_session_record(self, track, xclip, ident, value = None):
         """Triggers session record in all armed tracks for the specified fixed
@@ -452,10 +451,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
     def set_session_automation_record(self, track, xclip, ident, value = None):
         """Toggles or turns on/off session automation record."""
         if IS_LIVE_9:
-            try:
-                self.song().session_automation_record = KEYWORDS[value]
-            except KeyError:
-                self.song().session_automation_record = not(self.song().session_automation_record)
+            self.song().session_automation_record = KEYWORDS.get(value, not(self.song().session_automation_record))
 
     def retrigger_recording_clips(self, track, xclip, ident, value = None):
         """Retriggers all clips that are currently recording."""
@@ -471,38 +467,23 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
 
     def set_overdub(self, track, xclip, ident, value = None):
         """Toggles or turns on/off overdub."""
-        try:
-            self.song().overdub = KEYWORDS[value]
-        except KeyError:
-            self.song().overdub = not(self.song().overdub)
+        self.song().overdub = KEYWORDS.get(value, not(self.song().overdub))
 
     def set_metronome(self, track, xclip, ident, value = None):
         """Toggles or turns on/off metronome."""
-        try:
-            self.song().metronome = KEYWORDS[value]
-        except KeyError:
-            self.song().metronome = not(self.song().metronome)
+        self.song().metronome = KEYWORDS.get(value, not(self.song().metronome))
 
     def set_record(self, track, xclip, ident, value = None):
         """Toggles or turns on/off record."""
-        try:
-            self.song().record_mode = KEYWORDS[value]
-        except KeyError:
-            self.song().record_mode = not(self.song().record_mode)
+        self.song().record_mode = KEYWORDS.get(value, not(self.song().record_mode))
 
     def set_punch_in(self, track, xclip, ident, value = None):
         """Toggles or turns on/off punch in."""
-        try:
-            self.song().punch_in = KEYWORDS[value]
-        except KeyError:
-            self.song().punch_in = not(self.song().punch_in)
+        self.song().punch_in = KEYWORDS.get(value, not(self.song().punch_in))
 
     def set_punch_out(self, track, xclip, ident, value = None):
         """Toggles or turns on/off punch out."""
-        try:
-            self.song().punch_out = KEYWORDS[value]
-        except KeyError:
-            self.song().punch_out = not(self.song().punch_out)
+        self.song().punch_out = KEYWORDS.get(value, not(self.song().punch_out))
 
     def restart_transport(self, track, xclip, ident, value = None):
         """Restarts transport to 0.0"""
@@ -782,7 +763,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         elif args in ('<', '>'):
             factor = self._parent.get_adjustment_factor(args)
             new_rq = self.song().midi_recording_quantization + factor
-            if new_rq in range (9):
+            if 0 <= new_rq < 9:
                 self.song().midi_recording_quantization = new_rq
         else:
             if self.song().midi_recording_quantization != 0:
@@ -856,7 +837,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                         except: new_min = 0
                         try: new_max = int(rnd_range_data[1])
                         except: new_max = num_scenes
-                        if new_min in range(0, num_scenes) and new_max in range(0, num_scenes + 1) and new_min < new_max - 1:
+                        if 0 < new_min and new_max < num_scenes + 1 and new_min < new_max - 1:
                             rnd_range = [new_min, new_max]
                 scene_to_launch = Live.Application.get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
                 if scene_to_launch == self._last_scene_index:
@@ -958,10 +939,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
 
     def set_loop_on_off(self, value = None):
         """Toggles or turns on/off arrange loop."""
-        try:
-            self.song().loop = KEYWORDS[value]
-        except KeyError:
-            self.song().loop = not(self.song().loop)
+        self.song().loop = KEYWORDS.get(value, not(self.song().loop))
 
     def move_loop_by_factor(self, args):
         """Move arrangement loop by its length or by a specified factor."""
@@ -989,7 +967,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         """
         self.remove_scene_listeners()
         scenes = self.song().scenes
-        if not self._last_scene_index in range(len(scenes)):
+        if not 0 < self._last_scene_index < len(scenes):
             self._last_scene_index = list(self.song().scenes).index(self.song().view.selected_scene)
         for index in range(len(scenes)):
             self._scenes_to_monitor.append(scenes[index])

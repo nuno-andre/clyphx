@@ -14,13 +14,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, unicode_literals
+
 import Live
-from consts import IS_LIVE_9
+from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from .consts import IS_LIVE_9
 
 if IS_LIVE_9:
     from functools import partial
-
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
 
 class ExtraPrefs(ControlSurfaceComponent):

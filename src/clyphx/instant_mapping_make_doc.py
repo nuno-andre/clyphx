@@ -14,13 +14,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, unicode_literals
+
 import os
 import logging
-log = logging.getLogger(__name__)
-
 from _Generic.Devices import DEVICE_DICT, DEVICE_BOB_DICT, BANK_NAME_DICT
+from .consts import LIVE_VERSION
 
-from consts import LIVE_VERSION
+log = logging.getLogger(__name__)
 
 #: Translation table between API names and friendly names.
 DEV_NAME_TRANSLATION_TABLE = {

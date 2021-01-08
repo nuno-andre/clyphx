@@ -13,8 +13,11 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
+"""
+This module contains CS and DR Pad Mix Rack.
+"""
 
-#---This module contains CS and DR Pad Mix Rack.
+from __future__ import absolute_import, unicode_literals
 
 from _Generic.Devices import *
 from _Framework.SubjectSlot import Subject, SlotManager, subject_slot

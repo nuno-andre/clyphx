@@ -71,11 +71,18 @@ RESTRICTIONS:
 - Arguments should NOT use any of the special characters used in ClyphX:
   semi-colon(;), comma(,), percent sign(%), equals sign(=)
 """
+from __future__ import absolute_import, unicode_literals
 
+import logging
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ActionList import ActionList
-from consts import IS_LIVE_9
+from .action_list import ActionList
+from .consts import IS_LIVE_9
+
+"""Through this logger you can write to Live's Log.txt file, which you'll
+likely use quite a bit. The Troubleshooting section of the ClyphX manual covers
+how to access Log.txt."""
+log = logging.getLogger(__name__)
 
 
 class ClyphXUserActions(ControlSurfaceComponent):
@@ -85,10 +92,10 @@ class ClyphXUserActions(ControlSurfaceComponent):
     def __init__(self, parent):
         ControlSurfaceComponent.__init__(self)
 
-        """ Below is the dictionary of actions that this script provides.
+        """Below is the dictionary of actions that this script provides.
 
         For each entry:
-        - The key = the one-word (not case-sensitive) name of the action.  This
+        - The key = the one-word (not case-sensitive) name of the action. This
           is the name that is used when accessing the action from an X-Trigger.
 
         - The value = the name of the function in this script to call to
@@ -103,16 +110,12 @@ class ClyphXUserActions(ControlSurfaceComponent):
             'EX_ACTION_2': 'example_action_two',
         }
 
-        """The parent ClyphX script.  Through this you can access things such
-        as the log_message function (writes to Live's Log.txt file), which
-        you'll likely use quite a bit.  The Troubleshooting section of the
-        ClyphX manual covers how to access Log.txt.
-        """
+        """The parent ClyphX script."""
         self._parent = parent
 
     def disconnect(self):
         """Called by the control surface on disconnect (app closed, script
-        closed).  DO NOT REMOVE THIS.
+        closed). DO NOT REMOVE THIS.
         """
         self._parent = None
         if IS_LIVE_9:
@@ -145,8 +148,9 @@ class ClyphXUserActions(ControlSurfaceComponent):
            a name field.  You just instantiate one of these with the action
            list as a string(proceeded by an identifier).
         """
-        self._parent.log_message('example_action_one triggered with args=' + str(args))
-        self._parent.handle_action_list_trigger(self.song().view.selected_track, ActionList('[] METRO ' + str(args)))
+        log.info('example_action_one triggered with args=%s', args)
+        self._parent.handle_action_list_trigger(self.song().view.selected_track,
+                                                ActionList('[] METRO {}'.format(args)))
 
     def example_action_two(self, track, args):
         """Example action that sets mixer settings of the given track to be

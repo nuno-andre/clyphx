@@ -14,36 +14,38 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import with_statement
-from functools import partial
+from __future__ import with_statement, absolute_import, unicode_literals
 
+import logging
+from functools import partial
 import Live
 from _Framework.ControlSurface import ControlSurface
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework import Task
-from macrobat import Macrobat
-from ExtraPrefs import ExtraPrefs
-from CSLinker import CSLinker
-from ClyphXTrackActions import ClyphXTrackActions
-from ClyphXSnapActions9 import ClyphXSnapActions
-from ClyphXGlobalActions import ClyphXGlobalActions
-from ClyphXDeviceActions import ClyphXDeviceActions
-from ClyphXDRActions9 import ClyphXDRActions9
-from ClyphXClipActions import ClyphXClipActions
-# specialized version for L9
-from ClyphXControlSurfaceActions9 import ClyphXControlSurfaceActions9
-from ClyphXTriggers import ClyphXTrackComponent, ClyphXControlComponent, ClyphXCueComponent
-from ClyphXUserActions import ClyphXUserActions
-from ClyphXM4LBrowserInterface import ClyphXM4LBrowserInterface
-from ActionList import ActionList
-from Push_APC_Combiner import Push_APC_Combiner
-from consts import IS_LIVE_9_5, LIVE_VERSION
-from consts import (CLIP_ACTIONS, DEVICE_ACTIONS, DR_ACTIONS,
+from .macrobat import Macrobat
+from .extra_prefs import ExtraPrefs
+from .cs_linker import CSLinker
+from .actions import (
+    ClyphXTrackActions, ClyphXSnapActions, ClyphXGlobalActions,
+    ClyphXDeviceActions, ClyphXDRActions9, ClyphXClipActions,
+    ClyphXControlSurfaceActions9, # specialized version for L9
+)
+from .xtriggers import (
+    ClyphXTrackComponent, ClyphXControlComponent, ClyphXCueComponent
+)
+from .user_actions import ClyphXUserActions
+from .m4l_browser import ClyphXM4LBrowserInterface
+from .action_list import ActionList
+from .push_apc_combiner import Push_APC_Combiner
+from .consts import IS_LIVE_9_5, LIVE_VERSION
+from .consts import (CLIP_ACTIONS, DEVICE_ACTIONS, DR_ACTIONS,
                     GLOBAL_ACTIONS, LOOPER_ACTIONS, TRACK_ACTIONS)
 # from utils import get_python_info
 
+log = logging.getLogger(__name__)
+
 if IS_LIVE_9_5:
-    from PushEmuHandler import MockHandshakeTask, MockHandshake
+    from .push_mocks import MockHandshakeTask, MockHandshake
 
 FOLDER = '/ClyphX/'
 SCRIPT_NAME = 'ClyphX v2.7.0'
@@ -84,9 +86,8 @@ class ClyphX(ControlSurface):
             live = Live.Application.get_application()
             self._can_have_nested_devices = True
             self.setup_tracks()
-        msg = 'ClyphX LOG ------- {} ------- Live Version: {} ------- END LOG'
-        self.log_message(msg.format(SCRIPT_NAME, '.'.join(map(str, LIVE_VERSION))))
-        # Live.Base.log('PYTHON_INFO: {}'.format(get_python_info()))
+        msg = 'ClyphX LOG ------- %s ------- Live Version: %s ------- END LOG'
+        log.info(msg, SCRIPT_NAME, '.'.join(map(str, LIVE_VERSION)))
         self.show_message(SCRIPT_NAME)
 
     def disconnect(self):
@@ -109,13 +110,16 @@ class ClyphX(ControlSurface):
         self._current_tracks = []
         ControlSurface.disconnect(self)
 
+    # TODO: substitute with "log.debug"
     def log_debug(self, string, *args):
         """Logs message if debugging is enabled."""
         if self._is_debugging:
-            self.log_message(string.format(*args))
+            log.info(string, *args)
 
     def action_dispatch(self, tracks, xclip, action_name, args, ident):
-        """Main dispatch for calling appropriate class of actions, passes all
+        """Command handler.
+
+        Main dispatch for calling appropriate class of actions, passes all
         necessary arguments to class method.
         """
         if tracks:
@@ -137,7 +141,7 @@ class ClyphX(ControlSurface):
                 for key, value in self._play_seq_clips.items():
                     value[1] = -1
             elif action_name == 'DEBUG':
-                if type(xclip) is Live.Clip.Clip:
+                if isinstance(xclip, Live.Clip.Clip):
                     xclip.name = str(xclip.name).upper().replace('DEBUG', 'Debugging Activated')
                 self.start_debugging()
             else:
@@ -183,7 +187,7 @@ class ClyphX(ControlSurface):
                                 self._dr_actions.dispatch_pad_action(dr, t, xclip, ident, args.strip())
                     elif action_name in self._user_actions._action_dict:
                         getattr(self._user_actions, self._user_actions._action_dict[action_name])(t, args)
-        self.log_debug('action_dispatch triggered, ident={} and track(s)={} and action={} and args={}',
+        self.log_debug('action_dispatch triggered, ident=%s and track(s)=%s and action=%s and args=%s',
                        ident, self.track_list_to_string(tracks), action_name, args)
 
     def handle_external_trigger(self, xtrigger):
@@ -208,7 +212,7 @@ class ClyphX(ControlSurface):
 
     def handle_action_list_trigger(self, track, xtrigger):
         """Directly dispatches snapshot recall, X-Control overrides and Seq
-        X-Clips.  Otherwise, seperates ident from action names, splits up
+        X-Clips. Otherwise, separates ident from action names, splits up
         lists of action names and calls action dispatch.
         """
         self.log_debug('---')
@@ -217,7 +221,7 @@ class ClyphX(ControlSurface):
             name = self.get_name(xtrigger.name).strip()
         if name and name[0] == '[' and ']' in name:
             # snap action, so pass directly to snap component
-            if ' || (' in name and type(xtrigger) is Live.Clip.Clip and xtrigger.is_playing:
+            if ' || (' in name and isinstance(xtrigger, Live.Clip.Clip) and xtrigger.is_playing:
                 self._snap_actions.recall_track_snapshot(name, xtrigger)
             # control reassignment, so pass directly to control component
             elif '[[' in name and ']]' in name:
@@ -254,7 +258,8 @@ class ClyphX(ControlSurface):
                     if action_data:
                         formatted_action_list.append(action_data)
 
-                # If seq, pass to appropriate function, else call action dispatch for each action in the formatted action list
+                # if seq, pass to appropriate function, else call action dispatch
+                #   for each action in the formatted action list
                 if formatted_action_list:
                     if is_play_seq:
                         self.handle_play_seq_action_list(formatted_action_list, xtrigger, ident)
@@ -264,12 +269,12 @@ class ClyphX(ControlSurface):
                     else:
                         for action in formatted_action_list:
                             self.action_dispatch(action['track'], xtrigger, action['action'], action['args'], ident)
-                            self.log_debug('handle_action_list_trigger triggered, ident={} and track(s)={} and action={} and args={}',
+                            self.log_debug('handle_action_list_trigger triggered, ident=%s and track(s)=%s and action=%s and args=%s',
                                            ident, self.track_list_to_string(action['track']), action['action'], action['args'])
 
     def get_xclip_action_list(self, xclip, full_action_list):
         """Get the action list to perform. X-Clips can have an on and off
-        action list seperated by a comma. This will return which action list
+        action list separated by a comma. This will return which action list
         to perform based on whether the clip is playing. If the clip is not
         playing and there is no off action, this returns None.
         """
@@ -277,13 +282,12 @@ class ClyphX(ControlSurface):
         split_list = full_action_list.split(',')
         if xclip.is_playing:
             result = split_list[0]
-        else:
-            if len(split_list) == 2:
-                if split_list[1].strip() == '*':
-                    result = split_list[0]
-                else:
-                    result = split_list[1]
-        self.log_debug('get_xclip_action_list returning {}', result)
+        elif len(split_list) == 2:
+            if split_list[1].strip() == '*':
+                result = split_list[0]
+            else:
+                result = split_list[1]
+        self.log_debug('get_xclip_action_list returning %s', result)
         return result
 
     def replace_user_variables(self, string_with_vars):
@@ -291,11 +295,11 @@ class ClyphX(ControlSurface):
         variable represents.
         """
         while '%' in string_with_vars:
-            var_name = string_with_vars[string_with_vars.index('%')+1:]
-            if '%' in var_name:
-                var_name = var_name[0:var_name.index('%')]
+            var = string_with_vars[string_with_vars.index('%')+1:]
+            if '%' in var:
+                var = var[0:var.index('%')]
                 string_with_vars = string_with_vars.replace(
-                    '%{}%'.format(var_name), self.get_user_variable_value(var_name), 1
+                    '%{}%'.format(var), self.get_user_variable_value(var), 1
                 )
             else:
                 string_with_vars = string_with_vars.replace('%', '', 1)
@@ -303,20 +307,20 @@ class ClyphX(ControlSurface):
             # for compat with old-style variables
             for string in string_with_vars.split():
                 if '$' in string and not '=' in string:
-                    var_name = string.replace('$', '')
+                    var = string.replace('$', '')
                     string_with_vars = string_with_vars.replace(
-                        '${}'.format(var_name), self.get_user_variable_value(var_name), 1
+                        '${}'.format(var), self.get_user_variable_value(var), 1
                     )
-        self.log_debug('replace_user_variables returning {}', string_with_vars)
+        self.log_debug('replace_user_variables returning %s', string_with_vars)
         return string_with_vars
 
-    def get_user_variable_value(self, var_name):
+    def get_user_variable_value(self, var):
         """Get the value of the given variable name or 0 if var name not found.
         """
         result = '0'
-        if self._user_variables.has_key(var_name):
-            result = self._user_variables[var_name]
-        self.log_debug('get_user_variable_value returning {}={}', var_name, result)
+        if self._user_variables.has_key(var):
+            result = self._user_variables[var]
+        self.log_debug('get_user_variable_value returning %s=%s', var, result)
         return result
 
     def handle_user_variable_assignment(self, string_with_assign):
@@ -334,7 +338,7 @@ class ClyphX(ControlSurface):
                     pass
             else:
                 self._user_variables[var_data[0].strip()] = var_data[1].strip()
-            self.log_debug('handle_user_variable_assignment, {}={}',
+            self.log_debug('handle_user_variable_assignment, %s=%s',
                            var_data[0].strip(), var_data[1].strip())
 
     def format_action_name(self, origin_track, origin_name):
@@ -358,7 +362,7 @@ class ClyphX(ControlSurface):
         if len(name) > 1:
             args = result_name.replace(name[0], '', 1)
             result_name = result_name.replace(args, '')
-        self.log_debug('format_action_name returning, track(s)={} and action={} and args={}',
+        self.log_debug('format_action_name returning, track(s)=%s and action=%s and args=%s',
                        self.track_list_to_string(result_track), result_name.strip(), args.strip())
         return {'track': result_track, 'action': result_name.strip(), 'args': args.strip()}
 
@@ -367,10 +371,10 @@ class ClyphX(ControlSurface):
         """
         if self._loop_seq_clips.has_key(xclip.name):
             if count >= len(self._loop_seq_clips[xclip.name][1]):
-                count = count - ((count / len(self._loop_seq_clips[xclip.name][1]))*len(self._loop_seq_clips[xclip.name][1]))
+                count = count - ((count / len(self._loop_seq_clips[xclip.name][1])) * len(self._loop_seq_clips[xclip.name][1]))
             action = self._loop_seq_clips[xclip.name][1][count]
             self.action_dispatch(action['track'], xclip, action['action'], action['args'], self._loop_seq_clips[xclip.name][0])
-            self.log_debug('handle_loop_seq_action_list triggered, xclip.name={} and track(s)={} and action={} and args={}',
+            self.log_debug('handle_loop_seq_action_list triggered, xclip.name=%s and track(s)=%s and action=%s and args=%s',
                            xclip.name, self.track_list_to_string(action['track']), action['action'], action['args'])
 
     def handle_play_seq_action_list(self, action_list, xclip, ident):
@@ -379,14 +383,14 @@ class ClyphX(ControlSurface):
         """
         if self._play_seq_clips.has_key(xclip.name):
             count = self._play_seq_clips[xclip.name][1] + 1
-            if count > len(self._play_seq_clips[xclip.name][2])-1:
+            if count > len(self._play_seq_clips[xclip.name][2]) - 1:
                 count = 0
             self._play_seq_clips[xclip.name] = [ident, count, action_list]
         else:
             self._play_seq_clips[xclip.name] = [ident, 0, action_list]
         action = self._play_seq_clips[xclip.name][2][self._play_seq_clips[xclip.name][1]]
         self.action_dispatch(action['track'], xclip, action['action'], action['args'], ident)
-        self.log_debbug('handle_play_seq_action_list triggered, ident={} and track(s)={} and action={} and args={}',
+        self.log_debbug('handle_play_seq_action_list triggered, ident=%s and track(s)=%s and action=%s and args=%s',
                         ident, self.track_list_to_string(action['track']), action['action'], action['args'])
 
     def do_parameter_adjustment(self, param, value):
@@ -394,15 +398,12 @@ class ClyphX(ControlSurface):
         quantized param adjustment (should just use +1/-1 for those).
         """
         if not param.is_enabled:
-            return()
+            return ()
         step = (param.max - param.min) / 127
         new_value = param.value
         if value.startswith(('<', '>')):
             factor = self.get_adjustment_factor(value)
-            if not param.is_quantized:
-                new_value += step * factor
-            else:
-                new_value += factor
+            new_value += factor if param.is_quantized else (step * factor)
         elif value == 'RESET' and not param.is_quantized:
             new_value = param.default_value
         elif 'RND' in value and not param.is_quantized:
@@ -421,7 +422,7 @@ class ClyphX(ControlSurface):
                         new_max = int(rnd_range_data[1]) + 1
                     except:
                         new_max = 128
-                    if 0 <= new_min and 0 <= new_max <= 128 and new_min < new_max:
+                    if 0 <= new_min and new_max <= 128 and new_min < new_max:
                         rnd_min = new_min
                         rnd_max = new_max
             rnd_value = (Live.Application.get_random_int(0, 128) * (rnd_max - rnd_min) / 127) + rnd_min
@@ -438,7 +439,7 @@ class ClyphX(ControlSurface):
                 pass
         if new_value >= param.min and new_value <= param.max:
             param.value = new_value
-            self.log_debug('do_parameter_adjustment called on {}, set value to {}',
+            self.log_debug('do_parameter_adjustment called on %s, set value to %s',
                            param.name, new_value)
 
     def get_adjustment_factor(self, string, as_float = False):
@@ -453,7 +454,7 @@ class ClyphX(ControlSurface):
 
         if string.startswith('<'):
             factor = -(factor)
-        self.log_debug('get_adjustment_factor returning factor={}', factor)
+        self.log_debug('get_adjustment_factor returning factor=%s', factor)
         return factor
 
     def get_track_to_operate_on(self, origin_name):
@@ -503,7 +504,7 @@ class ClyphX(ControlSurface):
                             else:
                                 result_tracks = [tracks[track_range[0]]]
             result_name = origin_name[origin_name.index('/')+1:].strip()
-        self.log_debug('get_track_to_operate_on returning result_tracks={} and result_name={}',
+        self.log_debug('get_track_to_operate_on returning result_tracks=%s and result_name=%s',
                        self.track_list_to_string(result_tracks), result_name)
         return (result_tracks, result_name)
 
@@ -568,7 +569,7 @@ class ClyphX(ControlSurface):
                         device = track.devices[int(dev_num) - 1]
                 except:
                     pass
-        self.log_debug('get_device_to_operate_on returning device={} and device args={}',
+        self.log_debug('get_device_to_operate_on returning device=%s and device args=%s',
                        device.name if device else 'None', device_args)
         return (device, device_args)
 
@@ -603,7 +604,7 @@ class ClyphX(ControlSurface):
                     slot_idx = sel_slot_idx
             if clip is None and track.clip_slots[slot_idx].has_clip:
                 clip = track.clip_slots[slot_idx].clip
-        self.log_debug('get_clip_to_operate_on returning clip={} and clip args={}',
+        self.log_debug('get_clip_to_operate_on returning clip=%s and clip args=%s',
                        clip.name if clip else 'None', clip_args)
         return (clip, clip_args)
 
@@ -615,7 +616,7 @@ class ClyphX(ControlSurface):
             if device.can_have_drum_pads:
                 dr = device
                 break
-        self.log_debug('get_drum_rack_to_operate_on returning dr={}',
+        self.log_debug('get_drum_rack_to_operate_on returning dr=%s',
                        dr.name if dr else 'None')
         return dr
 
@@ -636,13 +637,14 @@ class ClyphX(ControlSurface):
                     break
             user_file = mrs_path + FOLDER + 'UserSettings.txt'
             if not self._user_settings_logged:
-                self.log_message(' ------- Attempting to read UserSettings file: {}------- '.format(user_file))
+                log.info('Attempting to read UserSettings file: %s', user_file)
             for line in open(user_file):
-                line = self.get_name(line.rstrip('\n'))
-                if line.strip() and not line.startswith(('#', '"', '*')):
-                    if not self._user_settings_logged:
-                        self.log_message(str(line))
-                if line and not line.startswith(
+                line = self.get_name(line.rstrip('\n')).strip()
+                if not line:
+                    continue
+                if line[0] not in {'#', '"', '*'} and not self._user_settings_logged:
+                    log.info(str(line))
+                if not line.startswith(
                     ('#', '"', 'STARTUP_', 'INCLUDE_NESTED_', 'SNAPSHOT_',
                      'PROCESS_XCLIPS_', 'PUSH_EMU', 'APC_PUSH_EMU', 'CSLINKER')
                 ):
@@ -652,13 +654,13 @@ class ClyphX(ControlSurface):
                         list_to_build = 'vars'
                     elif '[EXTRA PREFS]' in line:
                         list_to_build = 'prefs'
-                    else:
-                        if list_to_build == 'vars' and '=' in line:
+                    elif '=' in line:
+                        if list_to_build == 'vars':
                             line = self.replace_user_variables(line)
                             self.handle_user_variable_assignment(line)
-                        elif list_to_build == 'controls' and '=' in line:
+                        elif list_to_build == 'controls':
                             ctrl_data.append(line)
-                        elif list_to_build == 'prefs' and '=' in line:
+                        elif list_to_build == 'prefs':
                             prefs_data.append(line)
                 elif 'PUSH_EMULATION' in line:
                     self._push_emulation = line.split('=')[1].strip() == 'ON'
@@ -721,20 +723,19 @@ class ClyphX(ControlSurface):
         """
         if not self._is_debugging:
             self._is_debugging = True
-            self.log_message('------- ClyphX Log: Logging User Variables -------')
+            log.info('------- ClyphX Log: Logging User Variables -------')
             for key, value in self._user_variables.items():
-                self.log_message('{}={}'.format(key,value))
+                log.info('%s=%s', key, value)
 
-            self.log_message('------- ClyphX Log: Logging User Controls -------')
+            log.info('------- ClyphX Log: Logging User Controls -------')
             for key, value in self._control_component._control_list.items():
-                self.log_message('{} on_action={} and off_action={}'.format(
-                    key, value['on_action'], value['off_action'])
-                )
+                log.info('%s on_action=%s and off_action=%s',
+                         key, value['on_action'], value['off_action'])
 
-            self.log_message('------- ClyphX Log: Logging User Actions -------')
+            log.info('------- ClyphX Log: Logging User Actions -------')
             for key, value in self._user_actions._action_dict.items():
-                self.log_message('{}={}'.format(key, value))
-            self.log_message('------- ClyphX Log: Debugging Started -------')
+                log.info('%s=%s', key, value)
+            log.info('------- ClyphX Log: Debugging Started -------')
 
     def track_list_to_string(self, track_list):
         """Convert list of tracks to a string of track names or None if no

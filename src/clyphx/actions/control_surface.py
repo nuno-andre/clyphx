@@ -14,21 +14,23 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import with_statement, absolute_import, unicode_literals
+
 # from builtins import range
 from functools import partial
 
 import Live
+from ableton.v2.control_surface import ControlSurface as CS
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.ControlSurface import ControlSurface
 from _Framework.SessionComponent import SessionComponent
 from _Framework.MixerComponent import MixerComponent
 from _Framework.DeviceComponent import DeviceComponent
-from consts import REPEAT_STATES
-from ClyphXPushActions import ClyphXPushActions
-from ClyphXPXTActions import ClyphXPXTActions
-from ClyphXMXTActions import ClyphXMXTActions
-from ClyphXArsenalActions import ClyphXArsenalActions
-from ableton.v2.control_surface import ControlSurface as CS
+from ..consts import REPEAT_STATES
+from .push import ClyphXPushActions
+from .pxt_live import ClyphXPXTActions
+from .mxt_live import ClyphXMXTActions
+from .arsenal import ClyphXArsenalActions
 
 
 class ClyphXControlSurfaceActions(ControlSurfaceComponent):
@@ -65,9 +67,9 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         """
         instanciated_scripts = self._parent._control_surfaces()
         self._scripts = {}
-        for index in range (len(instanciated_scripts)):
-            script = instanciated_scripts[index]
-            self._scripts[index] = {
+        for i in range(len(instanciated_scripts)):
+            script = instanciated_scripts[i]
+            self._scripts[i] = {
                 'script':        script,
                 'name':          None,
                 'repeat':        False,
@@ -96,46 +98,46 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                     if script._components == None:
                         return
                     else:
-                        self._scripts[index]['name'] = script_name.upper()
+                        self._scripts[i]['name'] = script_name.upper()
                         for c in script.components:
                             if isinstance(c, SessionComponent):
-                                self._scripts[index]['session'] = c
+                                self._scripts[i]['session'] = c
                                 if script_name.startswith('APC'):
-                                    self._scripts[index]['color'] = {
+                                    self._scripts[i]['color'] = {
                                         'GREEN': (1, 2),
                                         'RED':   (3, 4),
                                         'AMBER': (5, 6),
                                     }
-                                    self._scripts[index]['metro'] = {
+                                    self._scripts[i]['metro'] = {
                                         'controls':  c._stop_track_clip_buttons,
                                         'component': None,
                                         'override':  None,
                                     }
                                 if script_name == 'Launchpad':
-                                    self._scripts[index]['color'] = {
+                                    self._scripts[i]['color'] = {
                                         'GREEN': (52, 56),
                                         'RED':   (7, 11),
                                         'AMBER': (55, 59),
                                     }
-                                    self._scripts[index]['metro'] = {
+                                    self._scripts[i]['metro'] = {
                                         'controls':  script._selector._side_buttons,
                                         'component': None,
                                         'override':  script._selector,
                                     }
                             if isinstance(c, MixerComponent):
-                                self._scripts[index]['mixer'] = c
+                                self._scripts[i]['mixer'] = c
                             if isinstance(c, DeviceComponent):
-                                self._scripts[index]['device'] = c
+                                self._scripts[i]['device'] = c
                         if script_name == 'Push':
-                            self._scripts[index]['session'] = script._session_ring
-                            self._scripts[index]['mixer'] = script._mixer
-                            self._scripts[index]['device'] = script._device_component
+                            self._scripts[i]['session'] = script._session_ring
+                            self._scripts[i]['mixer'] = script._mixer
+                            self._scripts[i]['device'] = script._device_component
                         elif script_name == 'Push2':
                             # XXX: hackish way to delay for Push2 init, using
                             # monkey patching doesn't work for some reason
-                            self.canonical_parent.schedule_message(50, partial(self._handle_push2_init, index))
+                            self.canonical_parent.schedule_message(50, partial(self._handle_push2_init, i))
             elif script_name == 'Nocturn':
-                self._scripts[index]['device'] = script.device_controller
+                self._scripts[i]['device'] = script.device_controller
                 script.device_controller.canonical_parent = script
 
     def _handle_push2_init(self, index):
@@ -167,7 +169,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
     def dispatch_cs_action(self, track, xclip, ident, action, args):
         """Dispatch appropriate control surface actions."""
         script = self._get_script_to_operate_on(action)
-        if script != None:
+        if script is not None:
             if 'METRO ' in args and self._scripts[script].has_key('metro'):
                 self.handle_visual_metro(self._scripts[script], args)
             elif 'RINGLINK ' in args and self._scripts[script]['session']:
@@ -182,9 +184,8 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                 self.handle_track_bank(script, xclip, ident, self._scripts[script]['mixer'], self._scripts[script]['session'], args[5:])
             elif 'RPT' in args:
                 self.handle_note_repeat(self._scripts[script]['script'], script, args)
-            else:
-                if self._scripts[script]['mixer'] and '/' in args[:4]:
-                    self.handle_track_action(script, self._scripts[script]['mixer'], xclip, ident, args)
+            elif self._scripts[script]['mixer'] and '/' in args[:4]:
+                self.handle_track_action(script, self._scripts[script]['mixer'], xclip, ident, args)
 
     def _get_script_to_operate_on(self, script_info):
         """Returns the script index to operate on, which can be specified in
@@ -506,3 +507,25 @@ class VisualMetro(ControlSurfaceComponent):
         """Clear all control LEDs."""
         for c in self._controls:
             c.turn_off()
+
+
+class ClyphXControlSurfaceActions9(ClyphXControlSurfaceActions):
+    __module__ = __name__
+    __doc__ = 'Actions related to control surfaces. This is a specialized version for Live 9.'
+
+    def __init__(self, parent):
+        ClyphXControlSurfaceActions.__init__(self, parent)
+
+    def handle_visual_metro(self, script, args):
+        """Handle visual metro for APCs and Launchpad.
+
+        This is a specialized version for L9 that uses component guard to avoid
+        dependency issues.
+        """
+        if 'ON' in args and not script['metro']['component']:
+            with self._parent.component_guard():
+                m = VisualMetro(self._parent, script['metro']['controls'], script['metro']['override'])
+                script['metro']['component'] = m
+        elif 'OFF' in args and script['metro']['component']:
+            script['metro']['component'].disconnect()
+            script['metro']['component'] = None

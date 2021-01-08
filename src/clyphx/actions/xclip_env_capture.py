@@ -14,8 +14,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, unicode_literals
+
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import IS_LIVE_9
+from ..consts import IS_LIVE_9
 
 
 class ClyphXClipEnvCapture(ControlSurfaceComponent):
@@ -47,9 +49,9 @@ class ClyphXClipEnvCapture(ControlSurfaceComponent):
     def _capture_device_settings(self, clip, track, args):
         dev_range = self._get_device_range(args, track)
         if dev_range:
-            for dev_index in range (dev_range[0], dev_range[1]):
-                if dev_index < (len(track.devices)):
-                    current_device = track.devices[dev_index]
+            for i in range(dev_range[0], dev_range[1]):
+                if i < len(track.devices):
+                    current_device = track.devices[i]
                     for p in current_device.parameters:
                         self._insert_envelope(clip, p)
                     if current_device.can_have_chains:
@@ -100,6 +102,6 @@ class ClyphXClipEnvCapture(ControlSurfaceComponent):
                     end = start + 1
                 except:
                     pass
-        if start > len(track.devices) or start < 0 or end > len(track.devices) or end < start:
-            return()
-        return (start, end)
+        if 0 <= start and end <= len(track.devices) and start <= end:
+            return (start, end)
+        return ()

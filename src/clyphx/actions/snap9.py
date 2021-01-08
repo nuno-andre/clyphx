@@ -14,12 +14,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, unicode_literals
+
 import Live
 import math
 import pickle
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import IS_LIVE_9
-
+from ..consts import IS_LIVE_9
 
 if IS_LIVE_9:
     from functools import partial
@@ -150,16 +151,20 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         dev_range = self._get_snap_device_range(args, track)
         if dev_range:
             track_devices = {}
-            for dev_index in range (dev_range[0], dev_range[1]):
-                if dev_index < (len(track.devices)):
+            for dev_index in range(dev_range[0], dev_range[1]):
+                if dev_index < len(track.devices):
                     current_device = track.devices[dev_index]
                     if not track_devices.has_key(current_device.name):
                         track_devices[current_device.name] = {
                             'params': [p.value for p in current_device.parameters],
                         }
                         param_count += len(current_device.parameters)
-                        if self._include_nested_devices and self._parent._can_have_nested_devices and current_device.can_have_chains:
-                            param_count += self._get_nested_devices(current_device, track_devices[current_device.name], 0)
+                        if (self._include_nested_devices and
+                                self._parent._can_have_nested_devices and
+                                current_device.can_have_chains):
+                            param_count += self._get_nested_devices(
+                                current_device, track_devices[current_device.name], 0
+                            )
             if track_devices:
                 self._current_track_data[DEVICE_SETTINGS_POS] = track_devices
         return param_count
@@ -170,22 +175,28 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         """
         if rack.chains:
             nested_devs['chains'] = {}
-            for chain_index, c in enumerate(rack.chains):
-                nested_devs['chains'][chain_index] = {'devices' : {}}
-                for device_index, d in enumerate(c.devices):
-                    nested_devs['chains'][chain_index]['devices'][device_index] = {'params' : [p.value for p in d.parameters]}
+            for ci, c in enumerate(rack.chains):
+                nested_devs['chains'][ci] = {'devices' : {}}
+                for di, d in enumerate(c.devices):
+                    nested_devs['chains'][ci]['devices'][di] = {
+                        'params' : [p.value for p in d.parameters]
+                    }
                     parameter_count += len(d.parameters)
                     if not rack.class_name.startswith('Midi'):
-                        mix_settings = [c.mixer_device.volume.value, c.mixer_device.panning.value, c.mixer_device.chain_activator.value]
+                        mix_settings = [c.mixer_device.volume.value,
+                                        c.mixer_device.panning.value,
+                                        c.mixer_device.chain_activator.value]
                         parameter_count += 3
                         sends = c.mixer_device.sends
                         if sends:
                             for s in sends:
                                 mix_settings.append(s.value)
                             parameter_count += len(sends)
-                        nested_devs['chains'][chain_index]['mixer'] = mix_settings
+                        nested_devs['chains'][ci]['mixer'] = mix_settings
                     if d.can_have_chains and d.chains:
-                        self._get_nested_devices(d, nested_devs['chains'][chain_index]['devices'][device_index], parameter_count)
+                        self._get_nested_devices(
+                            d, nested_devs['chains'][ci]['devices'][di], parameter_count
+                        )
         return parameter_count
 
     def recall_track_snapshot(self, name, xclip, disable_smooth=False):
@@ -199,12 +210,12 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             if self._current_tracks.has_key(track):
                 track = self._current_tracks[track]
                 self._recall_mix_settings(track, param_data)
-                if param_data[PLAY_SETTINGS_POS] != None and not track.is_foldable and track is not self.song().master_track:
+                if param_data[PLAY_SETTINGS_POS] is not None and not track.is_foldable and track is not self.song().master_track:
                     if param_data[PLAY_SETTINGS_POS] < 0:
                         track.stop_all_clips()
-                    else:
-                        if track.clip_slots[param_data[PLAY_SETTINGS_POS]].has_clip and track.clip_slots[param_data[PLAY_SETTINGS_POS]].clip != xclip:
-                            track.clip_slots[param_data[PLAY_SETTINGS_POS]].fire()
+                    elif (track.clip_slots[param_data[PLAY_SETTINGS_POS]].has_clip and
+                            track.clip_slots[param_data[PLAY_SETTINGS_POS]].clip != xclip):
+                        track.clip_slots[param_data[PLAY_SETTINGS_POS]].fire()
                 if param_data[DEVICE_SETTINGS_POS]:
                     self._recall_device_settings(track, param_data)
         if self._is_control_track and self._parameters_to_smooth:
@@ -223,9 +234,9 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             if track.mixer_device.panning.is_enabled and not isinstance(pan_value, int):
                 self._get_parameter_data_to_smooth(track.mixer_device.panning, param_data[MIX_STD_SETTINGS_POS][MIX_PAN_POS])
             if track is not self.song().master_track:
-                for index in range (len(param_data[MIX_STD_SETTINGS_POS])-MIX_SEND_START_POS):
-                    if index <= len(track.mixer_device.sends)-1 and track.mixer_device.sends[index].is_enabled:
-                        self._get_parameter_data_to_smooth(track.mixer_device.sends[index], param_data[MIX_STD_SETTINGS_POS][MIX_SEND_START_POS+index])
+                for i in range(len(param_data[MIX_STD_SETTINGS_POS])-MIX_SEND_START_POS):
+                    if i <= len(track.mixer_device.sends)-1 and track.mixer_device.sends[i].is_enabled:
+                        self._get_parameter_data_to_smooth(track.mixer_device.sends[i], param_data[MIX_STD_SETTINGS_POS][MIX_SEND_START_POS+i])
         if param_data[1] and track is not self.song().master_track:
             track.mute = param_data[MIX_EXT_SETTINGS_POS][MIX_MUTE_POS]
             track.solo = param_data[MIX_EXT_SETTINGS_POS][MIX_SOLO_POS]
@@ -243,9 +254,9 @@ class ClyphXSnapActions(ControlSurfaceComponent):
     def _recall_device_snap(self, device, stored_params):
         """Recalls the settings of a single device."""
         if device and len(device.parameters) == len(stored_params):
-            for index, param in enumerate(device.parameters):
+            for i, param in enumerate(device.parameters):
                 if param.is_enabled:
-                    self._get_parameter_data_to_smooth(param, stored_params[index])
+                    self._get_parameter_data_to_smooth(param, stored_params[i])
 
     def _recall_nested_device_snap(self, rack, stored_params):
         """Recalls the settings and mixer settings of nested devices."""
@@ -324,7 +335,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                         new_speed = 8
             if is_synced:
                 new_speed *= self.song().signature_numerator
-            if new_speed in range(501):
+            if 0 <= new_speed < 501:
                 self._smoothing_speed = new_speed
         return is_synced
 
@@ -344,7 +355,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         """
         if self._control_rack and self._snap_id:
             if self._control_rack.parameters[0].value == 1.0:
-                self._control_rack.name = 'ClyphX Snap ' + str(self._snap_id)
+                self._control_rack.name = 'ClyphX Snap {}'.format(self._snap_id)
                 self._control_rack.parameters[1].value = 0.0
                 self._rack_smoothing_active = True
                 if not self._control_rack.parameters[1].value_has_listener(self._control_rack_macro_changed):
@@ -367,7 +378,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                         param_value = v[1]
                     else:
                         param_value = None
-                if param_value != None:
+                if param_value is not None:
                     new_dict[p] = param_value
             self._rack_parameters_to_smooth = new_dict
 

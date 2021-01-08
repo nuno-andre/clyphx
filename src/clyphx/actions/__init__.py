@@ -16,4 +16,10 @@
 
 from __future__ import absolute_import
 
-from .macrobat import Macrobat
+from .xclip import ClyphXClipActions
+from .track import ClyphXTrackActions
+from .device import ClyphXDeviceActions
+from .global_ import ClyphXGlobalActions
+from .dr import ClyphXDRActions9
+from .snap9 import ClyphXSnapActions
+from .control_surface import ClyphXControlSurfaceActions9

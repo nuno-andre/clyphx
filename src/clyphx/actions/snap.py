@@ -14,11 +14,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-import math
+from __future__ import absolute_import, unicode_literals
 
+import math
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from consts import IS_LIVE_9
+from ..consts import IS_LIVE_9
 
 
 if IS_LIVE_9:
@@ -74,7 +75,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         pass
 
     def store_track_snapshot(self, track_list, xclip, ident, action, args):
-        """ Store snapshot of track params """
+        """Store snapshot of track params."""
         param_count = 0
         if not isinstance(xclip, Live.Clip.Clip):
             return ()
@@ -157,7 +158,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             return [nested_list, parameter_count]
 
     def recall_track_snapshot(self, name, xclip):
-        """ Recall snapshot of track params """
+        """Recall snapshot of track params."""
         self._smoothing_count = 0
         self._snap_id = xclip.name[xclip.name.index('['):xclip.name.index(']')+1].strip().upper()
         track_name = self._parent.get_name(xclip.canonical_parent.canonical_parent.name)

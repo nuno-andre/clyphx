@@ -16,6 +16,8 @@
 
 #---This module contains Learn, Chain Mix, DR, DR Multi, Receiver and Track Racks
 
+from __future__ import absolute_import, unicode_literals
+
 from _Generic.Devices import *
 from ..consts import IS_LIVE_9
 from .parameter_rack_template import MacrobatParameterRackTemplate

@@ -14,7 +14,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import with_statement
+from __future__ import with_statement, absolute_import, unicode_literals
+
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from ..consts import NOTE_NAMES
 

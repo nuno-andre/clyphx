@@ -14,12 +14,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, unicode_literals
+
+import logging
 from functools import partial
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.ControlSurface import ControlSurface
 from _Framework.SessionComponent import SessionComponent
+from .consts import IS_LIVE_9_5
 
-from consts import IS_LIVE_9_5
+log = logging.getLogger(__name__)
 
 
 class CSLinker(ControlSurfaceComponent):
@@ -90,7 +94,7 @@ class CSLinker(ControlSurfaceComponent):
                     if found_scripts:
                         break
             if found_scripts:
-                self.canonical_parent.log_message('CSLINKER SUCCESS: Specified scripts located!')
+                log.info('Scripts found (%s)', self.canonical_parent)
                 ssn_comps = []
                 for script in scripts:
                     if IS_LIVE_9_5 and script.__class__.__name__.upper() in ('PUSH', 'PUSH2'):
@@ -100,7 +104,8 @@ class CSLinker(ControlSurfaceComponent):
                             ssn_comps.append(c)
                             break
                 if len(ssn_comps) == 2:
-                    self.canonical_parent.log_message('CSLINKER SUCCESS: SessionComponents for specified scripts located!')
+                    log.info('SessionComponents for specified scripts located (%s)',
+                             self.canonical_parent)
                     if self._matched_link:
                         for s in ssn_comps:
                             s._link()
@@ -119,9 +124,11 @@ class CSLinker(ControlSurfaceComponent):
                         self._slave_objects[1] = SessionSlaveSecondary(self._horizontal_link, self._multi_axis_link, ssn_comps[1], ssn_comps[0], h_offset_2, v_offset_2)
                         self.canonical_parent.schedule_message(10, self._refresh_slave_objects)
                 else:
-                    self.canonical_parent.log_message('CSLINKER ERROR: Unable to locate SessionComponents for specified scripts!')
+                    log.error('Unable to locate SessionComponents for specified scripts (%s)',
+                              self.canonical_parent)
             else:
-                self.canonical_parent.log_message('CSLINKER ERROR: Unable to locate specified scripts!')
+                log.error('Unable to locate specified scripts (%s)',
+                          self.canonical_parent)
 
     def on_track_list_changed(self):
         """Refreshes slave objects if horizontally linked."""

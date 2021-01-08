@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import unicode_literals
+
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 

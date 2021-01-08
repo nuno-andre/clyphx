@@ -14,9 +14,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, unicode_literals
+
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.SessionComponent import SessionComponent
-from consts import IS_LIVE_9_5
+from .consts import IS_LIVE_9_5
+
 SessionRingComponent = None
 
 if IS_LIVE_9_5:

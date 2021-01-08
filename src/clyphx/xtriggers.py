@@ -13,11 +13,12 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
+from __future__ import absolute_import, unicode_literals
 
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ActionList import ActionList
-from consts import IS_LIVE_9
+from .action_list import ActionList
+from .consts import IS_LIVE_9
 
 if IS_LIVE_9:
     from functools import partial
@@ -49,7 +50,7 @@ class ClyphXControlComponent(ControlSurfaceComponent):
     def connect_script_instances(self, instanciated_scripts):
         """Try to connect to ClyphX_XT instances."""
         ClyphX_XT = None
-        for i in range (5):
+        for i in range(5):
             try:
                 if i == 0:
                     from ClyphX_XTA.ClyphX_XT import ClyphX_XT
