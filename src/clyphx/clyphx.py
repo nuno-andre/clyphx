@@ -160,7 +160,8 @@ class ClyphX(ControlSurface):
                             if len(device_action) > 1:
                                 device_args = device_action[1]
                             if device_args and device_args.split()[0] in DEVICE_ACTIONS:
-                                getattr(self._device_actions, DEVICE_ACTIONS[device_args.split()[0]])(device_action[0], t, xclip, ident, device_args)
+                                fn = getattr(self._device_actions, DEVICE_ACTIONS[device_args.split()[0]])
+                                fn(device_action[0], t, xclip, ident, device_args)
                             elif device_args and 'CHAIN' in device_args:
                                 self._device_actions.dispatch_chain_action(device_action[0], t, xclip, ident, device_args)
                             elif action_name.startswith('DEV'):
@@ -172,7 +173,8 @@ class ClyphX(ControlSurface):
                             if len(clip_action) > 1:
                                 clip_args = clip_action[1]
                             if clip_args and clip_args.split()[0] in CLIP_ACTIONS:
-                                getattr(self._clip_actions, CLIP_ACTIONS[clip_args.split()[0]])(clip_action[0], t, xclip, ident, clip_args.replace(clip_args.split()[0], ''))
+                                fn = getattr(self._clip_actions, CLIP_ACTIONS[clip_args.split()[0]])
+                                fn(clip_action[0], t, xclip, ident, clip_args.replace(clip_args.split()[0], ''))
                             elif clip_args and clip_args.split()[0].startswith('NOTES'):
                                 self._clip_actions.do_clip_note_action(clip_action[0], t, xclip, ident, args)
                             elif action_name.startswith('CLIP'):

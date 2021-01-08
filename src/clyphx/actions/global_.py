@@ -16,14 +16,12 @@
 
 from __future__ import absolute_import, unicode_literals
 
+from functools import partial
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ..consts import IS_LIVE_9, IS_LIVE_9_5, KEYWORDS
+from ..consts import IS_LIVE_9_5, KEYWORDS
 from ..consts import (AUDIO_DEVS, MIDI_DEVS, INS_DEVS,
                       GQ_STATES, REPEAT_STATES, RQ_STATES)
-
-if IS_LIVE_9:
-    from functools import partial
 
 
 class ClyphXGlobalActions(ControlSurfaceComponent):
@@ -56,8 +54,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         self._tempo_ramp_settings = []
         self._scenes_to_monitor = None
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -99,10 +96,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                         #---send matching note off for note messages
                         if byte_array[0] == 'NOTE':
                             message_to_send[-1] = 0
-                            if IS_LIVE_9:
-                                self._parent.schedule_message(1, partial(self._parent._send_midi, tuple(message_to_send)))
-                            else:
-                                self._parent.schedule_message(1, self._parent._send_midi, tuple(message_to_send))
+                            self._parent.schedule_message(1, partial(self._parent._send_midi, tuple(message_to_send)))
                     except:
                         pass
 
@@ -134,36 +128,33 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
     def create_audio_track(self, track, xclip, ident, value = None):
         """Creates audio track at end of track list or at the specified index.
         """
-        if IS_LIVE_9:
-            value = value.strip()
-            if value:
-                try:
-                    index = int(value) - 1
-                    if index in range(len(self.song().tracks)):
-                        self.song().create_audio_track(index)
-                except:
-                    pass
-            else:
-                self.song().create_audio_track(-1)
+        value = value.strip()
+        if value:
+            try:
+                index = int(value) - 1
+                if index in range(len(self.song().tracks)):
+                    self.song().create_audio_track(index)
+            except:
+                pass
+        else:
+            self.song().create_audio_track(-1)
 
     def create_midi_track(self, track, xclip, ident, value = None):
         """Creates MIDI track at end of track list or at the specified index.
-      ."""
-        if IS_LIVE_9:
-            value = value.strip()
-            if value:
-                try:
-                    index = int(value) - 1
-                    if 0 <= index < len(self.song().tracks):
-                        self.song().create_midi_track(index)
-                except: pass
-            else:
-                self.song().create_midi_track(-1)
+        """
+        value = value.strip()
+        if value:
+            try:
+                index = int(value) - 1
+                if 0 <= index < len(self.song().tracks):
+                    self.song().create_midi_track(index)
+            except: pass
+        else:
+            self.song().create_midi_track(-1)
 
     def create_return_track(self, track, xclip, ident, value = None):
         """Creates return track at end of return list."""
-        if IS_LIVE_9:
-            self.song().create_return_track()
+        self.song().create_return_track()
 
     def insert_and_configure_audio_track(self, track, xclip, ident, value = None):
         """Inserts an audio track next to the selected track routed from the
@@ -182,53 +173,51 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         work if the selected track has the appropriate output/input for the
         insertion.
         """
-        if IS_LIVE_9:
-            sel_track = self.song().view.selected_track
-            if is_midi and not sel_track.has_midi_input:
-                return
-            if not is_midi and not sel_track.has_audio_output:
-                return
-            try:
-                ins_index = list(self.song().tracks).index(sel_track) + 1
-                create_method = getattr(self.song(), 'create_midi_track' if is_midi
-                                        else 'create_audio_track')
-                create_method(ins_index)
-                new_track = self.song().tracks[ins_index]
-                new_track.name = 'From %s' % sel_track.name
-                new_track.current_input_routing = sel_track.name
-                new_track.arm = True
-            except:
-                pass
+        sel_track = self.song().view.selected_track
+        if is_midi and not sel_track.has_midi_input:
+            return
+        if not is_midi and not sel_track.has_audio_output:
+            return
+        try:
+            ins_index = list(self.song().tracks).index(sel_track) + 1
+            create_method = getattr(self.song(), 'create_midi_track' if is_midi
+                                    else 'create_audio_track')
+            create_method(ins_index)
+            new_track = self.song().tracks[ins_index]
+            new_track.name = 'From %s' % sel_track.name
+            new_track.current_input_routing = sel_track.name
+            new_track.arm = True
+        except:
+            pass
 
     def create_scene(self, track, xclip, ident, value = None):
-        """Creates scene at end of scene list or at the specified index."""
-        if IS_LIVE_9:
-            current_name = None
-            if type(xclip) is Live.Clip.Clip:
-                current_name = xclip.name
-                xclip.name = ''
-            value = value.strip()
-            if value:
-                try:
-                    index = int(value) - 1
-                    if 0 <= index < len(self.song().scenes):
-                        self.song().create_scene(index)
-                except: pass
-            else:
-                self.song().create_scene(-1)
-            if current_name:
-                self._parent.schedule_message(4, partial(self.refresh_xclip_name, (xclip, current_name)))
+        """Creates scene at end of scene list or at the specified index.
+        """
+        current_name = None
+        if type(xclip) is Live.Clip.Clip:
+            current_name = xclip.name
+            xclip.name = ''
+        value = value.strip()
+        if value:
+            try:
+                index = int(value) - 1
+                if 0 <= index < len(self.song().scenes):
+                    self.song().create_scene(index)
+            except: pass
+        else:
+            self.song().create_scene(-1)
+        if current_name:
+            self._parent.schedule_message(4, partial(self.refresh_xclip_name, (xclip, current_name)))
 
     def duplicate_scene(self, track, xclip, ident, args):
         """Duplicates the given scene."""
-        if IS_LIVE_9:
-            current_name = None
-            if type(xclip) is Live.Clip.Clip and args:
-                current_name = xclip.name
-                xclip.name = ''
-            self.song().duplicate_scene(self.get_scene_to_operate_on(xclip, args.strip()))
-            if current_name:
-                self._parent.schedule_message(4, partial(self.refresh_xclip_name, (xclip, current_name)))
+        current_name = None
+        if type(xclip) is Live.Clip.Clip and args:
+            current_name = xclip.name
+            xclip.name = ''
+        self.song().duplicate_scene(self.get_scene_to_operate_on(xclip, args.strip()))
+        if current_name:
+            self._parent.schedule_message(4, partial(self.refresh_xclip_name, (xclip, current_name)))
 
     def refresh_xclip_name(self, clip_info):
         """This is used for both dupe and create scene to prevent the action
@@ -241,7 +230,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         """Deletes the given scene as long as it's not the last scene in the
         set.
         """
-        if IS_LIVE_9 and len(self.song().scenes) > 1:
+        if len(self.song().scenes) > 1:
             self.song().delete_scene(self.get_scene_to_operate_on(xclip, args.strip()))
 
     def swap_device_preset(self, track, xclip, ident, args):
@@ -249,44 +238,43 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         for the given device with the given preset or navigates forwards and
         back through presets.
         """
-        if IS_LIVE_9:
-            device = track.view.selected_device
-            if device:
-                if not args:
+        device = track.view.selected_device
+        if device:
+            if not args:
+                self.application().view.toggle_browse()
+            else:
+                if self.application().view.browse_mode:
                     self.application().view.toggle_browse()
+                tag_target = None
+                dev_name = device.class_display_name
+                args = args.strip()
+                if IS_LIVE_9_5:
+                    if device.type == Live.Device.DeviceType.audio_effect:
+                        tag_target = self.application().browser.audio_effects
+                    elif device.type == Live.Device.DeviceType.midi_effect:
+                        tag_target = self.application().browser.midi_effects
+                    elif device.type == Live.Device.DeviceType.instrument:
+                        tag_target = self.application().browser.instruments
+                    if tag_target:
+                        for dev in tag_target.children:
+                            if dev.name == dev_name:
+                                self._handle_swapping(device, dev, args)
+                                break
                 else:
-                    if self.application().view.browse_mode:
-                        self.application().view.toggle_browse()
-                    tag_target = None
-                    dev_name = device.class_display_name
-                    args = args.strip()
-                    if IS_LIVE_9_5:
-                        if device.type == Live.Device.DeviceType.audio_effect:
-                            tag_target = self.application().browser.audio_effects
-                        elif device.type == Live.Device.DeviceType.midi_effect:
-                            tag_target = self.application().browser.midi_effects
-                        elif device.type == Live.Device.DeviceType.instrument:
-                            tag_target = self.application().browser.instruments
-                        if tag_target:
-                            for dev in tag_target.children:
-                                if dev.name == dev_name:
-                                    self._handle_swapping(device, dev, args)
-                                    break
-                    else:
-                        if device.type == Live.Device.DeviceType.audio_effect:
-                            tag_target = 'Audio Effects'
-                        elif device.type == Live.Device.DeviceType.midi_effect:
-                            tag_target = 'MIDI Effects'
-                        elif device.type == Live.Device.DeviceType.instrument:
-                            tag_target = 'Instruments'
-                        if tag_target:
-                            for main_tag in self.application().browser.tags:
-                                if main_tag.name == tag_target:
-                                    for dev in main_tag.children:
-                                        if dev.name == dev_name:
-                                            self._handle_swapping(device, dev, args)
-                                            break
-                                    break
+                    if device.type == Live.Device.DeviceType.audio_effect:
+                        tag_target = 'Audio Effects'
+                    elif device.type == Live.Device.DeviceType.midi_effect:
+                        tag_target = 'MIDI Effects'
+                    elif device.type == Live.Device.DeviceType.instrument:
+                        tag_target = 'Instruments'
+                    if tag_target:
+                        for main_tag in self.application().browser.tags:
+                            if main_tag.name == tag_target:
+                                for dev in main_tag.children:
+                                    if dev.name == dev_name:
+                                        self._handle_swapping(device, dev, args)
+                                        break
+                                break
 
     def _handle_swapping(self, device, browser_item, args):
         dev_items = self._create_device_items(browser_item, [])
@@ -339,92 +327,89 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
     def load_device(self, track, xclip, ident, args):
         """Loads one of Live's built-in devices onto the selected Track."""
         # XXX: using a similar method for loading plugins doesn't seem to work!
-        if IS_LIVE_9:
-            args = args.strip()
-            tag_target = None
-            name = None
-            if IS_LIVE_9_5:
-                if args in AUDIO_DEVS:
-                    tag_target = self.application().browser.audio_effects
-                    name = AUDIO_DEVS[args]
-                elif args in MIDI_DEVS:
-                    tag_target = self.application().browser.midi_effects
-                    name = MIDI_DEVS[args]
-                elif args in INS_DEVS:
-                    tag_target = self.application().browser.instruments
-                    name = INS_DEVS[args]
-                if tag_target:
-                    for dev in tag_target.children:
-                        if dev.name == name:
-                            self.application().browser.load_item(dev)
-                            break
-            else:
-                if args in AUDIO_DEVS:
-                    tag_target = 'Audio Effects'
-                    name = AUDIO_DEVS[args]
-                elif args in MIDI_DEVS:
-                    tag_target = 'MIDI Effects'
-                    name = MIDI_DEVS[args]
-                elif args in INS_DEVS:
-                    tag_target = 'Instruments'
-                    name = INS_DEVS[args]
-                if tag_target:
-                    for main_tag in self.application().browser.tags:
-                        if main_tag.name == tag_target:
-                            for dev in main_tag.children:
-                                if dev.name == name:
-                                    self.application().browser.load_item(dev)
-                                    break
-                            break
+        args = args.strip()
+        tag_target = None
+        name = None
+        if IS_LIVE_9_5:
+            if args in AUDIO_DEVS:
+                tag_target = self.application().browser.audio_effects
+                name = AUDIO_DEVS[args]
+            elif args in MIDI_DEVS:
+                tag_target = self.application().browser.midi_effects
+                name = MIDI_DEVS[args]
+            elif args in INS_DEVS:
+                tag_target = self.application().browser.instruments
+                name = INS_DEVS[args]
+            if tag_target:
+                for dev in tag_target.children:
+                    if dev.name == name:
+                        self.application().browser.load_item(dev)
+                        break
+        else:
+            if args in AUDIO_DEVS:
+                tag_target = 'Audio Effects'
+                name = AUDIO_DEVS[args]
+            elif args in MIDI_DEVS:
+                tag_target = 'MIDI Effects'
+                name = MIDI_DEVS[args]
+            elif args in INS_DEVS:
+                tag_target = 'Instruments'
+                name = INS_DEVS[args]
+            if tag_target:
+                for main_tag in self.application().browser.tags:
+                    if main_tag.name == tag_target:
+                        for dev in main_tag.children:
+                            if dev.name == name:
+                                self.application().browser.load_item(dev)
+                                break
+                        break
 
     def load_m4l(self, track, xclip, ident, args):
         """Loads M4L device onto the selected Track. The .amxd should be
         omitted by the user.
         """
-        if IS_LIVE_9:
-            args = args.strip() + '.AMXD'
-            found_dev = False
-            if IS_LIVE_9_5:
-                for m in self.application().browser.max_for_live.children:
-                    for device in m.children:
+        args = args.strip() + '.AMXD'
+        found_dev = False
+        if IS_LIVE_9_5:
+            for m in self.application().browser.max_for_live.children:
+                for device in m.children:
+                    if not found_dev:
+                        if device.is_folder:
+                            for dev in device.children:
+                                if dev.name.upper() == args:
+                                    found_dev = True
+                                    self.application().browser.load_item(dev)
+                                    break
+                        elif device.name.upper() == args:
+                            found_dev = True
+                            self.application().browser.load_item(device)
+                            break
+                    else:
+                        break
+        else:
+            for main_tag in self.application().browser.tags:
+                if main_tag.name == 'Max for Live':
+                    for folder in main_tag.children:
                         if not found_dev:
-                            if device.is_folder:
-                                for dev in device.children:
+                            if folder.is_folder:
+                                for dev in folder.children:
                                     if dev.name.upper() == args:
                                         found_dev = True
                                         self.application().browser.load_item(dev)
                                         break
-                            elif device.name.upper() == args:
-                                found_dev = True
-                                self.application().browser.load_item(device)
-                                break
                         else:
                             break
-            else:
-                for main_tag in self.application().browser.tags:
-                    if main_tag.name == 'Max for Live':
-                        for folder in main_tag.children:
-                            if not found_dev:
-                                if folder.is_folder:
-                                    for dev in folder.children:
-                                        if dev.name.upper() == args:
-                                            found_dev = True
-                                            self.application().browser.load_item(dev)
-                                            break
-                            else:
-                                break
-                        break
+                    break
 
     def set_session_record(self, track, xclip, ident, value = None):
         """Toggles or turns on/off session record."""
-        if IS_LIVE_9:
-            self.song().session_record = KEYWORDS.get(value, not(self.song().session_record))
+        self.song().session_record = KEYWORDS.get(value, not(self.song().session_record))
 
     def trigger_session_record(self, track, xclip, ident, value = None):
         """Triggers session record in all armed tracks for the specified fixed
         length.
         """
-        if IS_LIVE_9 and value:
+        if value:
             # the below fixes an issue where Live will crash instead of
             # creating a new scene when triggered via an X-Clip
             if type(xclip) is Live.Clip.Clip:
@@ -450,8 +435,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
 
     def set_session_automation_record(self, track, xclip, ident, value = None):
         """Toggles or turns on/off session automation record."""
-        if IS_LIVE_9:
-            self.song().session_automation_record = KEYWORDS.get(value, not(self.song().session_automation_record))
+        self.song().session_automation_record = KEYWORDS.get(value, not(self.song().session_automation_record))
 
     def retrigger_recording_clips(self, track, xclip, ident, value = None):
         """Retriggers all clips that are currently recording."""
@@ -499,10 +483,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
 
     def set_stop_all(self, track, xclip, ident, value = None):
         """Stop all clips w/no quantization option for Live 9."""
-        if IS_LIVE_9:
-            self.song().stop_all_clips(not value.strip() == 'NQ')
-        else:
-            self.song().stop_all_clips()
+        self.song().stop_all_clips(not value.strip() == 'NQ')
 
     def set_tap_tempo(self, track, xclip, ident, value = None):
         """Tap tempo."""
@@ -654,7 +635,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         elif args.startswith('*'):
             try: self.song().tempo = max(20, min(999, (self.song().tempo * float(args[1:]))))
             except: pass
-        elif args.startswith('RAMP') and IS_LIVE_9:
+        elif args.startswith('RAMP'):
             arg_array = args.split()
             if len(arg_array) == 3:
                 try:
@@ -711,32 +692,30 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
 
     def set_note_repeat(self, track, xclip, ident, args):
         """Set/toggle note repeat."""
-        if IS_LIVE_9:
-            args = args.strip()
-            if args in REPEAT_STATES:
-                if args == 'OFF':
-                    self._parent._c_instance.note_repeat.enabled = False
-                    self._repeat_enabled = False
-                else:
-                    self._parent._c_instance.note_repeat.repeat_rate = REPEAT_STATES[args]
-                    self._parent._c_instance.note_repeat.enabled = True
-                    self._repeat_enabled = True
+        args = args.strip()
+        if args in REPEAT_STATES:
+            if args == 'OFF':
+                self._parent._c_instance.note_repeat.enabled = False
+                self._repeat_enabled = False
             else:
-                self._repeat_enabled = not self._repeat_enabled
-                self._parent._c_instance.note_repeat.enabled = self._repeat_enabled
+                self._parent._c_instance.note_repeat.repeat_rate = REPEAT_STATES[args]
+                self._parent._c_instance.note_repeat.enabled = True
+                self._repeat_enabled = True
+        else:
+            self._repeat_enabled = not self._repeat_enabled
+            self._parent._c_instance.note_repeat.enabled = self._repeat_enabled
 
     def adjust_swing(self, track, xclip, ident, args):
         """Adjust swing amount for use with note repeat."""
-        if IS_LIVE_9:
-            args = args.strip()
-            if args.startswith(('<', '>')):
-                factor = self._parent.get_adjustment_factor(args, True)
-                self.song().swing_amount = max(0.0, min(1.0, (self.song().swing_amount + factor * 0.01)))
-            else:
-                try:
-                    self.song().swing_amount = int(args) * 0.01
-                except:
-                    pass
+        args = args.strip()
+        if args.startswith(('<', '>')):
+            factor = self._parent.get_adjustment_factor(args, True)
+            self.song().swing_amount = max(0.0, min(1.0, (self.song().swing_amount + factor * 0.01)))
+        else:
+            try:
+                self.song().swing_amount = int(args) * 0.01
+            except:
+                pass
 
     def adjust_global_quantize(self, track, xclip, ident, args):
         """Adjust/set/toggle global quantization."""

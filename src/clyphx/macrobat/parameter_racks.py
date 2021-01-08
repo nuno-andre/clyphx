@@ -18,12 +18,9 @@
 
 from __future__ import absolute_import, unicode_literals
 
+from functools import partial
 from _Generic.Devices import *
-from ..consts import IS_LIVE_9
 from .parameter_rack_template import MacrobatParameterRackTemplate
-
-if IS_LIVE_9:
-    from functools import partial
 
 LAST_PARAM = {}
 
@@ -35,10 +32,9 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
     def __init__(self, parent, rack, track):
         self._rack = rack
         #---delay adding listener to prevent issue with change on set load
-        if IS_LIVE_9:
-            parent.schedule_message(8, partial(parent.song().view.add_selected_parameter_listener, self.on_selected_parameter_changed))
-        else:
-            parent.schedule_message(8, parent.song().view.add_selected_parameter_listener, self.on_selected_parameter_changed)
+        parent.schedule_message(
+            8, partial(parent.song().view.add_selected_parameter_listener, self.on_selected_parameter_changed)
+        )
         MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
 
     def disconnect(self):
@@ -62,10 +58,7 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
                 p_listener = lambda index = index:self.param_changed(index)
                 param.add_value_listener(p_listener)
                 self._param_macros[index] = (self._rack.parameters[1], param)
-            if IS_LIVE_9:
-                self._tasks.add(self.get_initial_value)
-            else:
-                self._get_initial_value = True
+            self._tasks.add(self.get_initial_value)
 
     def on_selected_parameter_changed(self):
         """Update rack on new param selected."""
@@ -108,10 +101,7 @@ class MacrobatChainMixRack(MacrobatParameterRackTemplate):
                         p_listener = lambda index = index:self.param_changed(index)
                         param.add_value_listener(p_listener)
                         self._param_macros[index] = (macro, param)
-            if IS_LIVE_9:
-                self._tasks.add(self.get_initial_value)
-            else:
-                self._get_initial_value = True
+            self._tasks.add(self.get_initial_value)
 
     def get_rack(self):
         """Get rack to operate on as well as the mixer params of its chains."""
@@ -166,10 +156,7 @@ class MacrobatDRMultiRack(MacrobatParameterRackTemplate):
                         p_listener = lambda index = index:self.param_changed(index)
                         param.add_value_listener(p_listener)
                         self._param_macros[index] = (macro, param)
-            if IS_LIVE_9:
-                self._tasks.add(self.get_initial_value)
-            else:
-                self._get_initial_value = True
+            self._tasks.add(self.get_initial_value)
 
 
 class MacrobatDRRack(MacrobatParameterRackTemplate):
@@ -208,10 +195,7 @@ class MacrobatDRRack(MacrobatParameterRackTemplate):
                         p_listener = lambda index = index:self.param_changed(index)
                         param.add_value_listener(p_listener)
                         self._param_macros[index] = (macro, param)
-            if IS_LIVE_9:
-                self._tasks.add(self.get_initial_value)
-            else:
-                self._get_initial_value = True
+            self._tasks.add(self.get_initial_value)
 
 
 class MacrobatReceiverRack(MacrobatParameterRackTemplate):
@@ -240,10 +224,7 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
                             s_listener = lambda index = index:self.param_changed(index)
                             s[1].add_value_listener(s_listener)
                             self._param_macros[index] = (r[1], s[1])
-            if IS_LIVE_9:
-                self._tasks.add(self.get_initial_value)
-            else:
-                self._get_initial_value = True
+            self._tasks.add(self.get_initial_value)
 
     def get_sender_macros(self, dev_list):
         """Look through all devices/chains on all tracks for sender macros."""
@@ -309,7 +290,4 @@ class MacrobatTrackRack(MacrobatParameterRackTemplate):
                 p_listener = lambda index = index:self.param_changed(index)
                 param.add_value_listener(p_listener)
                 self._param_macros[index] = (macro, param)
-        if IS_LIVE_9:
-            self._tasks.add(self.get_initial_value)
-        else:
-            self._get_initial_value = True
+        self._tasks.add(self.get_initial_value)

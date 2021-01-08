@@ -15,13 +15,13 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import absolute_import, unicode_literals
 
+from functools import partial
+import logging
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from .action_list import ActionList
-from .consts import IS_LIVE_9
 
-if IS_LIVE_9:
-    from functools import partial
+log = logging.getLogger(__name__)
 
 
 class ClyphXControlComponent(ControlSurfaceComponent):
@@ -38,8 +38,7 @@ class ClyphXControlComponent(ControlSurfaceComponent):
         self._control_list = {}
         self._xt_scripts = []
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -64,11 +63,12 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                     from ClyphX_XTE.ClyphX_XT import ClyphX_XT
             except:
                 pass
-            if ClyphX_XT:
-                for i in instanciated_scripts:
-                    if isinstance(i, ClyphX_XT) and not i in self._xt_scripts:
-                        self._xt_scripts.append(i)
-                        break
+            else:
+                if ClyphX_XT:
+                    for i in instanciated_scripts:
+                        if isinstance(i, ClyphX_XT) and not i in self._xt_scripts:
+                            self._xt_scripts.append(i)
+                            break
 
     def assign_new_actions(self, string):
         """Assign new actions to controls via xclips."""
@@ -97,9 +97,11 @@ class ClyphXControlComponent(ControlSurfaceComponent):
         if self._control_list:
             ctrl_data = None
             if bytes[2] == 0 or bytes[0] < 144:
-                if (bytes[0], bytes[1]) in self._control_list.keys() and self._control_list[(bytes[0], bytes[1])]['off_action']:
+                if ((bytes[0], bytes[1]) in self._control_list.keys() and
+                        self._control_list[(bytes[0], bytes[1])]['off_action']):
                     ctrl_data = self._control_list[(bytes[0], bytes[1])]
-                elif (bytes[0] + 16, bytes[1]) in self._control_list.keys() and self._control_list[(bytes[0] + 16, bytes[1])]['off_action']:
+                elif ((bytes[0] + 16, bytes[1]) in self._control_list.keys() and
+                        self._control_list[(bytes[0] + 16, bytes[1])]['off_action']):
                     ctrl_data = self._control_list[(bytes[0] + 16, bytes[1])]
                 if ctrl_data:
                     ctrl_data['name'].name = ctrl_data['off_action']
@@ -107,11 +109,12 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                 ctrl_data = self._control_list[(bytes[0], bytes[1])]
                 ctrl_data['name'].name = ctrl_data['on_action']
             if ctrl_data:
-                self._parent.handle_action_list_trigger(self.song().view.selected_track, ctrl_data['name'])
+                self._parent.handle_action_list_trigger(self.song().view.selected_track,
+                                                        ctrl_data['name'])
 
     def get_user_control_settings(self, data, midi_map_handle):
-        """Receives control data from user settings file and builds control
-        dictionary.
+        """Receives control data from user settings file and builds
+        control dictionary.
         """
         self._control_list = {}
         for d in data:
@@ -157,9 +160,13 @@ class ClyphXControlComponent(ControlSurfaceComponent):
         """
         for key in self._control_list.keys():
             if key[0] >= 176:
-                Live.MidiMap.forward_midi_cc(self._parent._c_instance.handle(), midi_map_handle, key[0] - 176, key[1])
+                Live.MidiMap.forward_midi_cc(
+                    self._parent._c_instance.handle(), midi_map_handle, key[0] - 176, key[1]
+                )
             else:
-                Live.MidiMap.forward_midi_note(self._parent._c_instance.handle(), midi_map_handle, key[0] - 144, key[1])
+                Live.MidiMap.forward_midi_note(
+                    self._parent._c_instance.handle(), midi_map_handle, key[0] - 144, key[1]
+                )
 
 
 class ClyphXTrackComponent(ControlSurfaceComponent):
@@ -188,8 +195,7 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
         self._triggered_clips = []
         self._triggered_lseq_clip = None
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -214,7 +220,8 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
         elif prev_clip:
             self._triggered_clips.append(prev_clip)
         self._clip = new_clip
-        if self._clip and '(LSEQ)' in self._clip.name.upper() and not self._clip.loop_jump_has_listener(self.on_loop_jump):
+        if (self._clip and '(LSEQ)' in self._clip.name.upper() and
+                not self._clip.loop_jump_has_listener(self.on_loop_jump)):
             self._clip.add_loop_jump_listener(self.on_loop_jump)
 
     def get_xclip(self, slot_index):
@@ -278,8 +285,7 @@ class ClyphXCueComponent(ControlSurfaceComponent):
         self.song().remove_cue_points_listener(self.cue_points_changed)
         self._x_points = {}
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -312,11 +318,11 @@ class ClyphXCueComponent(ControlSurfaceComponent):
         """
         if self.song().is_playing:
             if self._x_point_time_to_watch_for != -1 and self._last_arrange_position < self.song().current_song_time:
-                if self.song().current_song_time >= self._x_point_time_to_watch_for and self._x_point_time_to_watch_for < self._last_arrange_position:
-                    if IS_LIVE_9:
-                        self._parent.schedule_message(1, partial(self.schedule_x_point_action_list, self._x_point_time_to_watch_for))
-                    else:
-                        self._parent.schedule_message(1, self.schedule_x_point_action_list, self._x_point_time_to_watch_for)
+                if (self.song().current_song_time >= self._x_point_time_to_watch_for and
+                        self._x_point_time_to_watch_for < self._last_arrange_position):
+                    self._parent.schedule_message(
+                        1, partial(self.schedule_x_point_action_list, self._x_point_time_to_watch_for)
+                    )
                     self._x_point_time_to_watch_for = -1
             else:
                 self.set_x_point_time_to_watch()

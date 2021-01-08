@@ -18,15 +18,13 @@ from __future__ import absolute_import, unicode_literals
 
 # from builtins import range
 
+import random
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from .xclip_env_capture import ClyphXClipEnvCapture
-from ..consts import IS_LIVE_9, IS_LIVE_9_1, KEYWORDS
+from ..consts import IS_LIVE_9_1, KEYWORDS
 from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES, WARP_MODES,
                       NOTE_NAMES, OCTAVE_NAMES)
-
-if IS_LIVE_9:
-    import random
 
 ENV_TYPES = ('IRAMP', 'DRAMP', 'IPYR', 'DPYR', 'SQR', 'SAW')
 
@@ -42,8 +40,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def disconnect(self):
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -109,7 +106,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
     def adjust_gain(self, clip, track, xclip, ident, args):
         """Adjust/set clip gain for Live 9. For settings, range is 0 - 127.
         """
-        if IS_LIVE_9 and clip.is_audio_clip:
+        if clip.is_audio_clip:
             args = args.strip()
             if args.startswith(('<', '>')):
                 factor = self._parent.get_adjustment_factor(args, True)
@@ -127,13 +124,13 @@ class ClyphXClipActions(ControlSurfaceComponent):
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
-            if IS_LIVE_9 and clip.looping:
+            if clip.looping:
                 clip.start_marker = max(0.0, min(clip.end_marker - factor, (clip.start_marker + factor)))
             else:
                 clip.loop_start = max(0.0, min(clip.loop_end - factor, (clip.loop_start + factor)))
         else:
             try:
-                if IS_LIVE_9 and clip.looping:
+                if clip.looping:
                     clip.start_marker = float(args)
                 else:
                     clip.loop_start = float(args)
@@ -159,7 +156,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
-            if IS_LIVE_9 and clip.looping:
+            if clip.looping:
                 clip.end_marker = max((clip.start_marker - factor),
                                       (clip.end_marker + factor))
             else:
@@ -167,7 +164,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
                                     (clip.loop_end + factor))
         else:
             try:
-                if IS_LIVE_9 and clip.looping:
+                if clip.looping:
                     clip.end_marker = float(args)
                 else:
                     clip.loop_end = float(args)
@@ -214,7 +211,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
         """Adjusts the warp mode of the clip. This cannot be applied if the
         warp mode is currently rex (5).
         """
-        if IS_LIVE_9 and clip.is_audio_clip and clip.warping and not clip.warp_mode == 5:
+        if clip.is_audio_clip and clip.warping and not clip.warp_mode == 5:
             args = args.strip()
             if args in WARP_MODES:
                 clip.warp_mode = WARP_MODES[args]
@@ -230,15 +227,13 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def adjust_grid_quantization(self, clip, track, xclip, ident, args):
         """Adjusts clip grid quantization."""
-        if IS_LIVE_9:
-            args = args.strip()
-            if args in CLIP_GRID_STATES:
-                clip.view.grid_quantization = CLIP_GRID_STATES[args]
+        args = args.strip()
+        if args in CLIP_GRID_STATES:
+            clip.view.grid_quantization = CLIP_GRID_STATES[args]
 
     def set_triplet_grid(self, clip, track, xclip, ident, args):
         """Toggles or turns triplet grid on or off."""
-        if IS_LIVE_9:
-            clip.view.grid_is_triplet = KEYWORDS.get(args, not(clip.view.grid_is_triplet))
+        clip.view.grid_is_triplet = KEYWORDS.get(args, not(clip.view.grid_is_triplet))
 
     def capture_to_envelope(self, clip, track, xclip, ident, args):
         if IS_LIVE_9_1:
@@ -382,56 +377,56 @@ class ClyphXClipActions(ControlSurfaceComponent):
             clip.view.hide_envelope()
 
     def quantize(self, clip, track, xclip, ident, args):
-        """Quantizes notes or warp markers to the given quantization value, at
-        the (optional) given strength and with the (optional) percentage of
-        swing. Can optionally be applied to specific notes or ranges of notes.
+        """Quantizes notes or warp markers to the given quantization
+        value, at the (optional) given strength and with the (optional)
+        percentage of swing. Can optionally be applied to specific notes
+        or ranges of notes.
         """
-        if IS_LIVE_9:
-            args = args.strip()
-            arg_array = args.split()
-            array_offset = 0
-            rate_to_apply = None
-            # standard qntz to all
-            if arg_array[0] in R_QNTZ_STATES:
-                rate_to_apply = R_QNTZ_STATES[arg_array[0]]
-            # qntz to specific note or note range
-            elif arg_array[1] in R_QNTZ_STATES and clip.is_midi_clip:
-                array_offset = 1
-                rate_to_apply = R_QNTZ_STATES[arg_array[1]]
-            if rate_to_apply:
-                strength = 1.0
-                swing_to_apply = 0.0
-                current_swing = self.song().swing_amount
-                if len(arg_array) > (1 + array_offset):
-                    try:
-                        strength = float(arg_array[1 + array_offset]) / 100.0
-                        if strength > 1.0 or strength < 0.0:
-                            strength = 1.0
-                    except:
+        args = args.strip()
+        arg_array = args.split()
+        array_offset = 0
+        rate_to_apply = None
+        # standard qntz to all
+        if arg_array[0] in R_QNTZ_STATES:
+            rate_to_apply = R_QNTZ_STATES[arg_array[0]]
+        # qntz to specific note or note range
+        elif arg_array[1] in R_QNTZ_STATES and clip.is_midi_clip:
+            array_offset = 1
+            rate_to_apply = R_QNTZ_STATES[arg_array[1]]
+        if rate_to_apply:
+            strength = 1.0
+            swing_to_apply = 0.0
+            current_swing = self.song().swing_amount
+            if len(arg_array) > (1 + array_offset):
+                try:
+                    strength = float(arg_array[1 + array_offset]) / 100.0
+                    if strength > 1.0 or strength < 0.0:
                         strength = 1.0
-                if len(arg_array) > (2 + array_offset):
-                    try:
-                        swing_to_apply = float(arg_array[2 + array_offset]) / 100.0
-                        if swing_to_apply > 1.0 or swing_to_apply < 0.0:
-                            swing_to_apply = 0.0
-                    except:
+                except:
+                    strength = 1.0
+            if len(arg_array) > (2 + array_offset):
+                try:
+                    swing_to_apply = float(arg_array[2 + array_offset]) / 100.0
+                    if swing_to_apply > 1.0 or swing_to_apply < 0.0:
                         swing_to_apply = 0.0
-                self.song().swing_amount = swing_to_apply
-                # apply standard qntz to all
-                if array_offset == 0:
-                    clip.quantize(rate_to_apply, strength)
-                # apply qntz to specific note or note range
-                else:
-                    note_range = self.get_note_range(arg_array[0])
-                    for note in range(note_range[0], note_range[1]):
-                        clip.quantize_pitch(note, rate_to_apply, strength)
-                self.song().swing_amount = current_swing
+                except:
+                    swing_to_apply = 0.0
+            self.song().swing_amount = swing_to_apply
+            # apply standard qntz to all
+            if array_offset == 0:
+                clip.quantize(rate_to_apply, strength)
+            # apply qntz to specific note or note range
+            else:
+                note_range = self.get_note_range(arg_array[0])
+                for note in range(note_range[0], note_range[1]):
+                    clip.quantize_pitch(note, rate_to_apply, strength)
+            self.song().swing_amount = current_swing
 
     def duplicate_clip_content(self, clip, track, xclip, ident, args):
         """Duplicates all the content in a MIDI clip and doubles loop length.
         Will also zoom out to show entire loop if loop is on.
         """
-        if IS_LIVE_9 and clip.is_midi_clip:
+        if clip.is_midi_clip:
             try:
                 clip.duplicate_loop()
             except:
@@ -439,76 +434,72 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def delete_clip(self, clip, track, xclip, ident, args):
         """Deletes the given clip."""
-        if IS_LIVE_9:
-            clip.canonical_parent.delete_clip()
+        clip.canonical_parent.delete_clip()
 
     def duplicate_clip(self, clip, track, xclip, ident, args):
         """Duplicates the given clip. This will overwrite clips if any exist
         in the slots used for duplication.
         """
-        if IS_LIVE_9:
-            try:
-                track.duplicate_clip_slot(list(track.clip_slots).index(clip.canonical_parent))
-            except:
-                pass
+        try:
+            track.duplicate_clip_slot(list(track.clip_slots).index(clip.canonical_parent))
+        except:
+            pass
 
     def chop_clip(self, clip, track, xclip, ident, args):
         """Duplicates the clip the number of times specified and sets evenly
         distributed start points across all duplicates. This will overwrite
         clips if any exist in the slots used for duplication.
         """
-        if IS_LIVE_9:
-            args = args.strip()
-            num_chops = 8
-            if args:
-                try:
-                    num_chops = int(args)
-                except:
-                    pass
-            slot_index = list(track.clip_slots).index(clip.canonical_parent)
-            current_start = clip.start_marker
-            chop_length = (clip.loop_end - current_start) / num_chops
+        args = args.strip()
+        num_chops = 8
+        if args:
             try:
-                for i in range(num_chops - 1):
-                    track.duplicate_clip_slot(slot_index + i)
-                    dupe_start = (chop_length * (i + 1)) + current_start
-                    dupe = track.clip_slots[slot_index + i + 1].clip
-                    dupe.start_marker = dupe_start
-                    dupe.loop_start = dupe_start
-                    dupe.name = clip.name + '-' + str(i + 1)
+                num_chops = int(args)
             except:
                 pass
+        slot_index = list(track.clip_slots).index(clip.canonical_parent)
+        current_start = clip.start_marker
+        chop_length = (clip.loop_end - current_start) / num_chops
+        try:
+            for i in range(num_chops - 1):
+                track.duplicate_clip_slot(slot_index + i)
+                dupe_start = (chop_length * (i + 1)) + current_start
+                dupe = track.clip_slots[slot_index + i + 1].clip
+                dupe.start_marker = dupe_start
+                dupe.loop_start = dupe_start
+                dupe.name = '{}-{}'.format(clip.name, i + 1)
+        except:
+            pass
 
     def split_clip(self, clip, track, xclip, ident, args):
         """Duplicates the clip and sets each duplicate to have the length
         specified in args.  This will overwrite clips if any exist in the
         slots used for duplication.
         """
-        if IS_LIVE_9:
-            try:
-                bar_arg = float(args)
-                bar_length = (4.0 / clip.signature_denominator) * clip.signature_numerator
-                split_size = bar_length * bar_arg
-                num_splits = int(clip.length / split_size)
-                if split_size * num_splits < clip.end_marker:
-                    num_splits += 1
-                if num_splits >= 2:
-                    slot_index = list(track.clip_slots).index(clip.canonical_parent)
-                    current_start = clip.start_marker
-                    actual_end = clip.end_marker
-                    for index in range(num_splits):
-                        track.duplicate_clip_slot(slot_index + index)
-                        dupe_start = (split_size * index) + current_start
-                        dupe_end = dupe_start + split_size
-                        if dupe_end > actual_end:
-                            dupe_end = actual_end
-                        dupe = track.clip_slots[slot_index + index + 1].clip
-                        dupe.loop_end = dupe_end
-                        dupe.start_marker = dupe_start
-                        dupe.loop_start = dupe_start
-                        dupe.name = clip.name + '-' + str(index + 1)
-            except:
-                pass
+        try:
+            bar_arg = float(args)
+            bar_length = (4.0 / clip.signature_denominator) * clip.signature_numerator
+            split_size = bar_length * bar_arg
+            num_splits = int(clip.length / split_size)
+            if split_size * num_splits < clip.end_marker:
+                num_splits += 1
+            if num_splits >= 2:
+                slot_index = list(track.clip_slots).index(clip.canonical_parent)
+                current_start = clip.start_marker
+                actual_end = clip.end_marker
+                for index in range(num_splits):
+                    track.duplicate_clip_slot(slot_index + index)
+                    dupe_start = (split_size * index) + current_start
+                    dupe_end = dupe_start + split_size
+                    if dupe_end > actual_end:
+                        dupe_end = actual_end
+                    dupe = track.clip_slots[slot_index + index + 1].clip
+                    dupe.loop_end = dupe_end
+                    dupe.start_marker = dupe_start
+                    dupe.loop_start = dupe_start
+                    dupe.name = clip.name + '-' + str(index + 1)
+        except:
+            pass
 
     def do_clip_loop_action(self, clip, track, xclip, ident, args):
         """Handle clip loop actions."""
@@ -524,7 +515,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 self.adjust_loop_end(
                     clip, track, xclip, ident, args.replace('END', '', 1).strip()
                 )
-            elif args == 'SHOW' and IS_LIVE_9:
+            elif args == 'SHOW':
                 clip.view.show_loop()
             if clip.looping:
                 clip_stats = self.get_clip_stats(clip)
@@ -717,38 +708,36 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def do_pitch_scramble(self, clip, args, notes_to_edit, other_notes):
         """Scrambles the pitches in the clip, but maintains rhythm."""
-        if IS_LIVE_9:
-            edited_notes = []
-            pitches = [n[0] for n in notes_to_edit]
-            random.shuffle(pitches)
-            for i in range(len(notes_to_edit)):
-                edited_notes.append((
-                    pitches[i],
-                    notes_to_edit[i][1],
-                    notes_to_edit[i][2],
-                    notes_to_edit[i][3],
-                    notes_to_edit[i][4],
-                ))
-            if edited_notes:
-                self.write_all_notes(clip, edited_notes, other_notes)
+        edited_notes = []
+        pitches = [n[0] for n in notes_to_edit]
+        random.shuffle(pitches)
+        for i in range(len(notes_to_edit)):
+            edited_notes.append((
+                pitches[i],
+                notes_to_edit[i][1],
+                notes_to_edit[i][2],
+                notes_to_edit[i][3],
+                notes_to_edit[i][4],
+            ))
+        if edited_notes:
+            self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_position_scramble(self, clip, args, notes_to_edit, other_notes):
         """Scrambles the position of notes in the clip, but maintains pitches.
         """
-        if IS_LIVE_9:
-            edited_notes = []
-            positions = [n[1] for n in notes_to_edit]
-            random.shuffle(positions)
-            for i in range(len(notes_to_edit)):
-                edited_notes.append((
-                    notes_to_edit[i][0],
-                    positions[i],
-                    notes_to_edit[i][2],
-                    notes_to_edit[i][3],
-                    notes_to_edit[i][4],
-                ))
-            if edited_notes:
-                self.write_all_notes(clip, edited_notes, other_notes)
+        edited_notes = []
+        positions = [n[1] for n in notes_to_edit]
+        random.shuffle(positions)
+        for i in range(len(notes_to_edit)):
+            edited_notes.append((
+                notes_to_edit[i][0],
+                positions[i],
+                notes_to_edit[i][2],
+                notes_to_edit[i][3],
+                notes_to_edit[i][4],
+            ))
+        if edited_notes:
+            self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_reverse(self, clip, args, notes_to_edit, other_notes):
         """Reverse the position of notes."""

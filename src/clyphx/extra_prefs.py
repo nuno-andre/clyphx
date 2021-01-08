@@ -16,12 +16,9 @@
 
 from __future__ import absolute_import, unicode_literals
 
+from functools import partial
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from .consts import IS_LIVE_9
-
-if IS_LIVE_9:
-    from functools import partial
 
 
 class ExtraPrefs(ControlSurfaceComponent):
@@ -47,8 +44,7 @@ class ExtraPrefs(ControlSurfaceComponent):
         self._clip_record_slot = None
         self._midi_clip_length_slot = None
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -98,15 +94,9 @@ class ExtraPrefs(ControlSurfaceComponent):
         else:
             self._parent._set_session_highlight(-1, -1, -1, -1, False)
         if self._exclusive_arm and track != self._last_track:
-            if IS_LIVE_9:
-                self._parent.schedule_message(1, partial(self.do_exclusive_arm, track))
-            else:
-                self._parent.schedule_message(1, self.do_exclusive_arm, track)
+            self._parent.schedule_message(1, partial(self.do_exclusive_arm, track))
         if self._exclusive_fold and track != self._last_track:
-            if IS_LIVE_9:
-                self._parent.schedule_message(1, partial(self.do_exclusive_fold, track))
-            else:
-                self._parent.schedule_message(1, self.do_exclusive_fold, track)
+            self._parent.schedule_message(1, partial(self.do_exclusive_fold, track))
         if self._clip_record:
             if track.can_be_armed and not clip_slot.has_clip:
                 self._clip_record_slot = clip_slot
@@ -159,10 +149,9 @@ class ExtraPrefs(ControlSurfaceComponent):
                 all_notes = clip.get_selected_notes()
                 clip.deselect_all_notes()
                 if not all_notes:
-                    if IS_LIVE_9:
-                        self._parent.schedule_message(1, partial(self.do_midi_clip_set_length, (clip, one_bar)))
-                    else:
-                        self._parent.schedule_message(1, self.do_midi_clip_set_length, (clip, one_bar))
+                    self._parent.schedule_message(
+                        1, partial(self.do_midi_clip_set_length, (clip, one_bar))
+                    )
 
     def do_midi_clip_set_length(self, clip_params):
         """Sets clip length and loop end to user-defined length."""

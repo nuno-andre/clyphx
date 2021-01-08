@@ -25,12 +25,11 @@ from .parameter_racks import (
     MacrobatLearnRack, MacrobatChainMixRack, MacrobatDRMultiRack,
     MacrobatDRRack, MacrobatReceiverRack, MacrobatTrackRack,
 )
-from ..consts import IS_LIVE_9, IS_LIVE_9_5
+from .parameter_racks9 import MacrobatChainSelectorRack, MacrobatDRPadMixRack
+from ..consts import IS_LIVE_9_5
 
 if IS_LIVE_9_5:
     from .push_rack import MacrobatPushRack
-if IS_LIVE_9:
-    from .parameter_racks9 import MacrobatChainSelectorRack, MacrobatDRPadMixRack
 
 
 class Macrobat(ControlSurfaceComponent):
@@ -45,8 +44,7 @@ class Macrobat(ControlSurfaceComponent):
     def disconnect(self):
         self._current_tracks = []
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -84,8 +82,7 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
         self._track = None
         self._current_devices = []
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def update(self):
         if self._track and self.song().view.selected_track == self._track:
@@ -158,7 +155,7 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
                 m = MacrobatSidechainRack(self._parent, rack, self._track)
             elif name.startswith('NK SCL') and IS_LIVE_9_5:
                 m = MacrobatPushRack(self._parent, rack)
-            elif name.startswith('NK CS') and IS_LIVE_9:
+            elif name.startswith('NK CS'):
                 m = MacrobatChainSelectorRack(self._parent, rack, self._track)
             if m:
                 self._current_devices.append((m, rack))

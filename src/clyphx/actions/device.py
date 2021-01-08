@@ -20,7 +20,7 @@ import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Generic.Devices import *
 from _Generic.Devices import DEVICE_DICT, DEVICE_BOB_DICT
-from ..consts import IS_LIVE_9, KEYWORDS, LOOPER_STATES
+from ..consts import KEYWORDS, LOOPER_STATES
 
 
 class ClyphXDeviceActions(ControlSurfaceComponent):
@@ -35,8 +35,7 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
     def disconnect(self):
         self._looper_data = {}
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -55,9 +54,10 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
                 param_values = args.split(' ')
                 if len(param_values) == 8:
                     for index in range(8):
-                        self._parent.do_parameter_adjustment(device.parameters[index + 1], param_values[index].strip())
+                        self._parent.do_parameter_adjustment(device.parameters[index + 1],
+                                                             param_values[index].strip())
             else:
-                if type(xclip) is Live.Clip.Clip:
+                if isinstance(xclip, Live.Clip.Clip):
                     assign_string = xclip.name + ' '
                     for param in device.parameters:
                         if 'Macro' in param.original_name:
@@ -66,7 +66,7 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
 
     def adjust_selected_chain(self, device, track, xclip, ident, args):
         """Adjust the selected chain in a rack."""
-        if IS_LIVE_9 and device.can_have_chains and device.chains:
+        if device.can_have_chains and device.chains:
             args = args.replace('CSEL', '', 1).strip()
             if args in ('<', '>'):
                 factor = self._parent.get_adjustment_factor(args)
@@ -146,7 +146,6 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
         if self._looper_data and self._looper_data['Looper'] and self._looper_data['Device On'].is_enabled:
             self._looper_data['Device On'].value = KEYWORDS.get(value, not(self._looper_data['Device On'].value))
 
-
     def set_looper_rev(self, track, xclip, ident, value = None):
         """Toggles or turns looper reverse on/off."""
         self.get_looper(track)
@@ -163,9 +162,11 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
         """Handle actions related to device chains."""
         if self._parent._can_have_nested_devices and device.can_have_chains and device.chains:
             arg_list = args.split()
-            try: chain = device.chains[int(arg_list[0].replace('CHAIN', '')) - 1]
-            except: chain = None
-            if chain == None and IS_LIVE_9:
+            try:
+                chain = device.chains[int(arg_list[0].replace('CHAIN', '')) - 1]
+            except:
+                chain = None
+            if chain is None:
                 chain = device.view.selected_chain
             if chain:
                 if len(arg_list) > 1 and arg_list[1] == 'MUTE':
@@ -208,11 +209,11 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
         The param string should be composed of 'P' followed by the param index (like P5).
         """
         result = None
-        if (device.class_name in DEVICE_BOB_DICT.keys()):
+        if device.class_name in DEVICE_BOB_DICT.keys():
             param_bank = DEVICE_BOB_DICT[device.class_name][0]
             try:
-                param_num = int(param_string[1])-1
-                if param_num in range(8):
+                param_num = int(param_string[1]) - 1
+                if 0 <= param_num < 8:
                     parameter = get_parameter_by_name(device, param_bank[param_num])
                     if parameter:
                         result = parameter

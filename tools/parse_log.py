@@ -2,26 +2,34 @@ from datetime import datetime
 from ast import literal_eval
 from platform import system
 from pathlib import Path
+import logging
 import os
 import re
 
+
+log = logging.getLogger(__name__)
 
 LINE = re.compile(r'(?P<tag>\S*?)\=(?P<value>.*)')
 DTFMT = '%Y-%m-%dT%H:%M:%S.%f'
 
 
-def get_user_folder():
-    if system() == 'Windows':
-        return Path(os.environ['APPDATA']) / 'Ableton'
-    elif system() == 'Darwin':
-        raise NotImplementedError
-    else:
-        raise NotImplementedError
+class Environment:
+    def __init__(self):
+        self.system = system()
 
+    @property
+    def user_folder(self):
+        if self.system == 'Windows':
+            return Path(os.environ['APPDATA']) / 'Ableton'
+        elif self.system == 'Darwin':
+            raise NotImplementedError
+        else:
+            raise NotImplementedError
 
-def get_reports():
-    path = get_user_folder() / 'Live Reports/Usage'
-    return list(path.glob('*.log'))
+    @property
+    def reports(self):
+        path = self.user_folder / 'Live Reports/Usage'
+        return list(path.glob('*.log'))
 
 
 def parse_log(content):
@@ -43,11 +51,47 @@ def parse_log(content):
 
 
 def get_last_report():
-    report = get_reports()[-1]
+    env = Environment()
+    report = env.reports()[-1]
 
     with open(report) as logfile:
         parse_log(logfile.read())
 
 
-if __name__ == '__main__':
-    get_last_report()
+TIMESTAMP = r'(?P<timestamp>[T0-9\-\:\.])'
+LEVEL = r'(?P<level>[a-z])'
+LOG_LINE = re.compile(r'^{}:\s{}:\s(?P<message>.*)$'.format(TIMESTAMP, LEVEL), re.M)
+START_LOG = re.compile(r'^{}: info: Started: Live .*$'.format(TIMESTAMP))
+
+
+class SessionLog:
+    def __init__(self, start):
+        self.start = start
+        self.logs = list()
+
+    def append(self, log):
+        self.logs.append(log)
+
+
+class LogFile:
+    def __init__(self):
+        self.sessions = list()
+
+    def parse(self, path):
+        session = None
+
+        for line in open(path):
+            line = LOG_LINE.match(line).groupdict()
+            if line['message'].startswith('Started: Live '):
+                if session:
+                    self.sessions.append(session)
+                session = SessionLog(start=line['timestamp'])
+            if not session:
+                # lines without previous start log
+                continue
+            session.append(line)
+
+    def clean(self, keep=1):
+        if len(self.sessions) > keep:
+            # TODO: split and remove first sessions
+            pass

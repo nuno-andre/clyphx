@@ -16,13 +16,9 @@
 
 from __future__ import absolute_import, unicode_literals
 
+from functools import partial
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-
-from ..consts import IS_LIVE_9
-
-if IS_LIVE_9:
-    from functools import partial
 
 
 class MacrobatSidechainRack(ControlSurfaceComponent):
@@ -50,8 +46,7 @@ class MacrobatSidechainRack(ControlSurfaceComponent):
         self._track = None
         self._rack = None
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -80,30 +75,21 @@ class MacrobatSidechainRack(ControlSurfaceComponent):
         val = int(self._track.output_meter_left * 127)
         if val != self._last_meter_left_val:
             self._last_meter_left_val = val
-            if IS_LIVE_9:
-                self._parent.schedule_message(1, partial(self.update_macros, val))
-            else:
-                self._parent.schedule_message(1, self.update_macros, val)
+            self._parent.schedule_message(1, partial(self.update_macros, val))
 
     def audio_right_changed(self):
         """Audio right changed, update macro (1 tick delay)."""
         val = int(self._track.output_meter_right * 127)
         if val != self._last_meter_right_val:
             self._last_meter_right_val = val
-            if IS_LIVE_9:
-                self._parent.schedule_message(1, partial(self.update_macros, val))
-            else:
-                self._parent.schedule_message(1, self.update_macros, val)
+            self._parent.schedule_message(1, partial(self.update_macros, val))
 
     def midi_changed(self):
         """MIDI output changed, update macro (1 tick delay)."""
         val = int(self._track.output_meter_level * 127)
         if val != self._last_midi_meter_val:
             self._last_midi_meter_val = val
-            if IS_LIVE_9:
-                self._parent.schedule_message(1, partial(self.update_macros, val))
-            else:
-                self._parent.schedule_message(1, self.update_macros, val)
+            self._parent.schedule_message(1, partial(self.update_macros, val))
 
     def update_macros(self, val):
         """Update macros based on track output as long as rack is on."""

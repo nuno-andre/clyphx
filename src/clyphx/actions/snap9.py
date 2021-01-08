@@ -16,14 +16,12 @@
 
 from __future__ import absolute_import, unicode_literals
 
+from functools import partial
 import Live
 import math
 import pickle
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ..consts import IS_LIVE_9
 
-if IS_LIVE_9:
-    from functools import partial
 
 """The positions of the main categories in the snap data array."""
 MIX_STD_SETTINGS_POS = 0
@@ -87,8 +85,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         self._control_rack = None
         self._snap_id = None
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -121,10 +118,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                 else:
                     current_name = xclip.name
                     xclip.name = 'Too many parameters to store!'
-                    if IS_LIVE_9:
-                        self._parent.schedule_message(8, partial(self._refresh_xclip_name, (xclip, current_name)))
-                    else:
-                        self._parent.schedule_message(8, self._refresh_xclip_name, (xclip, current_name))
+                    self._parent.schedule_message(8, partial(self._refresh_xclip_name, (xclip, current_name)))
 
     def _store_mix_settings(self, track, args):
         """Stores mixer related settings and returns the number of parameters
@@ -397,10 +391,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             time = int(str(self.song().get_current_beats_song_time()).split('.')[2])
             if self._last_beat != time:
                 self._last_beat = time
-                if IS_LIVE_9:
-                    self._tasks.add(self._apply_timed_smoothing)
-                else:
-                    self._parent.schedule_message(1, self._apply_timed_smoothing)
+                self._tasks.add(self._apply_timed_smoothing)
 
     def _apply_timed_smoothing(self, arg=None):
         """Applies smoothing for either timer or sync."""

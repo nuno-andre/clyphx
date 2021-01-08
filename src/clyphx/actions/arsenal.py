@@ -16,6 +16,7 @@
 
 from __future__ import absolute_import, unicode_literals
 
+import logging
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
@@ -28,6 +29,8 @@ try:
     O_NAMES = [o.upper() for o in OFFSET_NAMES]
 except:
     pass
+
+log = logging.getLogger(__name__)
 
 
 def adjust_property(obj, prop, min_v, max_v, arg, setter=None, v_list=None):
@@ -59,10 +62,8 @@ def adjust_property(obj, prop, min_v, max_v, arg, setter=None, v_list=None):
 
 def toggle_property(obj, prop, arg):
     """Toggles the given property or turns it off/on."""
-    if arg:
-        setattr(obj, prop, arg[0].strip() == 'ON')
-    else:
-        setattr(obj, prop, not getattr(obj, prop))
+    value = arg[0].strip() == 'ON' if arg else not getattr(obj, prop)
+    setattr(obj, prop, value)
 
 
 def get_component(script, comp_name):
@@ -88,10 +89,11 @@ class ClyphXArsenalActions(ControlSurfaceComponent):
 
     def set_script(self, script):
         """ Adds the given script to the dict of scripts to work with."""
-        self._scripts[script.script_name.upper()] =\
-            {'top' : script,
-             'scl': get_component(script, 'Scale_Settings_Control'),
-             'targets': get_component(script, 'Targets_Component')}
+        self._scripts[script.script_name.upper()] = {
+            'top':     script,
+            'scl':     get_component(script, 'Scale_Settings_Control'),
+            'targets': get_component(script, 'Targets_Component'),
+        }
 
     def dispatch_action(self, track, xclip, ident, script_name, action):
         """Dispatches the action to the appropriate handler."""
@@ -118,8 +120,8 @@ class ClyphXArsenalActions(ControlSurfaceComponent):
             adjust_property(mc, 'selected_mode_index', 0, mc.num_modes - 1, spec[1:])
 
     def _handle_lock_action(self, script, spec):
-        """Handles toggling the locking of the current track or mode-specific
-        locks.
+        """Handles toggling the locking of the current track or
+        mode-specific locks.
         """
         tc = script['targets']
         if tc:
@@ -129,7 +131,8 @@ class ClyphXArsenalActions(ControlSurfaceComponent):
                 tc.toggle_lock()
 
     def _handle_scale_action(self, script, spec, xclip, ident):
-        """Handles scale actions or dispatches them to the appropriate handler.
+        """Handles scale actions or dispatches them to the appropriate
+        handler.
         """
         if script['scl']:
             scl = script['scl']
@@ -139,30 +142,33 @@ class ClyphXArsenalActions(ControlSurfaceComponent):
             elif len(spec) >= 5:
                 self._recall_scale_settings(scl, spec)
             else:
-                if spec[1] == 'INKEY':
-                    toggle_property(scl, '_in_key', spec[2:])
-                elif spec[1] == 'HORZ':
-                    toggle_property(scl, '_orientation_is_horizontal', spec[2:])
-                elif spec[1] == 'ROOT':
+                prop, value = spec[1], spec[2:]
+                if prop == 'INKEY':
+                    toggle_property(scl, '_in_key', value)
+                elif prop == 'HORZ':
+                    toggle_property(scl, '_orientation_is_horizontal', value)
+                elif prop == 'ROOT':
                     adjust_property(scl._tonics, '_page_index', 0,
-                                    scl._tonics.num_pages - 1, spec[2:],
+                                    scl._tonics.num_pages - 1, value,
                                     'set_page_index', NOTE_NAMES)
-                elif spec[1] == 'TYPE':
+                elif prop == 'TYPE':
                     adjust_property(scl._scales, '_page_index', 0,
-                                    scl._scales.num_pages - 1, [' '.join(spec[2:])],
+                                    scl._scales.num_pages - 1, [' '.join(value)],
                                     'set_page_index', S_TYPES)
-                elif spec[1] == 'OFFSET':
+                elif prop == 'OFFSET':
                     adjust_property(scl._offsets, '_page_index', 0,
-                                    scl._offsets.num_pages - 1, spec[2:],
+                                    scl._offsets.num_pages - 1, value,
                                     'set_page_index', O_NAMES)
-                elif spec[1] == 'SEQ':  # deprecated
-                    self._toggle_scale_offset(scl, spec[2:])
+                elif prop == 'SEQ':
+                    log.warning('SEQ is deprecated')
+                    self._toggle_scale_offset(scl, value)
             scl._notify_scale_settings()
 
     def _capture_scale_settings(self, script, xclip, ident):
-        """Captures the current scale type, tonic, in key state, offset and
-        orientation and adds them to the given xclip's name."""
-        if type(xclip) is Live.Clip.Clip:
+        """Captures the current scale type, tonic, in key state, offset
+        and orientation and adds them to the given xclip's name.
+        """
+        if isinstance(xclip, Live.Clip.Clip):
             comp = script['scl']
             xclip.name = '{} {} SCL {} {} {} {} {}'.format(
                 ident, script['top'].script_name, comp._scales.page_index,

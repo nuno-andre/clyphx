@@ -26,8 +26,10 @@ LIVE_VERSION = (app.get_major_version(),
                 app.get_minor_version(),
                 app.get_bugfix_version())
 
+if LIVE_VERSION < (9, 1, 0):
+    raise RuntimeError('Live releases earlier than 9.1 are not supported')
+
 IS_LIVE_10 = LIVE_VERSION >= (10, 0, 0)
-IS_LIVE_9 = LIVE_VERSION >= (9, 0, 0)
 IS_LIVE_9_1 = LIVE_VERSION >= (9, 1, 0)
 IS_LIVE_9_5 = LIVE_VERSION >= (9, 5, 0)
 
@@ -184,12 +186,11 @@ DEVICE_ACTIONS = {
     'B8':    'adjust_banked_param',
 }
 
-if IS_LIVE_9:
-    DR_ACTIONS = {
-        'SCROLL': 'scroll_selector',
-        'UNMUTE': 'unmute_all',
-        'UNSOLO': 'unsolo_all'
-    }
+DR_ACTIONS = {
+    'SCROLL': 'scroll_selector',
+    'UNMUTE': 'unmute_all',
+    'UNSOLO': 'unsolo_all'
+}
 
 LOOPER_ACTIONS = {
     'LOOPER': 'set_looper_on_off',
@@ -253,112 +254,112 @@ LOOPER_STATES = {
     'OVER': 3.0,
 }
 
-if IS_LIVE_9:
-    R_QNTZ_STATES = {
-        '1/4':          Live.Song.RecordingQuantization.rec_q_quarter,
-        '1/8':          Live.Song.RecordingQuantization.rec_q_eight,
-        '1/8T':         Live.Song.RecordingQuantization.rec_q_eight_triplet,
-        '1/8 + 1/8T':   Live.Song.RecordingQuantization.rec_q_eight_eight_triplet,
-        '1/16':         Live.Song.RecordingQuantization.rec_q_sixtenth,
-        '1/16T':        Live.Song.RecordingQuantization.rec_q_sixtenth_triplet,
-        '1/16 + 1/16T': Live.Song.RecordingQuantization.rec_q_sixtenth_sixtenth_triplet,
-        '1/32':         Live.Song.RecordingQuantization.rec_q_thirtysecond,
-    }
 
-    CLIP_GRID_STATES = {
-        'OFF':    Live.Clip.GridQuantization.no_grid,
-        '8 BARS': Live.Clip.GridQuantization.g_8_bars,
-        '4 BARS': Live.Clip.GridQuantization.g_4_bars,
-        '2 BARS': Live.Clip.GridQuantization.g_2_bars,
-        '1 BAR':  Live.Clip.GridQuantization.g_bar,
-        '1/2':    Live.Clip.GridQuantization.g_half,
-        '1/4':    Live.Clip.GridQuantization.g_quarter,
-        '1/8':    Live.Clip.GridQuantization.g_eighth,
-        '1/16':   Live.Clip.GridQuantization.g_sixteenth,
-        '1/32':   Live.Clip.GridQuantization.g_thirtysecond,
-    }
+R_QNTZ_STATES = {
+    '1/4':          Live.Song.RecordingQuantization.rec_q_quarter,
+    '1/8':          Live.Song.RecordingQuantization.rec_q_eight,
+    '1/8T':         Live.Song.RecordingQuantization.rec_q_eight_triplet,
+    '1/8 + 1/8T':   Live.Song.RecordingQuantization.rec_q_eight_eight_triplet,
+    '1/16':         Live.Song.RecordingQuantization.rec_q_sixtenth,
+    '1/16T':        Live.Song.RecordingQuantization.rec_q_sixtenth_triplet,
+    '1/16 + 1/16T': Live.Song.RecordingQuantization.rec_q_sixtenth_sixtenth_triplet,
+    '1/32':         Live.Song.RecordingQuantization.rec_q_thirtysecond,
+}
 
-    REPEAT_STATES = {
-        'OFF':   1.0,
-        '1/4':   1.0,
-        '1/4T':  0.666666666667,
-        '1/8':   0.5,
-        '1/8T':  0.333333333333,
-        '1/16':  0.25,
-        '1/16T': 0.166666666667,
-        '1/32':  0.125,
-        '1/32T': 0.0833333333333,
-    }
+CLIP_GRID_STATES = {
+    'OFF':    Live.Clip.GridQuantization.no_grid,
+    '8 BARS': Live.Clip.GridQuantization.g_8_bars,
+    '4 BARS': Live.Clip.GridQuantization.g_4_bars,
+    '2 BARS': Live.Clip.GridQuantization.g_2_bars,
+    '1 BAR':  Live.Clip.GridQuantization.g_bar,
+    '1/2':    Live.Clip.GridQuantization.g_half,
+    '1/4':    Live.Clip.GridQuantization.g_quarter,
+    '1/8':    Live.Clip.GridQuantization.g_eighth,
+    '1/16':   Live.Clip.GridQuantization.g_sixteenth,
+    '1/32':   Live.Clip.GridQuantization.g_thirtysecond,
+}
 
-    # TODO: mode 5?
-    WARP_MODES = {
-        'BEATS':       0,
-        'TONES':       1,
-        'TEXTURE':     2,
-        'RE-PITCH':    3,
-        'COMPLEX':     4,
-        'COMPLEX PRO': 6,
-    }
+REPEAT_STATES = {
+    'OFF':   1.0,
+    '1/4':   1.0,
+    '1/4T':  0.666666666667,
+    '1/8':   0.5,
+    '1/8T':  0.333333333333,
+    '1/16':  0.25,
+    '1/16T': 0.166666666667,
+    '1/32':  0.125,
+    '1/32T': 0.0833333333333,
+}
 
-    AUDIO_DEVS = {
-        'SIMPLE DELAY':          'Simple Delay',
-        'OVERDRIVE':             'Overdrive',
-        'LOOPER':                'Looper',
-        'AUTO FILTER':           'Auto Filter',
-        'EXTERNAL AUDIO EFFECT': 'External Audio Effect',
-        'SATURATOR':             'Saturator',
-        'PHASER':                'Phaser',
-        'VINYL DISTORTION':      'Vinyl Distortion',
-        'DYNAMIC TUBE':          'Dynamic Tube',
-        'BEAT REPEAT':           'Beat Repeat',
-        'MULTIBAND DYNAMICS':    'Multiband Dynamics',
-        'CABINET':               'Cabinet',
-        'AUDIO EFFECT RACK':     'Audio Effect Rack',
-        'FLANGER':               'Flanger',
-        'GATE':                  'Gate',
-        'REVERB':                'Reverb',
-        'GRAIN DELAY':           'Grain Delay',
-        'REDUX':                 'Redux',
-        'PING PONG DELAY':       'Ping Pong Delay',
-        'SPECTRUM':              'Spectrum',
-        'COMPRESSOR':            'Compressor',
-        'VOCODER':               'Vocoder',
-        'AMP':                   'Amp',
-        'GLUE COMPRESSOR':       'Glue Compressor',
-        'EROSION':               'Erosion',
-        'EQ THREE':              'EQ Three',
-        'EQ EIGHT':              'EQ Eight',
-        'RESONATORS':            'Resonators',
-        'FREQUENCY SHIFTER':     'Frequency Shifter',
-        'AUTO PAN':              'Auto Pan',
-        'CHORUS':                'Chorus',
-        'LIMITER':               'Limiter',
-        'CORPUS':                'Corpus',
-        'FILTER DELAY':          'Filter Delay',
-        'UTILITY':               'Utility',
-    }
+# TODO: mode 5?
+WARP_MODES = {
+    'BEATS':       0,
+    'TONES':       1,
+    'TEXTURE':     2,
+    'RE-PITCH':    3,
+    'COMPLEX':     4,
+    'COMPLEX PRO': 6,
+}
 
-    INS_DEVS = {
-        'TENSION':             'Tension',
-        'EXTERNAL INSTRUMENT': 'External Instrument',
-        'ELECTRIC':            'Electric',
-        'INSTRUMENT RACK':     'Instrument Rack',
-        'DRUM RACK':           'Drum Rack',
-        'COLLISION':           'Collision',
-        'IMPULSE':             'Impulse',
-        'SAMPLER':             'Sampler',
-        'OPERATOR':            'Operator',
-        'ANALOG':              'Analog',
-        'SIMPLER':             'Simpler',
-    }
+AUDIO_DEVS = {
+    'SIMPLE DELAY':          'Simple Delay',
+    'OVERDRIVE':             'Overdrive',
+    'LOOPER':                'Looper',
+    'AUTO FILTER':           'Auto Filter',
+    'EXTERNAL AUDIO EFFECT': 'External Audio Effect',
+    'SATURATOR':             'Saturator',
+    'PHASER':                'Phaser',
+    'VINYL DISTORTION':      'Vinyl Distortion',
+    'DYNAMIC TUBE':          'Dynamic Tube',
+    'BEAT REPEAT':           'Beat Repeat',
+    'MULTIBAND DYNAMICS':    'Multiband Dynamics',
+    'CABINET':               'Cabinet',
+    'AUDIO EFFECT RACK':     'Audio Effect Rack',
+    'FLANGER':               'Flanger',
+    'GATE':                  'Gate',
+    'REVERB':                'Reverb',
+    'GRAIN DELAY':           'Grain Delay',
+    'REDUX':                 'Redux',
+    'PING PONG DELAY':       'Ping Pong Delay',
+    'SPECTRUM':              'Spectrum',
+    'COMPRESSOR':            'Compressor',
+    'VOCODER':               'Vocoder',
+    'AMP':                   'Amp',
+    'GLUE COMPRESSOR':       'Glue Compressor',
+    'EROSION':               'Erosion',
+    'EQ THREE':              'EQ Three',
+    'EQ EIGHT':              'EQ Eight',
+    'RESONATORS':            'Resonators',
+    'FREQUENCY SHIFTER':     'Frequency Shifter',
+    'AUTO PAN':              'Auto Pan',
+    'CHORUS':                'Chorus',
+    'LIMITER':               'Limiter',
+    'CORPUS':                'Corpus',
+    'FILTER DELAY':          'Filter Delay',
+    'UTILITY':               'Utility',
+}
 
-    MIDI_DEVS = {
-        'NOTE LENGTH':      'Note Length',
-        'CHORD':            'Chord',
-        'RANDOM':           'Random',
-        'MIDI EFFECT RACK': 'MIDI Effect Rack',
-        'SCALE':            'Scale',
-        'PITCH':            'Pitch',
-        'ARPEGGIATOR':      'Arpeggiator',
-        'VELOCITY':         'Velocity',
-    }
+INS_DEVS = {
+    'TENSION':             'Tension',
+    'EXTERNAL INSTRUMENT': 'External Instrument',
+    'ELECTRIC':            'Electric',
+    'INSTRUMENT RACK':     'Instrument Rack',
+    'DRUM RACK':           'Drum Rack',
+    'COLLISION':           'Collision',
+    'IMPULSE':             'Impulse',
+    'SAMPLER':             'Sampler',
+    'OPERATOR':            'Operator',
+    'ANALOG':              'Analog',
+    'SIMPLER':             'Simpler',
+}
+
+MIDI_DEVS = {
+    'NOTE LENGTH':      'Note Length',
+    'CHORD':            'Chord',
+    'RANDOM':           'Random',
+    'MIDI EFFECT RACK': 'MIDI Effect Rack',
+    'SCALE':            'Scale',
+    'PITCH':            'Pitch',
+    'ARPEGGIATOR':      'Arpeggiator',
+    'VELOCITY':         'Velocity',
+}

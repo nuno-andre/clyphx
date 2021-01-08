@@ -18,7 +18,7 @@ from __future__ import absolute_import, unicode_literals
 
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ..consts import IS_LIVE_9, KEYWORDS
+from ..consts import KEYWORDS
 from ..consts import GQ_STATES, MON_STATES, XFADE_STATES
 
 
@@ -32,8 +32,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
 
     def disconnect(self):
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -44,34 +43,33 @@ class ClyphXTrackActions(ControlSurfaceComponent):
     def duplicate_track(self, track, xclip, ident, args):
         """Duplicates the given track (only regular tracks can be duplicated).
         """
-        if IS_LIVE_9 and track in self.song().tracks:
+        if track in self.song().tracks:
             self.song().duplicate_track(list(self.song().tracks).index(track))
 
     def delete_track(self, track, xclip, ident, args):
         """Deletes the given track as long as it's not the last track in the
         set (only regular tracks can be deleted).
         """
-        if IS_LIVE_9 and track in self.song().tracks:
+        if track in self.song().tracks:
             self.song().delete_track(list(self.song().tracks).index(track))
 
     def delete_device(self, track, xclip, ident, args):
         """Delete the device on the track associated with the given index.
         Only top level devices can be deleted.
         """
-        if IS_LIVE_9:
-            try:
-                index = int(args.strip()) - 1
-                if index < len(track.devices):
-                    track.delete_device(index)
-            except:
-                pass
+        try:
+            index = int(args.strip()) - 1
+            if index < len(track.devices):
+                track.delete_device(index)
+        except:
+            pass
 
     def create_clip(self, track, xclip, ident, args):
         """Creates a clip in the given slot index (or sel if specified) at the
         given length (in bars). If no args, creates a 1 bar clip in the
         selected slot.
         """
-        if IS_LIVE_9 and track.has_midi_input:
+        if track.has_midi_input:
             slot = list(self.song().scenes).index(self.song().view.selected_scene)
             bar = (4.0 / self.song().signature_denominator) * self.song().signature_numerator
             length = bar
@@ -180,10 +178,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
     def set_stop(self, track, xclip, ident, value = None):
         """Stops all clips on track w/no quantization option for Live 9."""
         if track in self.song().tracks:
-            if IS_LIVE_9:
-                track.stop_all_clips(not value.strip() == 'NQ')
-            else:
-                track.stop_all_clips()
+            track.stop_all_clips(not value.strip() == 'NQ')
 
     def set_play(self, track, xclip, ident, args):
         """Plays clips normally.  Allow empty slots unless using </> keywords.
@@ -197,13 +192,12 @@ class ClyphXTrackActions(ControlSurfaceComponent):
         """Plays the clip with legato using the current global quantization.
         This will not launch empty slots.
         """
-        if IS_LIVE_9:
-            slot_to_play = self._get_slot_index_to_play(track, xclip, args.strip())
-            if slot_to_play != -1:
-                track.clip_slots[slot_to_play].fire(
-                    force_legato=True,
-                    launch_quantization=self.song().clip_trigger_quantization,
-                )
+        slot_to_play = self._get_slot_index_to_play(track, xclip, args.strip())
+        if slot_to_play != -1:
+            track.clip_slots[slot_to_play].fire(
+                force_legato=True,
+                launch_quantization=self.song().clip_trigger_quantization,
+            )
 
     def set_play_w_force_qntz(self, track, xclip, ident, args):
         """Plays the clip with a specific quantization regardless of
@@ -219,17 +213,16 @@ class ClyphXTrackActions(ControlSurfaceComponent):
         """Handles playing clips with a specific quantization with or without
         legato.
         """
-        if IS_LIVE_9:
-            args = args.strip()
-            arg_array = args.split()
-            qntz_spec = arg_array[0]
-            if 'BAR' in args:
-                qntz_spec = '{} {}'.format(arg_array[0], arg_array[1])
-            if qntz_spec in GQ_STATES.keys():
-                qntz_to_use = GQ_STATES[qntz_spec]
-                slot_to_play = self._get_slot_index_to_play(track, xclip, args.replace(qntz_spec, '').strip())
-                if slot_to_play != -1:
-                    track.clip_slots[slot_to_play].fire(force_legato=w_legato, launch_quantization=qntz_to_use)
+        args = args.strip()
+        arg_array = args.split()
+        qntz_spec = arg_array[0]
+        if 'BAR' in args:
+            qntz_spec = '{} {}'.format(arg_array[0], arg_array[1])
+        if qntz_spec in GQ_STATES.keys():
+            qntz_to_use = GQ_STATES[qntz_spec]
+            slot_to_play = self._get_slot_index_to_play(track, xclip, args.replace(qntz_spec, '').strip())
+            if slot_to_play != -1:
+                track.clip_slots[slot_to_play].fire(force_legato=w_legato, launch_quantization=qntz_to_use)
 
     def _get_slot_index_to_play(self, track, xclip, args, allow_empty_slots=False):
         """Returns the slot index to play based on keywords in the given args.

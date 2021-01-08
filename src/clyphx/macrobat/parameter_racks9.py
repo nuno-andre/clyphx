@@ -19,10 +19,9 @@ This module contains CS and DR Pad Mix Rack.
 
 from __future__ import absolute_import, unicode_literals
 
+from functools import partial
 from _Generic.Devices import *
 from _Framework.SubjectSlot import Subject, SlotManager, subject_slot
-from functools import partial
-from ..consts import IS_LIVE_9
 from .parameter_rack_template import MacrobatParameterRackTemplate
 
 
@@ -173,10 +172,7 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
                     p_listener = lambda index = index:self.param_changed(index)
                     self._wrapper.add_value_listener(p_listener)
                     self._param_macros[index] = (macro, self._wrapper)
-                if IS_LIVE_9:
-                    self._tasks.add(self.get_initial_value)
-                else:
-                    self._get_initial_value = True
+                self._tasks.add(self.get_initial_value)
 
     @subject_slot('chains')
     def _on_chains_changed(self):

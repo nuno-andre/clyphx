@@ -20,7 +20,6 @@ import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
 from .user_config import SYSEX_LIST
-from ..consts import IS_LIVE_9
 
 
 class MacrobatMidiRack(ControlSurfaceComponent):
@@ -44,8 +43,7 @@ class MacrobatMidiRack(ControlSurfaceComponent):
         self._macro_to_sysex = []
         self._sysex_list = []
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass

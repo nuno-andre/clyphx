@@ -17,7 +17,6 @@
 from __future__ import absolute_import, unicode_literals
 
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ..consts import IS_LIVE_9
 
 
 class ClyphXClipEnvCapture(ControlSurfaceComponent):
@@ -25,8 +24,7 @@ class ClyphXClipEnvCapture(ControlSurfaceComponent):
 
     def disconnect(self):
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def update(self):
         pass

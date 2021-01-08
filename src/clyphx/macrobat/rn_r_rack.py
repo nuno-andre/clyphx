@@ -17,11 +17,8 @@
 from __future__ import absolute_import, unicode_literals
 
 import Live
+from functools import partial
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ..consts import IS_LIVE_9
-
-if IS_LIVE_9:
-    from functools import partial
 
 
 class MacrobatRnRRack(ControlSurfaceComponent):
@@ -42,8 +39,7 @@ class MacrobatRnRRack(ControlSurfaceComponent):
         self._devices_to_operate_on = []
         self._track = None
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -62,12 +58,8 @@ class MacrobatRnRRack(ControlSurfaceComponent):
                 if p.name == 'Device On' and p.is_enabled:
                     if not p.value_has_listener(self.on_off_changed):
                         self._on_off_param = [p, name]
-                        if IS_LIVE_9:
-                            #---use this to get around device on/off switches getting turned on upon set load
-                            self._parent.schedule_message(5, partial(p.add_value_listener, self.on_off_changed))
-                        else:
-                            #---use this to get around device on/off switches getting turned on upon set load
-                            self._parent.schedule_message(5, p.add_value_listener, self.on_off_changed)
+                        #---use this to get around device on/off switches getting turned on upon set load
+                        self._parent.schedule_message(5, partial(p.add_value_listener, self.on_off_changed))
                         break
 
     def on_off_changed(self):
@@ -87,10 +79,7 @@ class MacrobatRnRRack(ControlSurfaceComponent):
                 is_reset = True
             if mess_type:
                 action = self.do_device_reset if is_reset else self.do_device_randomize
-                if IS_LIVE_9:
-                    self._parent.schedule_message(1, partial(action, mess_type))
-                else:
-                    self._parent.schedule_message(1, action, mess_type)
+                self._parent.schedule_message(1, partial(action, mess_type))
 
     def do_device_randomize(self, params):
         """Randomize device params."""

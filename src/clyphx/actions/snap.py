@@ -16,14 +16,10 @@
 
 from __future__ import absolute_import, unicode_literals
 
+from functools import partial
 import math
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ..consts import IS_LIVE_9
-
-
-if IS_LIVE_9:
-    from functools import partial
 
 
 class ClyphXSnapActions(ControlSurfaceComponent):
@@ -65,8 +61,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         self._control_rack = None
         self._snap_id = None
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass
@@ -124,10 +119,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                 else:
                     current_name = xclip.name
                     xclip.name = 'Too many parameters to store!'
-                    if IS_LIVE_9:
-                        self._parent.schedule_message(8, partial(self.refresh_xclip_name, (xclip, current_name)))
-                    else:
-                        self._parent.schedule_message(8, self.refresh_xclip_name, (xclip, current_name))
+                    self._parent.schedule_message(8, partial(self.refresh_xclip_name, (xclip, current_name)))
 
     def refresh_xclip_name(self, xclip_data):
         """Refreshes xclip's previous name in cases where a snap is asking to

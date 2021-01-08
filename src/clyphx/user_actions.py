@@ -77,7 +77,6 @@ import logging
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from .action_list import ActionList
-from .consts import IS_LIVE_9
 
 """Through this logger you can write to Live's Log.txt file, which you'll
 likely use quite a bit. The Troubleshooting section of the ClyphX manual covers
@@ -118,8 +117,7 @@ class ClyphXUserActions(ControlSurfaceComponent):
         closed). DO NOT REMOVE THIS.
         """
         self._parent = None
-        if IS_LIVE_9:
-            ControlSurfaceComponent.disconnect(self)
+        ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         """Called when this script is enabled/disabled (by calling set_enabled

@@ -19,8 +19,6 @@ from __future__ import absolute_import, unicode_literals
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
-from ..consts import IS_LIVE_9
-
 
 class _MacrobatParameterRackTemplate(ControlSurfaceComponent):
     def on_enabled_changed(self):
@@ -92,182 +90,182 @@ class _MacrobatParameterRackTemplate(ControlSurfaceComponent):
         self._on_off_param = []
 
 
-if IS_LIVE_9:
+# TODO: join to parent class
+class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
+    __module__ = __name__
+    __doc__ = 'Template for Macrobat racks that control parameters in Live 9'
 
-    class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
-        __module__ = __name__
-        __doc__ = 'Template for Macrobat racks that control parameters in Live 9'
+    def __init__(self, parent, rack, track):
+        self._parent = parent
+        ControlSurfaceComponent.__init__(self)
+        self._on_off_param = []
+        self._param_macros = {}
+        self._update_macro = 0
+        self._update_param = 0
+        self._track = track
+        self.setup_device(rack)
 
-        def __init__(self, parent, rack, track):
-            self._parent = parent
-            ControlSurfaceComponent.__init__(self)
-            self._on_off_param = []
-            self._param_macros = {}
-            self._update_macro = 0
-            self._update_param = 0
-            self._track = track
-            self.setup_device(rack)
+    def disconnect(self):
+        self.remove_macro_listeners()
+        self._on_off_param = []
+        self._param_macros = {}
+        self._track = None
+        self._parent = None
+        ControlSurfaceComponent.disconnect(self)
 
-        def disconnect(self):
-            self.remove_macro_listeners()
-            self._on_off_param = []
-            self._param_macros = {}
-            self._track = None
-            self._parent = None
-            ControlSurfaceComponent.disconnect(self)
+    def macro_changed(self, index):
+        '''Called on macro changes to update param values.'''
+        if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
+            scaled_value = self.scale_param_value_to_macro(self._param_macros[index][1])
+            if scaled_value != self._param_macros[index][0].value:
+                self._update_param = index
+                self._tasks.kill()
+                self._tasks.clear()
+                self._tasks.add(self.update_param)
 
-        def macro_changed(self, index):
-            '''Called on macro changes to update param values.'''
-            if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
-                scaled_value = self.scale_param_value_to_macro(self._param_macros[index][1])
-                if scaled_value != self._param_macros[index][0].value:
-                    self._update_param = index
-                    self._tasks.kill()
-                    self._tasks.clear()
-                    self._tasks.add(self.update_param)
+    def param_changed(self, index):
+        '''Called on param changes to update macros.'''
+        if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
+            scaled_value = self.scale_macro_value_to_param(self._param_macros[index][0], self._param_macros[index][1])
+            if scaled_value != self._param_macros[index][1].value:
+                self._update_macro = index
+                self._tasks.kill()
+                self._tasks.clear()
+                self._tasks.add(self.update_macro)
 
-        def param_changed(self, index):
-            '''Called on param changes to update macros.'''
-            if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
-                scaled_value = self.scale_macro_value_to_param(self._param_macros[index][0], self._param_macros[index][1])
-                if scaled_value != self._param_macros[index][1].value:
-                    self._update_macro = index
-                    self._tasks.kill()
-                    self._tasks.clear()
-                    self._tasks.add(self.update_macro)
+    def update_param(self, arg=None):
+        '''Update param to match value of macro.'''
+        if self._param_macros.has_key(self._update_param):
+            if self._param_macros[self._update_param][0] and self._param_macros[self._update_param][1]:
+                self._param_macros[self._update_param][1].value = self.scale_macro_value_to_param(self._param_macros[self._update_param][0], self._param_macros[self._update_param][1])
+        self._tasks.kill()
+        self._tasks.clear()
 
-        def update_param(self, arg=None):
-            '''Update param to match value of macro.'''
-            if self._param_macros.has_key(self._update_param):
-                if self._param_macros[self._update_param][0] and self._param_macros[self._update_param][1]:
-                    self._param_macros[self._update_param][1].value = self.scale_macro_value_to_param(self._param_macros[self._update_param][0], self._param_macros[self._update_param][1])
-            self._tasks.kill()
-            self._tasks.clear()
+    def update_macro(self, arg=None):
+        '''Update macro to match value of param.'''
+        if self._param_macros.has_key(self._update_macro):
+            if self._param_macros[self._update_macro][0] and self._param_macros[self._update_macro][1]:
+                self._param_macros[self._update_macro][0].value = self.scale_param_value_to_macro(self._param_macros[self._update_macro][1])
+        self._tasks.kill()
+        self._tasks.clear()
 
-        def update_macro(self, arg=None):
-            '''Update macro to match value of param.'''
-            if self._param_macros.has_key(self._update_macro):
-                if self._param_macros[self._update_macro][0] and self._param_macros[self._update_macro][1]:
-                    self._param_macros[self._update_macro][0].value = self.scale_param_value_to_macro(self._param_macros[self._update_macro][1])
-            self._tasks.kill()
-            self._tasks.clear()
+    def get_initial_value(self, arg=None):
+        '''Get initial values to set macros to.'''
+        for index in range(1,9):
+            if self._param_macros.has_key(index):
+                if self._param_macros[index][0] and self._param_macros[index][1]:
+                    if self._param_macros[index][0].value != self.scale_param_value_to_macro(self._param_macros[index][1]):
+                        self._param_macros[index][0].value = self.scale_param_value_to_macro(self._param_macros[index][1])
 
-        def get_initial_value(self, arg=None):
-            '''Get initial values to set macros to.'''
-            for index in range(1,9):
-                if self._param_macros.has_key(index):
-                    if self._param_macros[index][0] and self._param_macros[index][1]:
-                        if self._param_macros[index][0].value != self.scale_param_value_to_macro(self._param_macros[index][1]):
-                            self._param_macros[index][0].value = self.scale_param_value_to_macro(self._param_macros[index][1])
+    def do_reset(self):
+        '''Reset assigned params to default.'''
+        self._update_param = 0
+        self._update_macro = 0
+        self._tasks.kill()
+        self._tasks.clear()
+        for k, v in self._param_macros.items():
+            if v[1] and not v[1].is_quantized and v[1].name != 'Chain Selector':
+                v[1].value = v[1].default_value
+                v[0].value = self.scale_param_value_to_macro(v[1])
 
-        def do_reset(self):
-            '''Reset assigned params to default.'''
-            self._update_param = 0
-            self._update_macro = 0
-            self._tasks.kill()
-            self._tasks.clear()
-            for k, v in self._param_macros.items():
-                if v[1] and not v[1].is_quantized and v[1].name != 'Chain Selector':
-                    v[1].value = v[1].default_value
-                    v[0].value = self.scale_param_value_to_macro(v[1])
 
-else:
+# legacy Live 8 code
 
-    class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
-        __module__ = __name__
-        __doc__ = 'Template for Macrobat racks that control parameters in Live 8'
+# class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
+#     __module__ = __name__
+#     __doc__ = 'Template for Macrobat racks that control parameters in Live 8'
 
-        def __init__(self, parent, rack, track):
-            self._parent = parent
-            ControlSurfaceComponent.__init__(self)
-            self._register_timer_callback(self.on_timer)
-            self._has_timer = True
-            self._on_off_param = []
-            self._param_macros = {}
-            self._update_macro = 0
-            self._update_param = 0
-            self._param_update_in_progress = True
-            self._macro_update_in_progress = True
-            self._parent.schedule_message(8, self.allow_macro_updates)
-            self._parent.schedule_message(8, self.allow_param_updates)
-            self._get_initial_value = False
-            self._track = track
-            self.setup_device(rack)
+#     def __init__(self, parent, rack, track):
+#         self._parent = parent
+#         ControlSurfaceComponent.__init__(self)
+#         self._register_timer_callback(self.on_timer)
+#         self._has_timer = True
+#         self._on_off_param = []
+#         self._param_macros = {}
+#         self._update_macro = 0
+#         self._update_param = 0
+#         self._param_update_in_progress = True
+#         self._macro_update_in_progress = True
+#         self._parent.schedule_message(8, self.allow_macro_updates)
+#         self._parent.schedule_message(8, self.allow_param_updates)
+#         self._get_initial_value = False
+#         self._track = track
+#         self.setup_device(rack)
 
-        def disconnect(self):
-            self.remove_macro_listeners()
-            if self._has_timer:
-                self._unregister_timer_callback(self.on_timer)
-            self._has_timer = False
-            self._on_off_param = []
-            self._param_macros = {}
-            self._track = None
-            self._parent = None
+#     def disconnect(self):
+#         self.remove_macro_listeners()
+#         if self._has_timer:
+#             self._unregister_timer_callback(self.on_timer)
+#         self._has_timer = False
+#         self._on_off_param = []
+#         self._param_macros = {}
+#         self._track = None
+#         self._parent = None
 
-        def macro_changed(self, index):
-            '''Called on macro changes to update param values.'''
-            if not self._update_macro and not self._macro_update_in_progress:
-                if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
-                    scaled_value = self.scale_param_value_to_macro(self._param_macros[index][1])
-                    if scaled_value != self._param_macros[index][0].value:
-                        self._update_param = index
-                        self._param_update_in_progress = True
-                        self._parent.schedule_message(8, self.allow_macro_updates)
+#     def macro_changed(self, index):
+#         '''Called on macro changes to update param values.'''
+#         if not self._update_macro and not self._macro_update_in_progress:
+#             if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
+#                 scaled_value = self.scale_param_value_to_macro(self._param_macros[index][1])
+#                 if scaled_value != self._param_macros[index][0].value:
+#                     self._update_param = index
+#                     self._param_update_in_progress = True
+#                     self._parent.schedule_message(8, self.allow_macro_updates)
 
-        def param_changed(self, index):
-            '''Called on param changes to update macros.'''
-            if not self._update_param and not self._param_update_in_progress:
-                if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
-                    scaled_value = self.scale_macro_value_to_param(self._param_macros[index][0], self._param_macros[index][1])
-                    if scaled_value != self._param_macros[index][1].value:
-                        self._update_macro = index
-                        self._macro_update_in_progress = True
-                        self._parent.schedule_message(8, self.allow_param_updates)
+#     def param_changed(self, index):
+#         '''Called on param changes to update macros.'''
+#         if not self._update_param and not self._param_update_in_progress:
+#             if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
+#                 scaled_value = self.scale_macro_value_to_param(self._param_macros[index][0], self._param_macros[index][1])
+#                 if scaled_value != self._param_macros[index][1].value:
+#                     self._update_macro = index
+#                     self._macro_update_in_progress = True
+#                     self._parent.schedule_message(8, self.allow_param_updates)
 
-        def do_reset(self):
-            '''Reset assigned params to default.'''
-            self._update_param = False
-            self._update_macro = False
-            self._param_update_in_progress = False
-            self._macro_update_in_progress = False
-            for k, v in self._param_macros.items():
-                if v[1] and not v[1].is_quantized and v[1].name != 'Chain Selector':
-                    v[1].value = v[1].default_value
-                    v[0].value = self.scale_param_value_to_macro(v[1])
+#     def do_reset(self):
+#         '''Reset assigned params to default.'''
+#         self._update_param = False
+#         self._update_macro = False
+#         self._param_update_in_progress = False
+#         self._macro_update_in_progress = False
+#         for k, v in self._param_macros.items():
+#             if v[1] and not v[1].is_quantized and v[1].name != 'Chain Selector':
+#                 v[1].value = v[1].default_value
+#                 v[0].value = self.scale_param_value_to_macro(v[1])
 
-        def on_timer(self):
-            '''Handle updating values and getting initial values.'''
-            if not self._get_initial_value:
-                if self._update_macro and not self._update_param:
-                    if self._param_macros.has_key(self._update_macro):
-                        if self._param_macros[self._update_macro][0] and self._param_macros[self._update_macro][1]:
-                            self._param_macros[self._update_macro][0].value = self.scale_param_value_to_macro(self._param_macros[self._update_macro][1])
-                    self._update_macro = 0
-                    self._parent.schedule_message(8, self.allow_param_updates)
-                elif self._update_param and not self._update_macro:
-                    if self._param_macros.has_key(self._update_param):
-                        if self._param_macros[self._update_param][0] and self._param_macros[self._update_param][1]:
-                            self._param_macros[self._update_param][1].value = self.scale_macro_value_to_param(self._param_macros[self._update_param][0], self._param_macros[self._update_param][1])
-                    self._update_param = 0
-                    self._parent.schedule_message(8, self.allow_macro_updates)
-            else:
-                for index in range(1,9):
-                    if self._param_macros.has_key(index):
-                        if self._param_macros[index][0] and self._param_macros[index][1]:
-                            if self._param_macros[index][0].value != self.scale_param_value_to_macro(self._param_macros[index][1]):
-                                self._param_macros[index][0].value = self.scale_param_value_to_macro(self._param_macros[index][1])
-                self._get_initial_value = False
+#     def on_timer(self):
+#         '''Handle updating values and getting initial values.'''
+#         if not self._get_initial_value:
+#             if self._update_macro and not self._update_param:
+#                 if self._param_macros.has_key(self._update_macro):
+#                     if self._param_macros[self._update_macro][0] and self._param_macros[self._update_macro][1]:
+#                         self._param_macros[self._update_macro][0].value = self.scale_param_value_to_macro(self._param_macros[self._update_macro][1])
+#                 self._update_macro = 0
+#                 self._parent.schedule_message(8, self.allow_param_updates)
+#             elif self._update_param and not self._update_macro:
+#                 if self._param_macros.has_key(self._update_param):
+#                     if self._param_macros[self._update_param][0] and self._param_macros[self._update_param][1]:
+#                         self._param_macros[self._update_param][1].value = self.scale_macro_value_to_param(self._param_macros[self._update_param][0], self._param_macros[self._update_param][1])
+#                 self._update_param = 0
+#                 self._parent.schedule_message(8, self.allow_macro_updates)
+#         else:
+#             for index in range(1,9):
+#                 if self._param_macros.has_key(index):
+#                     if self._param_macros[index][0] and self._param_macros[index][1]:
+#                         if self._param_macros[index][0].value != self.scale_param_value_to_macro(self._param_macros[index][1]):
+#                             self._param_macros[index][0].value = self.scale_param_value_to_macro(self._param_macros[index][1])
+#             self._get_initial_value = False
 
-        def allow_macro_updates(self):
-            '''Used to prevent param change getting triggered while param update
-            is in progress (new issue in 8.2.2).
-            '''
-            if not self._update_param:
-                self._param_update_in_progress = False
+#     def allow_macro_updates(self):
+#         '''Used to prevent param change getting triggered while param update
+#         is in progress (new issue in 8.2.2).
+#         '''
+#         if not self._update_param:
+#             self._param_update_in_progress = False
 
-        def allow_param_updates(self):
-            '''Used to prevent macro change getting triggered while macro update
-            is in progress (new issue in 8.2.2).
-            '''
-            if not self._update_macro:
-                self._macro_update_in_progress = False
+#     def allow_param_updates(self):
+#         '''Used to prevent macro change getting triggered while macro update
+#         is in progress (new issue in 8.2.2).
+#         '''
+#         if not self._update_macro:
+#             self._macro_update_in_progress = False
