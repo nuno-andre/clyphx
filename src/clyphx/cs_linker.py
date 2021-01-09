@@ -21,7 +21,6 @@ from functools import partial
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.ControlSurface import ControlSurface
 from _Framework.SessionComponent import SessionComponent
-from .consts import IS_LIVE_9_5
 
 log = logging.getLogger(__name__)
 
@@ -80,7 +79,7 @@ class CSLinker(ControlSurfaceComponent):
             scripts_have_same_name = self._script_names[0] == self._script_names[1]
             for script in instanciated_scripts:
                 script_name = script.__class__.__name__.upper()
-                if (IS_LIVE_9_5 and script_name in ('PUSH', 'PUSH2')) or (
+                if script_name in ('PUSH', 'PUSH2') or (
                     isinstance(script, ControlSurface) and script.components
                 ):
                     if script_name == self._script_names[0]:
@@ -97,7 +96,7 @@ class CSLinker(ControlSurfaceComponent):
                 log.info('Scripts found (%s)', self.canonical_parent)
                 ssn_comps = []
                 for script in scripts:
-                    if IS_LIVE_9_5 and script.__class__.__name__.upper() in ('PUSH', 'PUSH2'):
+                    if script.__class__.__name__.upper() in ('PUSH', 'PUSH2'):
                         ssn_comps.append(script._session_ring)
                     for c in script.components:
                         if isinstance (c, SessionComponent):
@@ -110,7 +109,7 @@ class CSLinker(ControlSurfaceComponent):
                         for s in ssn_comps:
                             s._link()
                     else:
-                        if IS_LIVE_9_5 and self._script_names[0] in ('PUSH', 'PUSH2'):
+                        if self._script_names[0] in ('PUSH', 'PUSH2'):
                             h_offset = ssn_comps[0].num_tracks
                             v_offset = ssn_comps[0].num_scenes
                         else:

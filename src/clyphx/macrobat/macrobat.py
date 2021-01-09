@@ -26,10 +26,7 @@ from .parameter_racks import (
     MacrobatDRRack, MacrobatReceiverRack, MacrobatTrackRack,
 )
 from .parameter_racks9 import MacrobatChainSelectorRack, MacrobatDRPadMixRack
-from ..consts import IS_LIVE_9_5
-
-if IS_LIVE_9_5:
-    from .push_rack import MacrobatPushRack
+from .push_rack import MacrobatPushRack
 
 
 class Macrobat(ControlSurfaceComponent):
@@ -135,7 +132,7 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
                 m = MacrobatReceiverRack(self._parent, rack, self._track)
             elif name.startswith('NK TRACK') and not self._track.has_midi_output:
                 m = MacrobatTrackRack(self._parent, rack, self._track)
-            elif name.startswith('NK DR PAD MIX') and IS_LIVE_9_5:
+            elif name.startswith('NK DR PAD MIX'):
                 m = MacrobatDRPadMixRack(self._parent, rack, self._track)
             elif self._parent._can_have_nested_devices:
                 if name.startswith('NK DR MULTI'):
@@ -153,7 +150,7 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
                 m = MacrobatRnRRack(self._parent, rack, name, self._track)
             elif name.startswith('NK SIDECHAIN'):
                 m = MacrobatSidechainRack(self._parent, rack, self._track)
-            elif name.startswith('NK SCL') and IS_LIVE_9_5:
+            elif name.startswith('NK SCL'):
                 m = MacrobatPushRack(self._parent, rack)
             elif name.startswith('NK CS'):
                 m = MacrobatChainSelectorRack(self._parent, rack, self._track)

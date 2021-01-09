@@ -26,11 +26,8 @@ LIVE_VERSION = (app.get_major_version(),
                 app.get_minor_version(),
                 app.get_bugfix_version())
 
-if LIVE_VERSION < (9, 1, 0):
-    raise RuntimeError('Live releases earlier than 9.1 are not supported')
-
-IS_LIVE_10 = LIVE_VERSION >= (10, 0, 0)
-IS_LIVE_9_5 = LIVE_VERSION >= (9, 5, 0)
+if LIVE_VERSION < (9, 5, 0):
+    raise RuntimeError('Live releases earlier than 9.5 are not supported')
 
 
 GLOBAL_ACTIONS = {

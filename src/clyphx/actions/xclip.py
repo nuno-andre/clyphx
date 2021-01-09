@@ -66,10 +66,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
     def adjust_time_signature(self, clip, track, xclip, ident, args):
         """Adjust clip's time signature."""
         if '/' in args:
-            name_split = args.split('/')
             try:
-                clip.signature_numerator = int(name_split[0].strip())
-                clip.signature_denominator = int(name_split[1].strip())
+                num, denom = args.split('/')
+                clip.signature_numerator = int(num)
+                clip.signature_denominator = int(denom)
             except:
                 pass
 
@@ -204,14 +204,14 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 except:
                     pass
             else:
-                if type(xclip) is Live.Clip.Clip:
-                    xclip.name = xclip.name.strip() + ' ' + str(clip.loop_start)
+                if isinstance(xclip, Live.Clip.Clip):
+                    xclip.name = '{} {}'.format(xclip.name.strip(), clip.loop_start)
 
     def adjust_warp_mode(self, clip, track, xclip, ident, args):
         """Adjusts the warp mode of the clip. This cannot be applied if the
         warp mode is currently rex (5).
         """
-        if clip.is_audio_clip and clip.warping and not clip.warp_mode == 5:
+        if clip.is_audio_clip and clip.warping and clip.warp_mode != 5:
             args = args.strip()
             if args in WARP_MODES:
                 clip.warp_mode = WARP_MODES[args]
@@ -269,7 +269,8 @@ class ClyphXClipActions(ControlSurfaceComponent):
                             min_factor = int(arg_array[-2])
                             max_factor = int(arg_array[-1])
                             if 0 <= min_factor and max_factor < 101 and min_factor < max_factor:
-                                env_range = ((min_factor / 100.0) * param.max, (max_factor / 100.0) * param.max)
+                                env_range = ((min_factor / 100.0) * param.max,
+                                             (max_factor / 100.0) * param.max)
                         except:
                             pass
                     self.song().view.detail_clip = clip
@@ -482,17 +483,17 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 slot_index = list(track.clip_slots).index(clip.canonical_parent)
                 current_start = clip.start_marker
                 actual_end = clip.end_marker
-                for index in range(num_splits):
-                    track.duplicate_clip_slot(slot_index + index)
-                    dupe_start = (split_size * index) + current_start
+                for i in range(num_splits):
+                    track.duplicate_clip_slot(slot_index + i)
+                    dupe_start = (split_size * i) + current_start
                     dupe_end = dupe_start + split_size
                     if dupe_end > actual_end:
                         dupe_end = actual_end
-                    dupe = track.clip_slots[slot_index + index + 1].clip
+                    dupe = track.clip_slots[slot_index + i + 1].clip
                     dupe.loop_end = dupe_end
                     dupe.start_marker = dupe_start
                     dupe.loop_start = dupe_start
-                    dupe.name = clip.name + '-' + str(index + 1)
+                    dupe.name = '{}-{}'.format(clip.name, i + 1)
         except:
             pass
 
@@ -518,7 +519,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 new_end = clip.loop_end
                 if args.startswith(('<', '>')):
                     self.move_clip_loop_by_factor(clip, args, clip_stats)
-                    return()
+                    return ()
                 elif args == 'RESET':
                     new_start = 0.0
                     new_end = clip_stats['real_end']
@@ -529,7 +530,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
                         pass
                 else:
                     self.do_loop_set(clip, args, clip_stats)
-                    return()
+                    return ()
                 self.set_new_loop_position(clip, new_start, new_end, clip_stats)
 
     def set_loop_on_off(self, clip, value = None):
@@ -579,6 +580,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
         are within range and applies in correct order.
         """
         if new_end <= clip_stats['real_end'] and new_start >= 0:
+            # FIXME: same values
             if new_end > clip.loop_start:
                 clip.loop_end = new_end
                 clip.loop_start = new_start
@@ -646,7 +648,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
                     edited_notes.append((new_pitch, n[1], n[2], n[3], n[4]))
                 else:
                     edited_notes = []
-                    return()
+                    return ()
             if edited_notes:
                 self.write_all_notes(clip, edited_notes, note_data['other_notes'])
 
@@ -776,7 +778,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
         if args == 'SPLIT':
             for n in notes_to_edit:
                 if n[2] / 2 < 0.03125:
-                    return()
+                    return ()
                 else:
                     edited_notes.append(n)
                     edited_notes.append((n[0], n[1] + (n[2] / 2), n[2] / 2, n[3], n[4]))
@@ -851,7 +853,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
             if new_args and '@' in new_args[0]:
                 pos_range = self.get_pos_range(clip, new_args[0])
                 new_args.remove(new_args[0])
-            new_args = " ".join(new_args)
+            new_args = ' '.join(new_args)
         clip.select_all_notes()
         all_notes = clip.get_selected_notes()
         clip.deselect_all_notes()
@@ -878,11 +880,9 @@ class ClyphXClipActions(ControlSurfaceComponent):
             pos_range = (start, start)
             if len(user_range) > 1:
                 try:
-                    end = float(user_range[1])
+                    pos_range = (start, float(user_range[1]))
                 except:
-                    end = None
-                if end is not None:
-                    pos_range = (start, end)
+                    pass
         return pos_range
 
     def get_note_range(self, string):
@@ -915,7 +915,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
         try:
             start = int(int_split[0])
             end = start + 1
-            if(len(int_split) > 1):
+            if len(int_split) > 1:
                 end = int(int_split[1]) + 1
             if 0 <= start and end < 129 and start < end:
                 result = (start, end)

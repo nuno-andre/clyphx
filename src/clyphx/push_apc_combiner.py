@@ -18,12 +18,7 @@ from __future__ import absolute_import, unicode_literals
 
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.SessionComponent import SessionComponent
-from .consts import IS_LIVE_9_5
-
-SessionRingComponent = None
-
-if IS_LIVE_9_5:
-    from ableton.v2.control_surface.components.session_ring import SessionRingComponent
+from ableton.v2.control_surface.components.session_ring import SessionRingComponent
 
 
 class Push_APC_Combiner(ControlSurfaceComponent):
@@ -97,10 +92,7 @@ class Push_APC_Combiner(ControlSurfaceComponent):
         if self._push_session and self._apc_session:
             self._push_session.set_offsets(self._apc_session.track_offset(),
                                            self._apc_session.scene_offset())
-            if IS_LIVE_9_5:
-                self._push_session._session_ring.hide_highlight()
-            else:
-                self._push._set_session_highlight(-1, -1, -1, -1, False)
+            self._push_session._session_ring.hide_highlight()
 
     def _remove_listeners(self):
         if self._apc_session and self._apc_session.offset_has_listener(self._on_apc_offset_changed):

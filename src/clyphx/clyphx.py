@@ -37,15 +37,13 @@ from .user_actions import ClyphXUserActions
 from .m4l_browser import ClyphXM4LBrowserInterface
 from .action_list import ActionList
 from .push_apc_combiner import Push_APC_Combiner
-from .consts import IS_LIVE_9_5, LIVE_VERSION
+from .consts import LIVE_VERSION
 from .consts import (CLIP_ACTIONS, DEVICE_ACTIONS, DR_ACTIONS,
                     GLOBAL_ACTIONS, LOOPER_ACTIONS, TRACK_ACTIONS)
+from .push_mocks import MockHandshakeTask, MockHandshake
 # from utils import get_python_info
 
 log = logging.getLogger(__name__)
-
-if IS_LIVE_9_5:
-    from .push_mocks import MockHandshakeTask, MockHandshake
 
 FOLDER = '/ClyphX/'
 SCRIPT_NAME = 'ClyphX v2.7.0'
@@ -708,15 +706,16 @@ class ClyphX(ControlSurface):
         for script in scripts:
             script_name = script.__class__.__name__
             if script_name == 'Push':
-                if IS_LIVE_9_5:
+                if True:
                     with script._component_guard():
                         script._start_handshake_task = MockHandshakeTask()
                         script._handshake = MockHandshake()
                     if self._push_apc_combiner:
                         self._push_apc_combiner.set_up_scripts(self._control_surfaces())
-                else:
-                    script._handshake._identification_timeout_task.kill()
-                    script._handshake._identification_timeout_task = Task.Task()
+                # legacy <9.5 code
+                # else:
+                #     script._handshake._identification_timeout_task.kill()
+                #     script._handshake._identification_timeout_task = Task.Task()
                 break
 
     def start_debugging(self):

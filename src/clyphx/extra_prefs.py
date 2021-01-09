@@ -58,18 +58,19 @@ class ExtraPrefs(ControlSurfaceComponent):
         """
         for d in data:
             d = d.split('=')
-            if 'NAVIGATION_HIGHLIGHT' in d[0]:
-                self._show_highlight = 'ON' in d[1]
-            elif 'EXCLUSIVE_ARM_ON_SELECT' in d[0] and 'ON' in d[1]:
+            k, v = d.split('=')
+            if 'NAVIGATION_HIGHLIGHT' in k:
+                self._show_highlight = 'ON' in v
+            elif 'EXCLUSIVE_ARM_ON_SELECT' in k and 'ON' in v:
                 self._exclusive_arm = True
-            elif 'EXCLUSIVE_SHOW_GROUP_ON_SELECT' in d[0] and 'ON' in d[1]:
+            elif 'EXCLUSIVE_SHOW_GROUP_ON_SELECT' in k and 'ON' in v:
                 self._exclusive_fold = True
-            elif 'CLIP_RECORD_LENGTH_SET_BY_GLOBAL_QUANTIZATION' in d[0] and 'ON' in d[1]:
+            elif 'CLIP_RECORD_LENGTH_SET_BY_GLOBAL_QUANTIZATION' in k and 'ON' in v:
                 self._clip_record = True
-            elif 'DEFAULT_INSERTED_MIDI_CLIP_LENGTH' in d[0]:
+            elif 'DEFAULT_INSERTED_MIDI_CLIP_LENGTH' in k:
                 try:
-                    if 2 <= int(d[1].strip()) < 17:
-                        self._midi_clip_length = int(d[1].strip())
+                    if 2 <= int(v) < 17:
+                        self._midi_clip_length = int(v)
                 except:
                     pass
             self.on_selected_track_changed()

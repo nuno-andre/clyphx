@@ -19,7 +19,7 @@ from __future__ import absolute_import, unicode_literals
 from functools import partial
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from ..consts import IS_LIVE_9_5, KEYWORDS
+from ..consts import KEYWORDS
 from ..consts import (AUDIO_DEVS, MIDI_DEVS, INS_DEVS,
                       GQ_STATES, REPEAT_STATES, RQ_STATES)
 
@@ -248,33 +248,18 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 tag_target = None
                 dev_name = device.class_display_name
                 args = args.strip()
-                if IS_LIVE_9_5:
-                    if device.type == Live.Device.DeviceType.audio_effect:
-                        tag_target = self.application().browser.audio_effects
-                    elif device.type == Live.Device.DeviceType.midi_effect:
-                        tag_target = self.application().browser.midi_effects
-                    elif device.type == Live.Device.DeviceType.instrument:
-                        tag_target = self.application().browser.instruments
-                    if tag_target:
-                        for dev in tag_target.children:
-                            if dev.name == dev_name:
-                                self._handle_swapping(device, dev, args)
-                                break
-                else:
-                    if device.type == Live.Device.DeviceType.audio_effect:
-                        tag_target = 'Audio Effects'
-                    elif device.type == Live.Device.DeviceType.midi_effect:
-                        tag_target = 'MIDI Effects'
-                    elif device.type == Live.Device.DeviceType.instrument:
-                        tag_target = 'Instruments'
-                    if tag_target:
-                        for main_tag in self.application().browser.tags:
-                            if main_tag.name == tag_target:
-                                for dev in main_tag.children:
-                                    if dev.name == dev_name:
-                                        self._handle_swapping(device, dev, args)
-                                        break
-                                break
+                if device.type == Live.Device.DeviceType.audio_effect:
+                    tag_target = self.application().browser.audio_effects
+                elif device.type == Live.Device.DeviceType.midi_effect:
+                    tag_target = self.application().browser.midi_effects
+                elif device.type == Live.Device.DeviceType.instrument:
+                    tag_target = self.application().browser.instruments
+                if tag_target:
+                    for dev in tag_target.children:
+                        if dev.name == dev_name:
+                            self._handle_swapping(device, dev, args)
+                            break
+
 
     def _handle_swapping(self, device, browser_item, args):
         dev_items = self._create_device_items(browser_item, [])
@@ -330,75 +315,41 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         args = args.strip()
         tag_target = None
         name = None
-        if IS_LIVE_9_5:
-            if args in AUDIO_DEVS:
-                tag_target = self.application().browser.audio_effects
-                name = AUDIO_DEVS[args]
-            elif args in MIDI_DEVS:
-                tag_target = self.application().browser.midi_effects
-                name = MIDI_DEVS[args]
-            elif args in INS_DEVS:
-                tag_target = self.application().browser.instruments
-                name = INS_DEVS[args]
-            if tag_target:
-                for dev in tag_target.children:
-                    if dev.name == name:
-                        self.application().browser.load_item(dev)
-                        break
-        else:
-            if args in AUDIO_DEVS:
-                tag_target = 'Audio Effects'
-                name = AUDIO_DEVS[args]
-            elif args in MIDI_DEVS:
-                tag_target = 'MIDI Effects'
-                name = MIDI_DEVS[args]
-            elif args in INS_DEVS:
-                tag_target = 'Instruments'
-                name = INS_DEVS[args]
-            if tag_target:
-                for main_tag in self.application().browser.tags:
-                    if main_tag.name == tag_target:
-                        for dev in main_tag.children:
-                            if dev.name == name:
-                                self.application().browser.load_item(dev)
-                                break
-                        break
+        if args in AUDIO_DEVS:
+            tag_target = self.application().browser.audio_effects
+            name = AUDIO_DEVS[args]
+        elif args in MIDI_DEVS:
+            tag_target = self.application().browser.midi_effects
+            name = MIDI_DEVS[args]
+        elif args in INS_DEVS:
+            tag_target = self.application().browser.instruments
+            name = INS_DEVS[args]
+        if tag_target:
+            for dev in tag_target.children:
+                if dev.name == name:
+                    self.application().browser.load_item(dev)
+                    break
 
     def load_m4l(self, track, xclip, ident, args):
         """Loads M4L device onto the selected Track. The .amxd should be
         omitted by the user.
         """
-        args = args.strip() + '.AMXD'
+        args = '{}.AMXD'.format(args.strip())
         found_dev = False
-        if IS_LIVE_9_5:
-            for m in self.application().browser.max_for_live.children:
-                for device in m.children:
-                    if not found_dev:
-                        if device.is_folder:
-                            for dev in device.children:
-                                if dev.name.upper() == args:
-                                    found_dev = True
-                                    self.application().browser.load_item(dev)
-                                    break
-                        elif device.name.upper() == args:
-                            found_dev = True
-                            self.application().browser.load_item(device)
-                            break
-                    else:
+        for m in self.application().browser.max_for_live.children:
+            for device in m.children:
+                if not found_dev:
+                    if device.is_folder:
+                        for dev in device.children:
+                            if dev.name.upper() == args:
+                                found_dev = True
+                                self.application().browser.load_item(dev)
+                                break
+                    elif device.name.upper() == args:
+                        found_dev = True
+                        self.application().browser.load_item(device)
                         break
-        else:
-            for main_tag in self.application().browser.tags:
-                if main_tag.name == 'Max for Live':
-                    for folder in main_tag.children:
-                        if not found_dev:
-                            if folder.is_folder:
-                                for dev in folder.children:
-                                    if dev.name.upper() == args:
-                                        found_dev = True
-                                        self.application().browser.load_item(dev)
-                                        break
-                        else:
-                            break
+                else:
                     break
 
     def set_session_record(self, track, xclip, ident, value = None):
@@ -420,8 +371,10 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                             self.song().create_scene(-1)
                             break
             bar = (4.0 / self.song().signature_denominator) * self.song().signature_numerator
-            try: length = float(value.strip()) * bar
-            except: length = bar
+            try:
+                length = float(value.strip()) * bar
+            except:
+                length = bar
             self.song().trigger_session_record(length)
 
     def _track_has_empty_slot(self, track, start):
@@ -606,8 +559,11 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         """
         zoom_all = 'ALL' in value
         value = value.replace('ALL', '').strip()
-        try: value = int(value)
-        except: return
+        try:
+            value = int(value)
+        except:
+            return
+        # FIXME
         direct = (value > 0) + 2
         for index in range(abs(value) + 1):
             self.application().view.zoom_view(Live.Application.Application.View.NavDirection(direct), '', zoom_all)
@@ -618,8 +574,11 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         """
         zoom_all = 'ALL' in value
         value = value.replace('ALL', '').strip()
-        try: value = int(value)
-        except: return
+        try:
+            value = int(value)
+        except:
+            return
+        # FIXME
         direct = (value > 0)
         for index in range(abs(value) + 1):
             self.application().view.zoom_view(Live.Application.Application.View.NavDirection(direct), '', zoom_all)
@@ -633,8 +592,10 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             factor = self._parent.get_adjustment_factor(args, True)
             self.song().tempo = max(20, min(999, (self.song().tempo + factor)))
         elif args.startswith('*'):
-            try: self.song().tempo = max(20, min(999, (self.song().tempo * float(args[1:]))))
-            except: pass
+            try:
+                self.song().tempo = max(20, min(999, (self.song().tempo * float(args[1:]))))
+            except:
+                pass
         elif args.startswith('RAMP'):
             arg_array = args.split()
             if len(arg_array) == 3:
@@ -754,10 +715,10 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
     def adjust_time_signature(self, track, xclip, ident, args):
         """Adjust global time signature."""
         if '/' in args:
-            name_split = args.split('/')
             try:
-                self.song().signature_numerator = int(name_split[0].strip())
-                self.song().signature_denominator = int(name_split[1].strip())
+                num, denom = args.split('/')
+                self.song().signature_numerator = int(num)
+                self.song().signature_denominator = int(denom)
             except:
                 pass
 
