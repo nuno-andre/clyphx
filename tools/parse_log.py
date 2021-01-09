@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 from datetime import datetime
 from ast import literal_eval
 from platform import system
@@ -15,24 +17,47 @@ DTFMT = '%Y-%m-%dT%H:%M:%S.%f'
 
 class Environment:
     def __init__(self):
-        self.system = system()
+        if system() == 'Windows':
+            self.mac = False
+        elif system() == 'Darwin':
+            self.mac = True
+        else:
+            raise NotImplementedError
 
     @property
     def user_folder(self):
-        if self.system == 'Windows':
+        if not self.mac:
             return Path(os.environ['APPDATA']) / 'Ableton'
-        elif self.system == 'Darwin':
-            raise NotImplementedError
         else:
             raise NotImplementedError
+
+    @property
+    def app_folder(self):
+        '''Returns Ableton Live folder.'''
+        if self.mac:
+            raise NotImplementedError
+        else:
+            if not getattr(self, '_app_folder', None):
+                import winreg
+
+                reg = winreg.ConnectRegistry(None, winreg.HKEY_CLASSES_ROOT)
+                value = winreg.QueryValue(reg, r'ableton\Shell\open\command')
+                path, _ = value.rsplit(' ', 1)
+                self._app_folder = Path(path).parents[1]
+            return self._app_folder
 
     @property
     def reports(self):
         path = self.user_folder / 'Live Reports/Usage'
         return list(path.glob('*.log'))
 
+    @property
+    def resources(self):
+        folder = 'Contents/App-Resources' if self.mac else 'Resources'
+        return self.app_folder / folder
 
-def parse_log(content):
+
+def parse_report(content):
     info = dict()
     logs = list()
 
@@ -55,7 +80,7 @@ def get_last_report():
     report = env.reports()[-1]
 
     with open(report) as logfile:
-        parse_log(logfile.read())
+        return parse_report(logfile.read())
 
 
 TIMESTAMP = r'(?P<timestamp>[T0-9\-\:\.])'
@@ -78,6 +103,8 @@ class LogFile:
         self.sessions = list()
 
     def parse(self, path):
+        raise NotImplementedError
+
         session = None
 
         for line in open(path):
@@ -91,7 +118,22 @@ class LogFile:
                 continue
             session.append(line)
 
-    def clean(self, keep=1):
-        if len(self.sessions) > keep:
-            # TODO: split and remove first sessions
-            pass
+
+def rotate_logfile():
+    env = Environment()
+    NUM = re.compile(r'Log.(\d*).txt')
+
+    for path in env.user_folder.glob('*/**'):
+        if path.name == 'Preferences':
+            last = 0
+            for logfile in path.glob('Log*.txt'):
+                num = NUM.match(logfile.name)
+                if num:
+                    last = max(last, int(num.group(1)))
+            dest = path / f'Log.{last+1}.txt'
+            try:
+                path.joinpath('Log.txt').rename(dest)
+            except PermissionError:
+                log.error('Cannot rotate log. Is Live running?')
+            else:
+                log.info(f'Log rotated. Last logs moved to: {dest}')

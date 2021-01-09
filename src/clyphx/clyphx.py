@@ -239,7 +239,7 @@ class ClyphX(ControlSurface):
                 is_play_seq = False
                 is_loop_seq = False
 
-                # X-Clips can have on and off action lists, the following handles this
+                # X-Clips can have on and off action lists
                 if isinstance(xtrigger, Live.Clip.Clip):
                     raw_action_list = self.get_xclip_action_list(xtrigger, raw_action_list)
                     if not raw_action_list:
@@ -251,7 +251,9 @@ class ClyphX(ControlSurface):
                     raw_action_list = raw_action_list.replace('(PSEQ)', '').strip()
 
                 # check if the trigger is a LSEQ (accessible only to X-Clips)
-                elif isinstance(xtrigger, Live.Clip.Clip) and raw_action_list[0] == '(' and '(LSEQ)' in raw_action_list:
+                elif (isinstance(xtrigger, Live.Clip.Clip) and
+                        raw_action_list[0] == '(' and
+                        '(LSEQ)' in raw_action_list):
                     is_loop_seq = True
                     raw_action_list = raw_action_list.replace('(LSEQ)', '').strip()
 
@@ -262,8 +264,8 @@ class ClyphX(ControlSurface):
                     if action_data:
                         formatted_action_list.append(action_data)
 
-                # if seq, pass to appropriate function, else call action dispatch
-                #   for each action in the formatted action list
+                # if seq, pass to appropriate function, else call action
+                #   dispatch for each action in the formatted action list
                 if formatted_action_list:
                     if is_play_seq:
                         self.handle_play_seq_action_list(formatted_action_list, xtrigger, ident)
@@ -626,8 +628,8 @@ class ClyphX(ControlSurface):
         return dr
 
     def get_user_settings(self, midi_map_handle):
-        '''Get user settings (variables, prefs and control settings) from text
-        file and perform startup actions if any.
+        '''Get user settings (variables, prefs and control settings) from
+        text file and perform startup actions if any.
         '''
         import sys
 
@@ -743,8 +745,8 @@ class ClyphX(ControlSurface):
         log.info('------- ClyphX Log: Debugging Started -------')
 
     def track_list_to_string(self, track_list):
-        '''Convert list of tracks to a string of track names or None if no
-        tracks. This is used for debugging.
+        '''Convert list of tracks to a string of track names or None if
+        no tracks. This is used for debugging.
         '''
         result = 'None'
         if track_list:
@@ -755,15 +757,15 @@ class ClyphX(ControlSurface):
         return result + ']'
 
     def perform_startup_actions(self, action_list):
-        '''Delay startup action so it can perform actions on values that are
-        changed upon set load (like overdub).
+        '''Delay startup action so it can perform actions on values that
+        are changed upon set load (like overdub).
         '''
         self.handle_action_list_trigger(self.song().view.selected_track,
                                         ActionList(action_list))
 
     def setup_tracks(self):
-        '''Setup component tracks on ini and track list changes.  Also call
-        Macrobat's get rack.
+        '''Setup component tracks on ini and track list changes. Also
+        call Macrobat's get rack.
         '''
         for t in self.song().tracks:
             self._macrobat.setup_tracks(t)
@@ -777,8 +779,8 @@ class ClyphX(ControlSurface):
         self._snap_actions.setup_tracks()
 
     def get_name(self, name):
-        '''Convert name to upper-case string or return blank string if couldn't
-        be converted.
+        '''Convert name to upper-case string or return blank string if
+        couldn't be converted.
         '''
         try:
             name = str(name).upper()
