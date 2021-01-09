@@ -63,7 +63,8 @@ class ClyphXPXTActions(ControlSurfaceComponent):
         pass
 
     def set_script(self, pxt_script):
-        """Set the PXT script to connect to and get necessary components."""
+        """Set the PXT script to connect to and get necessary components.
+        """
         self._script = pxt_script
         if self._script and self._script._components:
             self._message_display_line = self._script._display_lines[2]
@@ -88,8 +89,8 @@ class ClyphXPXTActions(ControlSurfaceComponent):
                 self._handle_poly_seq_action(args.replace('PSEQ', '').strip(), xclip, ident)
 
     def _handle_mono_seq_action(self, args, xclip, ident):
-        """Handle note actions related to the note currently being sequenced
-        in mono seq mode or capture mono seq mode settings.
+        """Handle note actions related to the note currently being
+        sequenced in mono seq mode or capture mono seq mode settings.
         """
         comp = self._mono_seq_mode
         clip = comp._midi_clip
@@ -107,8 +108,8 @@ class ClyphXPXTActions(ControlSurfaceComponent):
                 )
 
     def _handle_poly_seq_action(self, args, xclip, ident):
-        """Handle note actions related to the notes currently being sequenced
-        in poly seq mode or capture poly seq mode settings.
+        """Handle note actions related to the notes currently being
+        sequenced in poly seq mode or capture poly seq mode settings.
         """
         comp = self._poly_seq_mode
         clip = comp._midi_clip
@@ -155,8 +156,10 @@ class ClyphXPXTActions(ControlSurfaceComponent):
             settings += [velo_comp._fixed_velocity, velo_comp._velocity_type]
             # scale settings
             scl_comp = comp._scales_component
-            settings += [scl_comp._scale_index, scl_comp._root_note,
-                         scl_comp._octave_offset, scl_comp._offset_within_octave]
+            settings += [scl_comp._scale_index,
+                         scl_comp._root_note,
+                         scl_comp._octave_offset,
+                         scl_comp._offset_within_octave]
 
             xclip.name = '{} PXT {} CAP {}'.format(ident,
                                                    'MSEQ' if is_mono else 'PSEQ',
@@ -214,13 +217,16 @@ class ClyphXPXTActions(ControlSurfaceComponent):
             note_at_og_case = xclip.name[start_index:note_len+start_index]
             for i in UNWRITABLE_INDEXES:
                 if len(note_at_og_case) > i and note_at_og_case[i] != ' ':
-                    note_at_og_case = note_at_og_case[0:i] + ' ' + note_at_og_case[i:note_len]
+                    note_at_og_case = '{} {}'.format(note_at_og_case[0:i],
+                                                     note_at_og_case[i:note_len])
                     note_len += 1
             new_len = len(note_at_og_case)
             num_segments = (new_len / FULL_SEGMENT) + 1
             for i in range(num_segments):
                 offset = FULL_SEGMENT_OFFSETS[i]
-                self._message_display_line.write_momentary(offset, FULL_SEGMENT, note_at_og_case[offset:offset+FULL_SEGMENT], True)
+                self._message_display_line.write_momentary(
+                    offset, FULL_SEGMENT, note_at_og_case[offset:offset+FULL_SEGMENT], True
+                )
             self._tasks.add(_Framework.Task.sequence(_Framework.Task.delay(15),
                                                      self._revert_display))
 

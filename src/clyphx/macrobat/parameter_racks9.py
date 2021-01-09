@@ -43,7 +43,7 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
         MacrobatParameterRackTemplate.disconnect(self)
 
     def setup_device(self, rack):
-        """Set up macros and drum rack params."""
+        '''Set up macros and drum rack params.'''
         MacrobatParameterRackTemplate.setup_device(self, rack)
         self._rack = rack
         self._drum_rack = self.get_drum_rack()
@@ -55,24 +55,24 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
             self._set_selected_chain()
             if self._selected_chain:
                 num_sends = len(self._selected_chain.mixer_device.sends)
-                for index in range(1,9):
-                    if rack.parameters[index].is_enabled:
+                for i in range(1, 9):
+                    if rack.parameters[i].is_enabled:
                         param = None
-                        if index == 1:
+                        if i == 1:
                             param = self._selected_chain.mixer_device.volume
-                        elif index == 2:
+                        elif i == 2:
                             param = self._selected_chain.mixer_device.panning
                         else:
-                            s_index = index - 3
+                            s_index = i - 3
                             if s_index < num_sends:
                                 param = self._selected_chain.mixer_device.sends[s_index]
                         if param and param.is_enabled:
-                            macro = rack.parameters[index]
-                            m_listener = lambda index = index:self.macro_changed(index)
+                            macro = rack.parameters[i]
+                            m_listener = lambda index=i: self.macro_changed(index)
                             macro.add_value_listener(m_listener)
-                            p_listener = lambda index = index:self.param_changed(index)
+                            p_listener = lambda index=i: self.param_changed(index)
                             param.add_value_listener(p_listener)
-                            self._param_macros[index] = (macro, param)
+                            self._param_macros[i] = (macro, param)
                 self._tasks.add(self.get_initial_value)
 
     @subject_slot('selected_drum_pad')
@@ -94,9 +94,9 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
 
 
 class CSWrapper(Subject, SlotManager):
-    """Wrapper for a chain selector that limits the max value to the number of
-    chains in the rack.
-    """
+    '''Wrapper for a chain selector that limits the max value to the
+    number of chains in the rack.
+    '''
     __subject_events__ = ('value',)
 
     def __init__(self, cs):
@@ -109,26 +109,26 @@ class CSWrapper(Subject, SlotManager):
     def is_enabled(self):
         return self._cs.is_enabled
 
-    def _get_value(self):
+    @property
+    def value(self):
         return min(self._cs.value, self._max)
 
-    def _set_value(self, value):
+    @value.setter
+    def value(self, value):
         if value <= self._max:
             self._cs.value = value
-
-    value = property(_get_value, _set_value)
 
     @property
     def min(self):
         return self._cs.min
 
-    def _get_max(self):
+    @property
+    def max(self):
         return self._max
 
-    def _set_max(self, value):
+    @max.setter
+    def max(self, value):
         self._max = value
-
-    max = property(_get_max, _set_max)
 
     @subject_slot('value')
     def _on_cs_value_changed(self):
@@ -154,8 +154,8 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
         return (((param.max - param.min) / 126.0) * macro.value) + param.min
 
     def setup_device(self, rack):
-        """Set up macro 1 and chain selector.
-        """
+        '''Set up macro 1 and chain selector.
+        '''
         MacrobatParameterRackTemplate.setup_device(self, rack)
         self._rack = rack
         if self._rack:

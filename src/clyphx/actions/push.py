@@ -71,7 +71,9 @@ class ClyphXPushActions(ControlSurfaceComponent):
         super(ClyphXPushActions, self).disconnect()
 
     def set_script(self, push_script, is_push2=False):
-        """Set the Push script to connect to and get necessary components."""
+        """Set the Push script to connect to and get necessary
+        components.
+        """
         self._script = push_script
         self._is_push2 = is_push2
         if self._script and self._script._components:
@@ -85,10 +87,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
                     self._scales_component = c
             if not self._is_push2:
                 s_mode = self._script._scales_enabler._mode_map['enabled'].mode
-                if hasattr(s_mode, '_component'):
-                    self._scales_component = s_mode._component
-                else:
-                    self._scales_component = s_mode._enableable
+                self._scales_component = getattr(s_mode, '_component', s_mode._enableable)
 
     def handle_session_offset(self, session, last_pos, args, parser):
         """Special offset handling for use with 9.5."""
@@ -141,7 +140,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
         elif mode_name in TRACK_MODES:
             if self._is_push2:
                 main = self._script._mute_solo_stop
-                mode = getattr(main, '_%s_button_handler' % TRACK_MODES[mode_name])
+                mode = getattr(main, '_{}_button_handler'.format(TRACK_MODES[mode_name]))
                 main._mute_button_handler._unlock_mode()
                 main._solo_button_handler._unlock_mode()
                 main._stop_button_handler._unlock_mode()
@@ -172,7 +171,8 @@ class ClyphXPushActions(ControlSurfaceComponent):
         if not self._is_push2:
             for i in UNWRITABLE_INDEXES:
                 if len(note_at_og_case) > i and note_at_og_case[i] != ' ':
-                    note_at_og_case = note_at_og_case[0:i] + ' ' + note_at_og_case[i:note_len]
+                    note_at_og_case = '{} {}'.format(note_at_og_case[0:i],
+                                                     note_at_og_case[i:note_len])
                     note_len += 1
         self._script.show_notification(note_at_og_case)
 
@@ -217,7 +217,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
         elif arg_array[1] in ('<', '>'):
             new_root = (self._parent.get_adjustment_factor(arg_array[1])
                         + self._ins_component._note_layout.root_note)
-            if new_root in range(12):
+            if 0 <= new_root < 12:
                 self._ins_component._note_layout.root_note = new_root
 
     def _handle_octave(self, arg_array):
@@ -235,10 +235,10 @@ class ClyphXPushActions(ControlSurfaceComponent):
             else:
                 scale_list = self._scales_component._scale_list.scrollable_list
                 if factor < 0:
-                    for index in range(abs(factor)):
+                    for _ in range(abs(factor)):
                         scale_list.scroll_up()
                 else:
-                    for index in range(factor):
+                    for _ in range(factor):
                         scale_list.scroll_down()
         else:
             scale_type = args.replace('TYPE', '').strip()
@@ -249,10 +249,10 @@ class ClyphXPushActions(ControlSurfaceComponent):
                         break
             else:
                 scale_list = self._scales_component._scale_list.scrollable_list
-                for index in range(len(scale_list.items)):
-                    modus = scale_list.items[index]
+                for i in range(len(scale_list.items)):
+                    modus = scale_list.items[i]
                     if modus.content.name.upper() == scale_type:
-                        scale_list._set_selected_item_index(index)
+                        scale_list._set_selected_item_index(i)
                         break
 
     def _capture_scale_settings(self, xclip, ident):
@@ -268,8 +268,9 @@ class ClyphXPushActions(ControlSurfaceComponent):
             fixed = str(self._ins_component._note_layout.is_fixed)
             inkey = str(self._ins_component._note_layout.is_in_key)
             orient = '0'
-            xclip.name = '%s Push SCL %s %s %s %s %s %s' % (ident, root, scl_type, octave,
-                                                            fixed, inkey, orient)
+            xclip.name = '{} Push SCL {} {} {} {} {} {}'.format(
+                ident, root, scl_type, octave, fixed, inkey, orient
+            )
 
     def _recall_scale_settings(self, arg_array):
         """Recalls scale settings from X-Trigger name."""
@@ -298,7 +299,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
         c = self.song().view.detail_clip
         clip = c if c and c.is_midi_clip else None
         note = self._script._drum_component.selected_note
-        if clip and note != None:
+        if clip and note is not None:
             self._parent._clip_actions.do_clip_note_action(
                 clip, None, None, '', 'NOTES%s %s' % (note, args)
             )

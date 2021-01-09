@@ -78,11 +78,12 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         if track_list:
             for track in track_list:
                 track_name = self._parent.get_name(track.name)
-                if not track_name.startswith('CLYPHX SNAP') and not snap_data.has_key(track.name):
+                if not track_name.startswith('CLYPHX SNAP') and track.name not in snap_data:
                     track_data = [[], [], None, {}]
                     if args == '' or 'MIX' in args:
                         if not 'MIXS' in args:
-                            mix_vals = [track.mixer_device.volume.value, track.mixer_device.panning.value]
+                            mix_vals = [track.mixer_device.volume.value,
+                                        track.mixer_device.panning.value]
                         else:
                             mix_vals = [-1, -1]
                         if not 'MIX-' in args:
@@ -102,7 +103,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                             for dev_index in range(dev_range[0], dev_range[1]):
                                 if dev_index < (len(track.devices)):
                                     current_device = track.devices[dev_index]
-                                    if not track_devices.has_key(current_device.name):
+                                    if current_device.name not in track_devices:
                                         track_devices[current_device.name] = [[p.value for p in current_device.parameters], []]
                                         param_count += len(current_device.parameters)
                                         if self._include_nested_devices and self._parent._can_have_nested_devices and current_device.can_have_chains:
@@ -186,7 +187,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             if 0 <= new_speed < 501:
                 self._smoothing_speed = new_speed
         for track, param_data in snap_data.items():
-            if self._current_tracks.has_key(track):
+            if track in self._current_tracks:
                 track = self._current_tracks[track]
                 if param_data[0]:
                     if track.mixer_device.volume.is_enabled and param_data[0][0] != -1:
@@ -196,7 +197,8 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                     if track is not self.song().master_track:
                         for index in range(len(param_data[0])-2):
                             if index <= len(track.mixer_device.sends)-1 and track.mixer_device.sends[index].is_enabled:
-                                self.get_parameter_data_to_smooth(track.mixer_device.sends[index], param_data[0][2+index])
+                                self.get_parameter_data_to_smooth(track.mixer_device.sends[index],
+                                                                  param_data[0][2+index])
                 if param_data[1] and track is not self.song().master_track:
                     track.mute = param_data[1][0]
                     track.solo = param_data[1][1]
@@ -209,7 +211,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                             track.clip_slots[param_data[2]].fire()
                 if param_data[3]:
                     for device in track.devices:
-                        if param_data[3].has_key(device.name):
+                        if device.name in param_data[3]:
                             self.recall_device_snap(device, param_data[3][device.name][0])
                             if self._include_nested_devices and self._parent._can_have_nested_devices and device.can_have_chains and param_data[3][device.name][1]:
                                 self.recall_nested_device_snap(device, param_data[3][device.name][1])
@@ -387,7 +389,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             if not track.name_has_listener(self.setup_tracks):
                 track.add_name_listener(self.setup_tracks)
             name = self._parent.get_name(track.name)
-            if not self._current_tracks.has_key(track.name) and not name.startswith('CLYPHX SNAP'):
+            if track.name not in self._current_tracks and not name.startswith('CLYPHX SNAP'):
                 self._current_tracks[track.name] = track
 
     def remove_control_rack(self):

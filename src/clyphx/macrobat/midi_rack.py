@@ -67,7 +67,7 @@ class MacrobatMidiRack(ControlSurfaceComponent):
                 name = self._parent.get_name(p.name)
                 if name.startswith('[CC') and not p.value_has_listener(self.do_cc):
                     cc_num = self.check_for_cc_num(name)
-                    if cc_num != None:
+                    if cc_num is not None:
                         self._macro_to_cc.append((p, cc_num, -1, rack, channel))
                         p.add_value_listener(self.do_cc)
                 elif name.startswith('[PC]') and not p.value_has_listener(self.do_pc):

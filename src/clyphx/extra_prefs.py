@@ -53,11 +53,10 @@ class ExtraPrefs(ControlSurfaceComponent):
         pass
 
     def get_user_settings(self, data):
-        """Get user settings from config file and make sure they are in proper
-        range.
-        """
+        '''Get user settings from config file and make sure they are in
+        proper range.
+        '''
         for d in data:
-            d = d.split('=')
             k, v = d.split('=')
             if 'NAVIGATION_HIGHLIGHT' in k:
                 self._show_highlight = 'ON' in v
@@ -76,9 +75,9 @@ class ExtraPrefs(ControlSurfaceComponent):
             self.on_selected_track_changed()
 
     def on_selected_track_changed(self):
-        """Handles navigation highlight, triggering exclusive arm/fold
+        '''Handles navigation highlight, triggering exclusive arm/fold
         functions and removes/sets up listeners for clip-related functions.
-        """
+        '''
         ControlSurfaceComponent.on_selected_track_changed(self)
         track = self.song().view.selected_track
         clip_slot = self.song().view.highlighted_clip_slot
@@ -111,26 +110,26 @@ class ExtraPrefs(ControlSurfaceComponent):
         self._last_track = track
 
     def do_exclusive_fold(self, track):
-        """Called on track change.  Collapses all group tracks except for the
-        current group track.
-        """
+        '''Called on track change. Collapses all group tracks except for
+        the current group track.
+        '''
         if track.is_foldable:
             for t in self.song().tracks:
                 if t.is_foldable:
                     t.fold_state = 0 if t == track else 1
 
     def do_exclusive_arm(self, track):
-        """Called on track change.  Disarms all tracks except for the current
-        track.
-        """
+        '''Called on track change. Disarms all tracks except for the
+        current track.
+        '''
         for t in self.song().tracks:
             if t.can_be_armed:
                 t.arm = t == track
 
     def clip_record_slot_changed(self):
-        """Called on slot has clip changed.  Checks if clip is recording and
-        retriggers it if so.
-        """
+        '''Called on slot has clip changed.  Checks if clip is recording
+        and retriggers it if so.
+        '''
         track = self.song().view.selected_track
         if self.song().clip_trigger_quantization != 0 and track.arm:
             clip = self._clip_record_slot.clip
@@ -138,10 +137,10 @@ class ExtraPrefs(ControlSurfaceComponent):
                 clip.fire()
 
     def midi_clip_length_slot_changed(self):
-        """Called on slot has clip changed to trigger set length function.
-        Checks if clip is not playing/triggered, is 1-bar in length, has no
-        name and no notes.
-        """
+        '''Called on slot has clip changed to trigger set length function.
+        Checks if clip is not playing/triggered, is 1-bar in length, has
+        no name and no notes.
+        '''
         clip = self._midi_clip_length_slot.clip
         if clip and not clip.is_playing and not clip.is_triggered:
             one_bar = (4.0 / self.song().signature_denominator) * self.song().signature_numerator
@@ -155,7 +154,7 @@ class ExtraPrefs(ControlSurfaceComponent):
                     )
 
     def do_midi_clip_set_length(self, clip_params):
-        """Sets clip length and loop end to user-defined length."""
+        '''Sets clip length and loop end to user-defined length.'''
         clip = clip_params[0]
         new_length = clip_params[1] * self._midi_clip_length
         clip.loop_end = new_length
@@ -164,7 +163,7 @@ class ExtraPrefs(ControlSurfaceComponent):
         clip.looping = True
 
     def remove_listeners(self):
-        """Remove parameter listeners."""
+        '''Remove parameter listeners.'''
         if self._clip_record_slot:
             if self._clip_record_slot.has_clip_has_listener(self.clip_record_slot_changed):
                 self._clip_record_slot.remove_has_clip_listener(self.clip_record_slot_changed)

@@ -48,7 +48,7 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
         MacrobatParameterRackTemplate.setup_device(self, rack)
         self._rack = rack
         param = self.song().view.selected_parameter
-        if LAST_PARAM and LAST_PARAM.has_key(0):
+        if 0 in LAST_PARAM:
             param = LAST_PARAM[0]
         if self._rack and param:
             if self._rack.parameters[1].is_enabled and param.is_enabled:
@@ -62,7 +62,9 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
 
     def on_selected_parameter_changed(self):
         """Update rack on new param selected."""
-        if self.song().view.selected_parameter and self._rack and not self.song().view.selected_parameter.canonical_parent == self._rack:
+        if (self.song().view.selected_parameter and
+                self._rack and
+                self.song().view.selected_parameter.canonical_parent != self._rack):
             LAST_PARAM[0] = self.song().view.selected_parameter
             self.setup_device(self._rack)
 
@@ -85,26 +87,28 @@ class MacrobatChainMixRack(MacrobatParameterRackTemplate):
         self._rack = self.get_rack()
         if self._rack:
             param_name = self._parent.get_name(rack.name[12:].strip())
-            for index in range(1, 9):
+            for i in range(1, 9):
                 chain_to_edit = {}
-                macro = rack.parameters[index]
+                macro = rack.parameters[i]
                 param = None
                 if macro.is_enabled:
                     chain_name = self._parent.get_name(macro.name)
-                    if self._rack.has_key(chain_name):
+                    if chain_name in self._rack:
                         chain_to_edit = self._rack[chain_name]
-                    if chain_to_edit.has_key(param_name):
+                    if param_name in chain_to_edit:
                         param = chain_to_edit[param_name]
                     if param and param.is_enabled:
-                        m_listener = lambda index = index:self.macro_changed(index)
+                        m_listener = lambda index=i: self.macro_changed(index)
                         macro.add_value_listener(m_listener)
-                        p_listener = lambda index = index:self.param_changed(index)
+                        p_listener = lambda index=i: self.param_changed(index)
                         param.add_value_listener(p_listener)
-                        self._param_macros[index] = (macro, param)
+                        self._param_macros[i] = (macro, param)
             self._tasks.add(self.get_initial_value)
 
     def get_rack(self):
-        """Get rack to operate on as well as the mixer params of its chains."""
+        """Get rack to operate on as well as the mixer params of its
+        chains.
+        """
         rack_chains = {}
         if self._track and self._track.devices:
             for d in self._track.devices:
@@ -138,24 +142,24 @@ class MacrobatDRMultiRack(MacrobatParameterRackTemplate):
         self._drum_rack = self.get_drum_rack()
         if self._drum_rack:
             param_name = self._parent.get_name(rack.name[11:].strip())
-            for index in range(1, 9):
+            for i in range(1, 9):
                 drum_to_edit = {}
-                macro = rack.parameters[index]
+                macro = rack.parameters[i]
                 param = None
                 if macro.is_enabled:
                     drum_name = macro.name
-                    if self._drum_rack['devs_by_index'].has_key(drum_name):
+                    if drum_name in self._drum_rack['devs_by_index']:
                         drum_to_edit = self._drum_rack['devs_by_index'][drum_name]
-                    elif self._drum_rack['devs_by_name'].has_key(drum_name):
+                    elif drum_name in self._drum_rack['devs_by_name']:
                         drum_to_edit = self._drum_rack['devs_by_name'][drum_name]
-                    if drum_to_edit.has_key(param_name):
+                    if param_name in drum_to_edit:
                         param = drum_to_edit[param_name]
                     if param and param.is_enabled:
-                        m_listener = lambda index = index:self.macro_changed(index)
+                        m_listener = lambda index=i: self.macro_changed(index)
                         macro.add_value_listener(m_listener)
-                        p_listener = lambda index = index:self.param_changed(index)
+                        p_listener = lambda index=i: self.param_changed(index)
                         param.add_value_listener(p_listener)
-                        self._param_macros[index] = (macro, param)
+                        self._param_macros[i] = (macro, param)
             self._tasks.add(self.get_initial_value)
 
 
@@ -178,23 +182,23 @@ class MacrobatDRRack(MacrobatParameterRackTemplate):
         if self._drum_rack:
             drum_name = rack.name[5:].strip()
             drum_to_edit = {}
-            if self._drum_rack['devs_by_index'].has_key(drum_name):
+            if drum_name in self._drum_rack['devs_by_index']:
                 drum_to_edit = self._drum_rack['devs_by_index'][drum_name]
-            elif self._drum_rack['devs_by_name'].has_key(drum_name):
+            elif drum_name in self._drum_rack['devs_by_name']:
                 drum_to_edit = self._drum_rack['devs_by_name'][drum_name]
-            for index in range(1,9):
-                macro = rack.parameters[index]
+            for i in range(1, 9):
+                macro = rack.parameters[i]
                 param = None
                 if macro.is_enabled:
                     name = self._parent.get_name(macro.name)
-                    if drum_to_edit.has_key(name):
+                    if name in drum_to_edit:
                         param = drum_to_edit[name]
                     if param and param.is_enabled:
-                        m_listener = lambda index = index:self.macro_changed(index)
+                        m_listener = lambda index=i: self.macro_changed(index)
                         macro.add_value_listener(m_listener)
-                        p_listener = lambda index = index:self.param_changed(index)
+                        p_listener = lambda index=i: self.param_changed(index)
                         param.add_value_listener(p_listener)
-                        self._param_macros[index] = (macro, param)
+                        self._param_macros[i] = (macro, param)
             self._tasks.add(self.get_initial_value)
 
 
@@ -227,7 +231,9 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
             self._tasks.add(self.get_initial_value)
 
     def get_sender_macros(self, dev_list):
-        """Look through all devices/chains on all tracks for sender macros."""
+        """Look through all devices/chains on all tracks for sender
+        macros.
+        """
         for d in dev_list:
             name = self._parent.get_name(d.name)
             if d and d.class_name.endswith('GroupDevice') and not name.startswith('NK RECEIVER'):
@@ -270,12 +276,12 @@ class MacrobatTrackRack(MacrobatParameterRackTemplate):
     def setup_device(self, rack):
         """Setup macros and track mixer params."""
         MacrobatParameterRackTemplate.setup_device(self, rack)
-        for index in range(1,9):
-            macro = rack.parameters[index]
+        for i in range(1, 9):
+            macro = rack.parameters[i]
             param = None
             if macro.is_enabled:
                 name = self._parent.get_name(macro.name)
-                if name.startswith('SEND') and not self._track == self.song().master_track:
+                if name.startswith('SEND') and self._track != self.song().master_track:
                     try:
                         param = self._track.mixer_device.sends[ord(name[5]) - 65]
                     except:
@@ -285,9 +291,9 @@ class MacrobatTrackRack(MacrobatParameterRackTemplate):
                 elif name.startswith('PAN'):
                     param = self._track.mixer_device.panning
             if param and param.is_enabled:
-                m_listener = lambda index = index:self.macro_changed(index)
+                m_listener = lambda index=i: self.macro_changed(index)
                 macro.add_value_listener(m_listener)
-                p_listener = lambda index = index:self.param_changed(index)
+                p_listener = lambda index=i: self.param_changed(index)
                 param.add_value_listener(p_listener)
-                self._param_macros[index] = (macro, param)
+                self._param_macros[i] = (macro, param)
         self._tasks.add(self.get_initial_value)

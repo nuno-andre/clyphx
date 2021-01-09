@@ -23,7 +23,7 @@ from ..consts import KEYWORDS
 MAX_SCROLL_POS = 28
 
 
-class ClyphXDRActions9(ControlSurfaceComponent):
+class ClyphXDRActions(ControlSurfaceComponent):
     __module__ = __name__
     __doc__ = 'Drum Rack actions'
 

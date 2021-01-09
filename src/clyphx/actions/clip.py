@@ -21,7 +21,7 @@ from __future__ import absolute_import, unicode_literals
 import random
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
-from .xclip_env_capture import ClyphXClipEnvCapture
+from .clip_env_capture import ClyphXClipEnvCapture
 from ..consts import KEYWORDS
 from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES, WARP_MODES,
                       NOTE_NAMES, OCTAVE_NAMES)
@@ -118,8 +118,8 @@ class ClyphXClipActions(ControlSurfaceComponent):
                     pass
 
     def adjust_start(self, clip, track, xclip, ident, args):
-        """Adjust/set clip start exclusively for Live 9. In Live 8, same as
-        adjust_loop_start.
+        """Adjust/set clip start exclusively for Live 9. In Live 8, same
+        as adjust_loop_start.
         """
         args = args.strip()
         if args.startswith(('<', '>')):
@@ -184,8 +184,8 @@ class ClyphXClipActions(ControlSurfaceComponent):
                 pass
 
     def adjust_cue_point(self, clip, track, xclip, ident, args):
-        """Adjust clip's start point and fire (also stores cue point if not
-        specified). Will not fire xclip itself as this causes a loop.
+        """Adjust clip's start point and fire (also stores cue point if
+        not specified). Will not fire xclip itself as this causes a loop.
         """
         if clip.is_midi_clip or (clip.is_audio_clip and clip.warping):
             if args:
@@ -241,7 +241,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
     def insert_envelope(self, clip, track, xclip, ident, args):
         """Inserts an envelope for the given parameter into the clip.
 
-        This doesn't apply to quantized parameters. Requires 9.1 or later.
+        This doesn't apply to quantized parameters.
         """
         args = args.strip()
         arg_array = args.split()
@@ -251,10 +251,10 @@ class ClyphXClipActions(ControlSurfaceComponent):
             last_arg_index = len(arg_array) - 1
             env_type_index = last_arg_index
             env_type = None
-            for index in range(len(arg_array)):
-                if arg_array[index] in ENV_TYPES:
-                    env_type_index = index
-                    env_type = arg_array[index]
+            for i in range(len(arg_array)):
+                if arg_array[i] in ENV_TYPES:
+                    env_type_index = i
+                    env_type = arg_array[i]
                     break
             if env_type:
                 env_param_spec = ''
@@ -944,9 +944,9 @@ class ClyphXClipActions(ControlSurfaceComponent):
         for s in string:
             if s in NOTE_NAMES:
                 base_note = NOTE_NAMES.index(s)
-            if base_note != None and s == '#':
+            if base_note is not None and s == '#':
                 base_note += 1
-        if base_note != None:
+        if base_note is not None:
             for o in OCTAVE_NAMES:
                 if o in string:
                     base_note = base_note + (OCTAVE_NAMES.index(o) * 12)

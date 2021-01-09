@@ -35,7 +35,7 @@ from .arsenal import ClyphXArsenalActions
 
 class ClyphXControlSurfaceActions(ControlSurfaceComponent):
     __module__ = __name__
-    __doc__ = 'Actions related to control surfaces'
+    __doc__ = 'Actions related to control surfaces.'
 
     def __init__(self, parent):
         ControlSurfaceComponent.__init__(self)
@@ -62,8 +62,9 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         pass
 
     def connect_script_instances(self, instanciated_scripts):
-        """Build dict of connected scripts and their components, doesn't work
-        with non-Framework scripts, but does work with User Remote Scripts.
+        """Build dict of connected scripts and their components, doesn't
+        work with non-Framework scripts, but does work with User Remote
+        Scripts.
         """
         instanciated_scripts = self._parent._control_surfaces()
         self._scripts = {}
@@ -95,7 +96,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                 if script_name == 'MXT_Live':
                     self._mxt_actions.set_script(script)
                 if not script_name.startswith('ClyphX'):
-                    if script._components == None:
+                    if script._components is None:
                         return
                     else:
                         self._scripts[i]['name'] = script_name.upper()
@@ -172,7 +173,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         """Dispatch appropriate control surface actions."""
         script = self._get_script_to_operate_on(action)
         if script is not None:
-            if 'METRO ' in args and self._scripts[script].has_key('metro'):
+            if 'METRO ' in args and 'metro' in self._scripts[script]:
                 self.handle_visual_metro(self._scripts[script], args)
             elif 'RINGLINK ' in args and self._scripts[script]['session']:
                 self.handle_ring_link(
@@ -215,7 +216,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
 
             if len(script_spec) == 1:
                 script = int(script_spec) - 1
-                if not self._scripts.has_key(script):
+                if script not in self._scripts:
                     script = None
             else:
                 script_spec = script_spec.strip('"').strip()
@@ -271,7 +272,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
             except:
                 track_start = None
                 track_end = None
-        if track_start != None and track_end != None:
+        if track_start is not None and track_end is not None:
             if 0 <= track_start and track_end < len(mixer._channel_strips) + 1 and track_start < track_end:
                 track_list = []
                 if self._scripts[script_key]['name'] == 'PUSH':
@@ -280,9 +281,9 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                 else:
                     offset = mixer._track_offset
                     tracks_to_use = mixer.tracks_to_use()
-                for index in range(track_start, track_end):
-                    if 0 <= (index + offset) < len(tracks_to_use):
-                        track_list.append(tracks_to_use[index + offset])
+                for i in range(track_start, track_end):
+                    if 0 <= (i + offset) < len(tracks_to_use):
+                        track_list.append(tracks_to_use[i + offset])
                 if track_list:
                     self._parent.action_dispatch(track_list, xclip, new_action, new_args, ident)
 
@@ -386,7 +387,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         args = args.split()
         if len(args) == 3:
             for a in args:
-                if not a in colors:
+                if a not in colors:
                     return
             for scene_index in range(session.height()):
                 scene = session.scene(scene_index)
@@ -400,10 +401,17 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                     clip_slot.update()
 
     def handle_visual_metro(self, script, args):
-        """Handle visual metro for APCs and Launchpad."""
+        """Handle visual metro for APCs and Launchpad.
+
+        This is a specialized version for L9 that uses component guard
+        to avoid dependency issues.
+        """
         if 'ON' in args and not script['metro']['component']:
-            m = VisualMetro(self._parent, script['metro']['controls'], script['metro']['override'])
-            script['metro']['component'] = m
+            with self._parent.component_guard():
+                m = VisualMetro(self._parent,
+                                script['metro']['controls'],
+                                script['metro']['override'])
+                script['metro']['component'] = m
         elif 'OFF' in args and script['metro']['component']:
             script['metro']['component'].disconnect()
             script['metro']['component'] = None
@@ -525,25 +533,3 @@ class VisualMetro(ControlSurfaceComponent):
         """Clear all control LEDs."""
         for c in self._controls:
             c.turn_off()
-
-
-class ClyphXControlSurfaceActions9(ClyphXControlSurfaceActions):
-    __module__ = __name__
-    __doc__ = 'Actions related to control surfaces. This is a specialized version for Live 9.'
-
-    def __init__(self, parent):
-        ClyphXControlSurfaceActions.__init__(self, parent)
-
-    def handle_visual_metro(self, script, args):
-        """Handle visual metro for APCs and Launchpad.
-
-        This is a specialized version for L9 that uses component guard to avoid
-        dependency issues.
-        """
-        if 'ON' in args and not script['metro']['component']:
-            with self._parent.component_guard():
-                m = VisualMetro(self._parent, script['metro']['controls'], script['metro']['override'])
-                script['metro']['component'] = m
-        elif 'OFF' in args and script['metro']['component']:
-            script['metro']['component'].disconnect()
-            script['metro']['component'] = None

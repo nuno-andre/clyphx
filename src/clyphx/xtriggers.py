@@ -142,7 +142,7 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                     else:
                         off_action = '[{}] {}'.format(ctrl_name, new_ctrl_data[4])
             except: pass
-            if status_byte and channel != None and ctrl_num != None and on_action:
+            if status_byte and channel is not None and ctrl_num is not None and on_action:
                 self._control_list[(status_byte + channel, ctrl_num)] = {
                     'ident':      ctrl_name,
                     'on_action':  on_action,
@@ -174,7 +174,8 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
     __doc__ = 'Track component that monitors play slot index and calls main script on changes'
 
     def __init__(self, parent, track):
-        ControlSurfaceComponent.__init__(self)
+        # ControlSurfaceComponent.__init__(self)
+        super(ClyphXTrackComponent, self).__init__()
         self._parent = parent
         self._track = track
         self._clip = None
@@ -195,7 +196,8 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
         self._triggered_clips = []
         self._triggered_lseq_clip = None
         self._parent = None
-        ControlSurfaceComponent.disconnect(self)
+        super(ClyphXTrackComponent, self).disconnect()
+        # ControlSurfaceComponent.disconnect(self)
 
     def on_enabled_changed(self):
         pass

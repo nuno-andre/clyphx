@@ -96,13 +96,13 @@ class ClyphXSnapActions(ControlSurfaceComponent):
     def store_track_snapshot(self, track_list, xclip, ident, action, args, force=False):
         """Stores snapshot of track params."""
         param_count = 0
-        if not type(xclip) is Live.Clip.Clip and not force:
-            return()
+        if not force and not isinstance(xclip, Live.Clip.Clip()):
+            return ()
         snap_data = {}
         if track_list:
             for track in track_list:
                 track_name = self._parent.get_name(track.name)
-                if not track_name.startswith('CLYPHX SNAP') and not snap_data.has_key(track.name):
+                if not track_name.startswith('CLYPHX SNAP') and track.name not in snap_data:
                     self._current_track_data = [[], [], None, {}]
                     if args == '' or 'MIX' in args:
                         param_count += self._store_mix_settings(track, args)
@@ -133,13 +133,15 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         param_count += len(mix_vals)
         self._current_track_data[MIX_STD_SETTINGS_POS] = mix_vals
         if ('MIX+' in args or 'MIX-' in args) and track != self.song().master_track:
-            self._current_track_data[MIX_EXT_SETTINGS_POS] = [int(track.mute), int(track.solo), track.mixer_device.crossfade_assign]
+            self._current_track_data[MIX_EXT_SETTINGS_POS] = [
+                int(track.mute), int(track.solo), track.mixer_device.crossfade_assign
+            ]
             param_count += 3
         return param_count
 
     def _store_device_settings(self, track, args):
-        """Stores device related settings and returns the number of parameters
-        that were stored.
+        """Stores device related settings and returns the number of
+        parameters that were stored.
         """
         param_count = 0
         dev_range = self._get_snap_device_range(args, track)
@@ -148,14 +150,15 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             for dev_index in range(dev_range[0], dev_range[1]):
                 if dev_index < len(track.devices):
                     current_device = track.devices[dev_index]
-                    if not track_devices.has_key(current_device.name):
+                    if current_device.name not in track_devices:
                         track_devices[current_device.name] = {
                             'params': [p.value for p in current_device.parameters],
                         }
                         param_count += len(current_device.parameters)
                         if (self._include_nested_devices and
-                                self._parent._can_have_nested_devices and
-                                current_device.can_have_chains):
+                            self._parent._can_have_nested_devices and
+                            current_device.can_have_chains
+                        ):
                             param_count += self._get_nested_devices(
                                 current_device, track_devices[current_device.name], 0
                             )
@@ -201,7 +204,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         self._rack_parameters_to_smooth = {}
         is_synced = False if disable_smooth else self._init_smoothing(xclip)
         for track, param_data in snap_data.items():
-            if self._current_tracks.has_key(track):
+            if track in self._current_tracks:
                 track = self._current_tracks[track]
                 self._recall_mix_settings(track, param_data)
                 if param_data[PLAY_SETTINGS_POS] is not None and not track.is_foldable and track is not self.song().master_track:
@@ -239,9 +242,12 @@ class ClyphXSnapActions(ControlSurfaceComponent):
     def _recall_device_settings(self, track, param_data):
         """Recalls device related settings."""
         for device in track.devices:
-            if param_data[DEVICE_SETTINGS_POS].has_key(device.name):
+            if device.name in param_data[DEVICE_SETTINGS_POS]:
                 self._recall_device_snap(device, param_data[DEVICE_SETTINGS_POS][device.name]['params'])
-                if self._include_nested_devices and self._parent._can_have_nested_devices and device.can_have_chains and param_data[DEVICE_SETTINGS_POS][device.name].has_key('chains'):
+                if (self._include_nested_devices and
+                        self._parent._can_have_nested_devices and
+                        device.can_have_chains and
+                        'chains' in param_data[DEVICE_SETTINGS_POS][device.name]):
                     self._recall_nested_device_snap(device, param_data[DEVICE_SETTINGS_POS][device.name]['chains'])
                 del param_data[DEVICE_SETTINGS_POS][device.name]
 
@@ -269,12 +275,13 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                                 chain_devices[device_key],
                                 stored_devices[device_key]['params'],
                             )
-                            if chain_devices[device_key].can_have_chains and stored_devices[device_key].has_key('chains'):
+                            if (chain_devices[device_key].can_have_chains and
+                                    'chains' in stored_devices[device_key]):
                                 self._recall_nested_device_snap(
                                     chain_devices[device_key],
                                     stored_devices[device_key]['chains'],
                                 )
-                    if not rack.class_name.startswith('Midi') and stored_chain.has_key('mixer'):
+                    if not rack.class_name.startswith('Midi') and 'mixer' in stored_chain:
                         if chain.mixer_device.volume.is_enabled:
                             self._get_parameter_data_to_smooth(
                                 chain.mixer_device.volume,
@@ -462,20 +469,25 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             if not track.name_has_listener(self.setup_tracks):
                 track.add_name_listener(self.setup_tracks)
             name = self._parent.get_name(track.name)
-            if not self._current_tracks.has_key(track.name) and not name.startswith('CLYPHX SNAP'):
+            if track.name not in self._current_tracks and not name.startswith('CLYPHX SNAP'):
                 self._current_tracks[track.name] = track
 
     def _refresh_xclip_name(self, xclip_data):
-        """Refreshes xclip's previous name in cases where a snap is asking to
-        store too many params."""
+        """Refreshes xclip's previous name in cases where a snap is
+        asking to store too many params.
+        """
         xclip_data[0].name = xclip_data[1]
 
     def _remove_control_rack(self):
         """Removes control rack listeners."""
         if self._control_rack:
             self._control_rack.name = 'ClyphX Snap'
-            if self._control_rack.parameters[1].value_has_listener(self._control_rack_macro_changed):
-                self._control_rack.parameters[1].remove_value_listener(self._control_rack_macro_changed)
+            if self._control_rack.parameters[1].value_has_listener(
+                self._control_rack_macro_changed
+            ):
+                self._control_rack.parameters[1].remove_value_listener(
+                    self._control_rack_macro_changed
+                )
         self._control_rack = None
 
     def _remove_track_listeners(self):

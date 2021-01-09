@@ -125,21 +125,21 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             except:
                 pass
 
-    def create_audio_track(self, track, xclip, ident, value = None):
+    def create_audio_track(self, track, xclip, ident, value=None):
         """Creates audio track at end of track list or at the specified index.
         """
         value = value.strip()
         if value:
             try:
                 index = int(value) - 1
-                if index in range(len(self.song().tracks)):
+                if 0 <= index < len(self.song().tracks):
                     self.song().create_audio_track(index)
             except:
                 pass
         else:
             self.song().create_audio_track(-1)
 
-    def create_midi_track(self, track, xclip, ident, value = None):
+    def create_midi_track(self, track, xclip, ident, value=None):
         """Creates MIDI track at end of track list or at the specified index.
         """
         value = value.strip()
@@ -152,17 +152,17 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         else:
             self.song().create_midi_track(-1)
 
-    def create_return_track(self, track, xclip, ident, value = None):
+    def create_return_track(self, track, xclip, ident, value=None):
         """Creates return track at end of return list."""
         self.song().create_return_track()
 
-    def insert_and_configure_audio_track(self, track, xclip, ident, value = None):
+    def insert_and_configure_audio_track(self, track, xclip, ident, value=None):
         """Inserts an audio track next to the selected track routed from the
         selected track and armed.
         """
         self._insert_and_configure_track()
 
-    def insert_and_configure_midi_track(self, track, xclip, ident, value = None):
+    def insert_and_configure_midi_track(self, track, xclip, ident, value=None):
         """Inserts a midi track next to the selected track routed from the
         selected track and armed.
         """
@@ -184,17 +184,17 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                                     else 'create_audio_track')
             create_method(ins_index)
             new_track = self.song().tracks[ins_index]
-            new_track.name = 'From %s' % sel_track.name
+            new_track.name = 'From {}'.format(sel_track.name)
             new_track.current_input_routing = sel_track.name
             new_track.arm = True
         except:
             pass
 
-    def create_scene(self, track, xclip, ident, value = None):
+    def create_scene(self, track, xclip, ident, value=None):
         """Creates scene at end of scene list or at the specified index.
         """
         current_name = None
-        if type(xclip) is Live.Clip.Clip:
+        if isinstance(xclip, Live.Clip.Clip):
             current_name = xclip.name
             xclip.name = ''
         value = value.strip()
@@ -203,7 +203,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 index = int(value) - 1
                 if 0 <= index < len(self.song().scenes):
                     self.song().create_scene(index)
-            except: pass
+            except:
+                pass
         else:
             self.song().create_scene(-1)
         if current_name:
@@ -212,7 +213,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
     def duplicate_scene(self, track, xclip, ident, args):
         """Duplicates the given scene."""
         current_name = None
-        if type(xclip) is Live.Clip.Clip and args:
+        if isinstance(xclip, Live.Clip.Clip) and args:
             current_name = xclip.name
             xclip.name = ''
         self.song().duplicate_scene(self.get_scene_to_operate_on(xclip, args.strip()))
@@ -260,7 +261,6 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                             self._handle_swapping(device, dev, args)
                             break
 
-
     def _handle_swapping(self, device, browser_item, args):
         dev_items = self._create_device_items(browser_item, [])
         if args in ('<', '>'):
@@ -280,15 +280,15 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                     break
 
     def _get_current_preset_index(self, device, presets):
-        """Returns the index of the current preset (based on the device's name)
-        in the presets list. Returns -1 if not found.
+        """Returns the index of the current preset (based on the device's
+        name) in the presets list. Returns -1 if not found.
         """
         index = -1
         current_preset_name = device.name + ('.adg' if device.can_have_chains else '.adv')
 
-        for item_index in range(len(presets)):
-            if presets[item_index].name == current_preset_name:
-                index = item_index
+        for i in range(len(presets)):
+            if presets[i].name == current_preset_name:
+                index = i
                 break
         return index
 
@@ -299,8 +299,8 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         self.application().view.toggle_browse()
 
     def _create_device_items(self, device, item_array):
-        """Returns the array of loadable items for the given device and handles
-        digging into sub-folders too.
+        """Returns the array of loadable items for the given device and
+        handles digging into sub-folders too.
         """
         for item in device.children:
             if item.is_folder:
@@ -338,32 +338,29 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         found_dev = False
         for m in self.application().browser.max_for_live.children:
             for device in m.children:
-                if not found_dev:
-                    if device.is_folder:
-                        for dev in device.children:
-                            if dev.name.upper() == args:
-                                found_dev = True
-                                self.application().browser.load_item(dev)
-                                break
-                    elif device.name.upper() == args:
-                        found_dev = True
-                        self.application().browser.load_item(device)
-                        break
-                else:
+                if device.is_folder:
+                    for dev in device.children:
+                        if dev.name.upper() == args:
+                            found_dev = dev
+                            break
+                elif device.name.upper() == args:
+                    found_dev = device
+                if found_dev:
+                    self.application().browser.load_item(found_dev)
                     break
 
-    def set_session_record(self, track, xclip, ident, value = None):
+    def set_session_record(self, track, xclip, ident, value=None):
         """Toggles or turns on/off session record."""
         self.song().session_record = KEYWORDS.get(value, not(self.song().session_record))
 
-    def trigger_session_record(self, track, xclip, ident, value = None):
+    def trigger_session_record(self, track, xclip, ident, value=None):
         """Triggers session record in all armed tracks for the specified fixed
         length.
         """
         if value:
             # the below fixes an issue where Live will crash instead of
             # creating a new scene when triggered via an X-Clip
-            if type(xclip) is Live.Clip.Clip:
+            if isinstance(xclip, Live.Clip.Clip):
                 scene = list(xclip.canonical_parent.canonical_parent.clip_slots).index(xclip.canonical_parent)
                 for t in self.song().tracks:
                     if t.can_be_armed and t.arm:
@@ -378,19 +375,21 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             self.song().trigger_session_record(length)
 
     def _track_has_empty_slot(self, track, start):
-        """Returns whether the given track has an empty slot existing after the
-        starting slot index.
+        """Returns whether the given track has an empty slot existing
+        after the starting slot index.
         """
         for s in track.clip_slots[start:]:
             if not s.has_clip:
                 return True
         return False
 
-    def set_session_automation_record(self, track, xclip, ident, value = None):
+    def set_session_automation_record(self, track, xclip, ident, value=None):
         """Toggles or turns on/off session automation record."""
-        self.song().session_automation_record = KEYWORDS.get(value, not(self.song().session_automation_record))
+        self.song().session_automation_record = KEYWORDS.get(
+            value, not(self.song().session_automation_record)
+        )
 
-    def retrigger_recording_clips(self, track, xclip, ident, value = None):
+    def retrigger_recording_clips(self, track, xclip, ident, value=None):
         """Retriggers all clips that are currently recording."""
         for track in self.song().tracks:
             if track.playing_slot_index >= 0:
@@ -398,82 +397,82 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                 if slot.has_clip and slot.clip.is_recording:
                     slot.fire()
 
-    def set_back_to_arrange(self, track, xclip, ident, value = None):
+    def set_back_to_arrange(self, track, xclip, ident, value=None):
         """Triggers back to arrange button."""
         self.song().back_to_arranger = 0
 
-    def set_overdub(self, track, xclip, ident, value = None):
+    def set_overdub(self, track, xclip, ident, value=None):
         """Toggles or turns on/off overdub."""
         self.song().overdub = KEYWORDS.get(value, not(self.song().overdub))
 
-    def set_metronome(self, track, xclip, ident, value = None):
+    def set_metronome(self, track, xclip, ident, value=None):
         """Toggles or turns on/off metronome."""
         self.song().metronome = KEYWORDS.get(value, not(self.song().metronome))
 
-    def set_record(self, track, xclip, ident, value = None):
+    def set_record(self, track, xclip, ident, value=None):
         """Toggles or turns on/off record."""
         self.song().record_mode = KEYWORDS.get(value, not(self.song().record_mode))
 
-    def set_punch_in(self, track, xclip, ident, value = None):
+    def set_punch_in(self, track, xclip, ident, value=None):
         """Toggles or turns on/off punch in."""
         self.song().punch_in = KEYWORDS.get(value, not(self.song().punch_in))
 
-    def set_punch_out(self, track, xclip, ident, value = None):
+    def set_punch_out(self, track, xclip, ident, value=None):
         """Toggles or turns on/off punch out."""
         self.song().punch_out = KEYWORDS.get(value, not(self.song().punch_out))
 
-    def restart_transport(self, track, xclip, ident, value = None):
+    def restart_transport(self, track, xclip, ident, value=None):
         """Restarts transport to 0.0"""
         self.song().current_song_time = 0
 
-    def set_stop_transport(self, track, xclip, ident, value = None):
+    def set_stop_transport(self, track, xclip, ident, value=None):
         """Toggles transport."""
         self.song().is_playing = not(self.song().is_playing)
 
-    def set_continue_playback(self, track, xclip, ident, value = None):
+    def set_continue_playback(self, track, xclip, ident, value=None):
         """Continue playback from stop point."""
         self.song().continue_playing()
 
-    def set_stop_all(self, track, xclip, ident, value = None):
+    def set_stop_all(self, track, xclip, ident, value=None):
         """Stop all clips w/no quantization option for Live 9."""
         self.song().stop_all_clips(not value.strip() == 'NQ')
 
-    def set_tap_tempo(self, track, xclip, ident, value = None):
+    def set_tap_tempo(self, track, xclip, ident, value=None):
         """Tap tempo."""
         self.song().tap_tempo()
 
-    def set_undo(self, track, xclip, ident, value = None):
+    def set_undo(self, track, xclip, ident, value=None):
         """Triggers Live's undo."""
         if self.song().can_undo:
             self.song().undo()
 
-    def set_redo(self, track, xclip, ident, value = None):
+    def set_redo(self, track, xclip, ident, value=None):
         """Triggers Live's redo."""
         if self.song().can_redo:
             self.song().redo()
 
-    def move_up(self, track, xclip, ident, value = None):
+    def move_up(self, track, xclip, ident, value=None):
         """Scroll up."""
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(0), '', False)
 
-    def move_down(self, track, xclip, ident, value = None):
+    def move_down(self, track, xclip, ident, value=None):
         """Scroll down."""
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(1), '', False)
 
-    def move_left(self, track, xclip, ident, value = None):
+    def move_left(self, track, xclip, ident, value=None):
         """Scroll left."""
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(2), '', False)
 
-    def move_right(self, track, xclip, ident, value = None):
+    def move_right(self, track, xclip, ident, value=None):
         """Scroll right."""
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(3), '', False)
 
-    def move_to_first_device(self, track, xclip, ident, value = None):
+    def move_to_first_device(self, track, xclip, ident, value=None):
         """Move to the first device on the track and scroll the view."""
         self.focus_devices()
         self.song().view.selected_track.view.select_instrument()
 
-    def move_to_last_device(self, track, xclip, ident, value = None):
+    def move_to_last_device(self, track, xclip, ident, value=None):
         """Move to the last device on the track and scroll the view."""
         self.focus_devices()
         if self.song().view.selected_track.devices:
@@ -481,12 +480,12 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             self.application().view.scroll_view(Live.Application.Application.View.NavDirection(3), 'Detail/DeviceChain', False)
             self.application().view.scroll_view(Live.Application.Application.View.NavDirection(2), 'Detail/DeviceChain', False)
 
-    def move_to_prev_device(self, track, xclip, ident, value = None):
+    def move_to_prev_device(self, track, xclip, ident, value=None):
         """Move to the previous device on the track."""
         self.focus_devices()
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(2), 'Detail/DeviceChain', False)
 
-    def move_to_next_device(self, track, xclip, ident, value = None):
+    def move_to_next_device(self, track, xclip, ident, value=None):
         """Move to the next device on the track."""
         self.focus_devices()
         self.application().view.scroll_view(Live.Application.Application.View.NavDirection(3), 'Detail/DeviceChain', False)
@@ -496,24 +495,24 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         self.application().view.show_view('Detail')
         self.application().view.show_view('Detail/DeviceChain')
 
-    def show_clip_view(self, track, xclip, ident, value = None):
+    def show_clip_view(self, track, xclip, ident, value=None):
         """Show clip view."""
         self.application().view.show_view('Detail')
         self.application().view.show_view('Detail/Clip')
 
-    def show_track_view(self, track, xclip, ident, value = None):
+    def show_track_view(self, track, xclip, ident, value=None):
         """Show track view."""
         self.application().view.show_view('Detail')
         self.application().view.show_view('Detail/DeviceChain')
 
-    def show_detail_view(self, track, xclip, ident, value = None):
+    def show_detail_view(self, track, xclip, ident, value=None):
         """Toggle between showing/hiding detail view."""
         if self.application().view.is_view_visible('Detail'):
             self.application().view.hide_view('Detail')
         else:
             self.application().view.show_view('Detail')
 
-    def toggle_browser(self, track, xclip, ident, value = None):
+    def toggle_browser(self, track, xclip, ident, value=None):
         """Hide/show browser and move focus to or from browser."""
         if self.application().view.is_view_visible('Browser'):
             self.application().view.hide_view('Browser')
@@ -522,7 +521,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
             self.application().view.show_view('Browser')
             self.application().view.focus_view('Browser')
 
-    def toggle_detail_view(self, track, xclip, ident, value = None):
+    def toggle_detail_view(self, track, xclip, ident, value=None):
         """Toggle between clip and track view."""
         self.application().view.show_view('Detail')
         if self.application().view.is_view_visible('Detail/Clip'):
@@ -530,26 +529,26 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         else:
             self.application().view.show_view('Detail/Clip')
 
-    def toggle_main_view(self, track, xclip, ident, value = None):
+    def toggle_main_view(self, track, xclip, ident, value=None):
         """Toggle between session and arrange view."""
         if self.application().view.is_view_visible('Session'):
             self.application().view.show_view('Arranger')
         else:
             self.application().view.show_view('Session')
 
-    def focus_browser(self, track, xclip, ident, value = None):
+    def focus_browser(self, track, xclip, ident, value=None):
         """Move the focus to the browser, show browser first if necessary."""
         if not self.application().view.is_view_visible('Browser'):
             self.application().view.show_view('Browser')
         self.application().view.focus_view('Browser')
 
-    def focus_detail(self, track, xclip, ident, value = None):
+    def focus_detail(self, track, xclip, ident, value=None):
         """Move the focus to the detail view, show detail first if necessary."""
         if not self.application().view.is_view_visible('Detail'):
             self.application().view.show_view('Detail')
         self.application().view.focus_view('Detail')
 
-    def focus_main(self, track, xclip, ident, value = None):
+    def focus_main(self, track, xclip, ident, value=None):
         """Move the focus to the main focu."""
         self.application().view.focus_view('')
 
@@ -752,7 +751,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
         state_to_set = None
         for t in self.song().tracks:
             if t.is_foldable:
-                if state_to_set == None:
+                if state_to_set is None:
                     state_to_set = not(t.fold_state)
                 if value in KEYWORDS:
                     t.fold_state = KEYWORDS[value]
@@ -877,7 +876,7 @@ class ClyphXGlobalActions(ControlSurfaceComponent):
                     pass
             self.set_new_loop_position(new_start, new_length)
 
-    def set_loop_on_off(self, value = None):
+    def set_loop_on_off(self, value=None):
         """Toggles or turns on/off arrange loop."""
         self.song().loop = KEYWORDS.get(value, not(self.song().loop))
 

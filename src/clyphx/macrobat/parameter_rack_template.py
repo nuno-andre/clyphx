@@ -76,16 +76,18 @@ class _MacrobatParameterRackTemplate(ControlSurfaceComponent):
         return drum_rack
 
     def remove_macro_listeners(self):
-        for index in range(1,9):
-            if self._param_macros.has_key(index):
-                m_listener = lambda index = index:self.macro_changed(index)
-                p_listener = lambda index = index:self.param_changed(index)
-                if self._param_macros[index][0] and self._param_macros[index][0].value_has_listener(m_listener):
-                    self._param_macros[index][0].remove_value_listener(m_listener)
-                if self._param_macros[index][1] and self._param_macros[index][1].value_has_listener(p_listener):
-                    self._param_macros[index][1].remove_value_listener(p_listener)
+        for i in range(1, 9):
+            if i in self._param_macros:
+                m_listener = lambda index=i: self.macro_changed(index)
+                p_listener = lambda index=i: self.param_changed(index)
+                if self._param_macros[i][0] and self._param_macros[i][0].value_has_listener(m_listener):
+                    self._param_macros[i][0].remove_value_listener(m_listener)
+                if self._param_macros[i][1] and self._param_macros[i][1].value_has_listener(p_listener):
+                    self._param_macros[i][1].remove_value_listener(p_listener)
         self._param_macros = {}
-        if self._on_off_param and self._on_off_param[0] and self._on_off_param[0].value_has_listener(self.on_off_changed):
+        if (self._on_off_param and
+                self._on_off_param[0] and
+                self._on_off_param[0].value_has_listener(self.on_off_changed)):
             self._on_off_param[0].remove_value_listener(self.on_off_changed)
         self._on_off_param = []
 
@@ -115,7 +117,7 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
 
     def macro_changed(self, index):
         '''Called on macro changes to update param values.'''
-        if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
+        if index in self._param_macros and self._param_macros[index][0] and self._param_macros[index][1]:
             scaled_value = self.scale_param_value_to_macro(self._param_macros[index][1])
             if scaled_value != self._param_macros[index][0].value:
                 self._update_param = index
@@ -125,8 +127,9 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
 
     def param_changed(self, index):
         '''Called on param changes to update macros.'''
-        if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
-            scaled_value = self.scale_macro_value_to_param(self._param_macros[index][0], self._param_macros[index][1])
+        if index in self._param_macros and self._param_macros[index][0] and self._param_macros[index][1]:
+            scaled_value = self.scale_macro_value_to_param(self._param_macros[index][0],
+                                                           self._param_macros[index][1])
             if scaled_value != self._param_macros[index][1].value:
                 self._update_macro = index
                 self._tasks.kill()
@@ -135,27 +138,32 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
 
     def update_param(self, arg=None):
         '''Update param to match value of macro.'''
-        if self._param_macros.has_key(self._update_param):
+        if self._update_param in self._param_macros:
             if self._param_macros[self._update_param][0] and self._param_macros[self._update_param][1]:
-                self._param_macros[self._update_param][1].value = self.scale_macro_value_to_param(self._param_macros[self._update_param][0], self._param_macros[self._update_param][1])
+                self._param_macros[self._update_param][1].value = self.scale_macro_value_to_param(
+                    self._param_macros[self._update_param][0],
+                    self._param_macros[self._update_param][1],
+                )
         self._tasks.kill()
         self._tasks.clear()
 
     def update_macro(self, arg=None):
         '''Update macro to match value of param.'''
-        if self._param_macros.has_key(self._update_macro):
+        if self._update_macro in self._param_macros:
             if self._param_macros[self._update_macro][0] and self._param_macros[self._update_macro][1]:
-                self._param_macros[self._update_macro][0].value = self.scale_param_value_to_macro(self._param_macros[self._update_macro][1])
+                self._param_macros[self._update_macro][0].value = self.scale_param_value_to_macro(
+                    self._param_macros[self._update_macro][1],
+                )
         self._tasks.kill()
         self._tasks.clear()
 
     def get_initial_value(self, arg=None):
         '''Get initial values to set macros to.'''
-        for index in range(1,9):
-            if self._param_macros.has_key(index):
-                if self._param_macros[index][0] and self._param_macros[index][1]:
-                    if self._param_macros[index][0].value != self.scale_param_value_to_macro(self._param_macros[index][1]):
-                        self._param_macros[index][0].value = self.scale_param_value_to_macro(self._param_macros[index][1])
+        for i in range(1, 9):
+            if i in self._param_macros:
+                if self._param_macros[i][0] and self._param_macros[i][1]:
+                    if self._param_macros[i][0].value != self.scale_param_value_to_macro(self._param_macros[i][1]):
+                        self._param_macros[i][0].value = self.scale_param_value_to_macro(self._param_macros[i][1])
 
     def do_reset(self):
         '''Reset assigned params to default.'''
@@ -205,7 +213,7 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
 #     def macro_changed(self, index):
 #         '''Called on macro changes to update param values.'''
 #         if not self._update_macro and not self._macro_update_in_progress:
-#             if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
+#             if index in self._param_macros and self._param_macros[index][0] and self._param_macros[index][1]:
 #                 scaled_value = self.scale_param_value_to_macro(self._param_macros[index][1])
 #                 if scaled_value != self._param_macros[index][0].value:
 #                     self._update_param = index
@@ -215,7 +223,7 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
 #     def param_changed(self, index):
 #         '''Called on param changes to update macros.'''
 #         if not self._update_param and not self._param_update_in_progress:
-#             if self._param_macros.has_key(index) and self._param_macros[index][0] and self._param_macros[index][1]:
+#             if index in self._param_macros and self._param_macros[index][0] and self._param_macros[index][1]:
 #                 scaled_value = self.scale_macro_value_to_param(self._param_macros[index][0], self._param_macros[index][1])
 #                 if scaled_value != self._param_macros[index][1].value:
 #                     self._update_macro = index
@@ -237,20 +245,20 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
 #         '''Handle updating values and getting initial values.'''
 #         if not self._get_initial_value:
 #             if self._update_macro and not self._update_param:
-#                 if self._param_macros.has_key(self._update_macro):
+#                 if self._update_macro in self._param_macros:
 #                     if self._param_macros[self._update_macro][0] and self._param_macros[self._update_macro][1]:
 #                         self._param_macros[self._update_macro][0].value = self.scale_param_value_to_macro(self._param_macros[self._update_macro][1])
 #                 self._update_macro = 0
 #                 self._parent.schedule_message(8, self.allow_param_updates)
 #             elif self._update_param and not self._update_macro:
-#                 if self._param_macros.has_key(self._update_param):
+#                 if self._update_param in self._param_macros:
 #                     if self._param_macros[self._update_param][0] and self._param_macros[self._update_param][1]:
 #                         self._param_macros[self._update_param][1].value = self.scale_macro_value_to_param(self._param_macros[self._update_param][0], self._param_macros[self._update_param][1])
 #                 self._update_param = 0
 #                 self._parent.schedule_message(8, self.allow_macro_updates)
 #         else:
 #             for index in range(1,9):
-#                 if self._param_macros.has_key(index):
+#                 if index in self._param_macros:
 #                     if self._param_macros[index][0] and self._param_macros[index][1]:
 #                         if self._param_macros[index][0].value != self.scale_param_value_to_macro(self._param_macros[index][1]):
 #                             self._param_macros[index][0].value = self.scale_param_value_to_macro(self._param_macros[index][1])
