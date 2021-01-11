@@ -154,7 +154,7 @@ DEFAULT_INSERTED_MIDI_CLIP_LENGTH = 0
 ***************************** [CSLINKER] **************************
 
 
-# CSLinker allows you to link the grid selectors (colored borders around clips) of 
+# CsLinker allows you to link the grid selectors (colored borders around clips) of 
 # two Control Surfaces either horizontally or vertically.    
 
 # The Control Surface script names to use are as shown in Live's Control Surface chooser.  

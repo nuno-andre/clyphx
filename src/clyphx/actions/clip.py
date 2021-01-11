@@ -20,7 +20,7 @@ from __future__ import absolute_import, unicode_literals
 
 import random
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core import XComponent
 from .clip_env_capture import ClyphXClipEnvCapture
 from ..consts import KEYWORDS
 from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES, WARP_MODES,
@@ -29,24 +29,14 @@ from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES, WARP_MODES,
 ENV_TYPES = ('IRAMP', 'DRAMP', 'IPYR', 'DPYR', 'SQR', 'SAW')
 
 
-class ClyphXClipActions(ControlSurfaceComponent):
+class XClipActions(XComponent):
+    '''Clip-related actions.
+    '''
     __module__ = __name__
-    __doc__ = 'Clip-related actions'
 
     def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(XClipActions, self).__init__(parent)
         self._env_capture = ClyphXClipEnvCapture()
-
-    def disconnect(self):
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
 
     def set_clip_name(self, clip, track, xclip, ident, args):
         """Set clip's name."""
@@ -56,12 +46,12 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def set_clip_on_off(self, clip, track, xclip, ident, value = None):
         """Toggles or turns clip on/off."""
-        clip.muted = not(KEYWORDS.get(value, clip.muted))
+        clip.muted = not KEYWORDS.get(value, clip.muted)
 
     def set_warp(self, clip, track, xclip, ident, value = None):
         """Toggles or turns clip warp on/off."""
         if clip.is_audio_clip:
-            clip.warping = KEYWORDS.get(value.strip(), not(clip.warping))
+            clip.warping = KEYWORDS.get(value.strip(), not clip.warping)
 
     def adjust_time_signature(self, clip, track, xclip, ident, args):
         """Adjust clip's time signature."""
@@ -233,7 +223,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def set_triplet_grid(self, clip, track, xclip, ident, args):
         """Toggles or turns triplet grid on or off."""
-        clip.view.grid_is_triplet = KEYWORDS.get(args, not(clip.view.grid_is_triplet))
+        clip.view.grid_is_triplet = KEYWORDS.get(args, not clip.view.grid_is_triplet)
 
     def capture_to_envelope(self, clip, track, xclip, ident, args):
         self._env_capture.capture(clip, track, args)
@@ -535,7 +525,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
 
     def set_loop_on_off(self, clip, value = None):
         """Toggles or turns clip loop on/off."""
-        clip.looping = KEYWORDS.get(value, not(clip.looping))
+        clip.looping = KEYWORDS.get(value, not clip.looping)
 
     def move_clip_loop_by_factor(self, clip, args, clip_stats):
         """Move clip loop by its length or by a specified factor."""
@@ -591,7 +581,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
     def do_clip_note_action(self, clip, track, xclip, ident, args):
         """Handle clip note actions."""
         if clip.is_audio_clip:
-            return()
+            return ()
         note_data = self.get_notes_to_operate_on(clip, args.strip())
         if note_data['notes_to_edit']:
             args = (clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
@@ -628,7 +618,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
         for n in notes_to_edit:
             new_mute = False
             if args == '':
-                new_mute = not(n[4])
+                new_mute = not n[4]
             elif args == 'ON':
                 new_mute = True
             edited_notes.append((n[0], n[1], n[2], n[3], new_mute))
@@ -660,7 +650,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
             new_gate = n[2] + (factor * 0.03125)
             if n[1] + new_gate > clip.loop_end or new_gate < 0.03125:
                 edited_notes = []
-                return()
+                return ()
             else:
                 edited_notes.append((n[0], n[1], new_gate, n[3], n[4]))
         if edited_notes:
@@ -674,7 +664,7 @@ class ClyphXClipActions(ControlSurfaceComponent):
             new_pos = n[1] + (factor * 0.03125)
             if n[2] + new_pos > clip.loop_end or new_pos < 0.0:
                 edited_notes = []
-                return()
+                return ()
             else:
                 edited_notes.append((n[0], new_pos, n[2], n[3], n[4]))
         if edited_notes:
@@ -695,11 +685,12 @@ class ClyphXClipActions(ControlSurfaceComponent):
                     edited_notes.append((n[0], n[1], n[2], new_velo, n[4]))
                 else:
                     edited_notes = []
-                    return()
+                    return ()
             else:
                 try:
                     edited_notes.append((n[0], n[1], n[2], float(args), n[4]))
-                except: pass
+                except:
+                    pass
         if edited_notes:
             self.write_all_notes(clip, edited_notes, other_notes)
 

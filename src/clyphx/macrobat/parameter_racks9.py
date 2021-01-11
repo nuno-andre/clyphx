@@ -26,25 +26,25 @@ from .parameter_rack_template import MacrobatParameterRackTemplate
 
 
 class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
-
+    '''Macros to mixer params of selected DR pad.
+    '''
     __module__ = __name__
-    __doc__ = 'Macros to mixer params of selected DR pad'
 
     def __init__(self, parent, rack, track):
         self._drum_rack = {}
         self._rack = None
         self._selected_chain = None
-        MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
+        super(MacrobatDRPadMixRack, self).__init__(parent, rack, track)
 
     def disconnect(self):
         self._drum_rack = None
         self._rack = None
         self._selected_chain = None
-        MacrobatParameterRackTemplate.disconnect(self)
+        super(MacrobatDRPadMixRack, self).disconnect()
 
     def setup_device(self, rack):
         '''Set up macros and drum rack params.'''
-        MacrobatParameterRackTemplate.setup_device(self, rack)
+        super(MacrobatDRPadMixRack, self).setup_device(rack)
         self._rack = rack
         self._drum_rack = self.get_drum_rack()
         self._selected_chain = None
@@ -93,14 +93,14 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
                 self._on_sends_changed.subject = self._selected_chain.mixer_device
 
 
-class CSWrapper(Subject, SlotManager):
+class CsWrapper(Subject, SlotManager):
     '''Wrapper for a chain selector that limits the max value to the
     number of chains in the rack.
     '''
     __subject_events__ = ('value',)
 
     def __init__(self, cs):
-        super(CSWrapper, self).__init__()
+        super(CsWrapper, self).__init__()
         self._cs = cs
         self._max = 0
         self._on_cs_value_changed.subject = self._cs
@@ -137,18 +137,19 @@ class CSWrapper(Subject, SlotManager):
 
 
 class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
+    '''Macro 1 to chain selector.
+    '''
     __module__ = __name__
-    __doc__ = 'Macro 1 to chain selector'
 
     def __init__(self, parent, rack, track):
         self._rack = rack
         self._wrapper = None
-        MacrobatParameterRackTemplate.__init__(self, parent, rack, track)
+        super(MacrobatChainSelectorRack, self).__init__(parent, rack, track)
 
     def disconnect(self):
         self._rack = None
         self._wrapper = None
-        MacrobatParameterRackTemplate.disconnect(self)
+        super(MacrobatChainSelectorRack, self).disconnect()
 
     def scale_macro_value_to_param(self, macro, param):
         return (((param.max - param.min) / 126.0) * macro.value) + param.min
@@ -156,13 +157,13 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
     def setup_device(self, rack):
         '''Set up macro 1 and chain selector.
         '''
-        MacrobatParameterRackTemplate.setup_device(self, rack)
+        super(MacrobatChainSelectorRack, self).setup_device(rack)
         self._rack = rack
         if self._rack:
             macro = self._rack.parameters[1]
             cs = self._rack.parameters[9]
             if macro.is_enabled and cs.is_enabled:
-                self._wrapper = CSWrapper(cs)
+                self._wrapper = CsWrapper(cs)
                 self._wrapper.max = len(self._rack.chains)
                 if self._wrapper.max > 1:
                     self._on_chains_changed.subject = self._rack

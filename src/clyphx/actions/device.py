@@ -17,31 +17,24 @@
 from __future__ import absolute_import, unicode_literals
 
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Generic.Devices import *
 from _Generic.Devices import DEVICE_DICT, DEVICE_BOB_DICT
+from ..core import XComponent
 from ..consts import KEYWORDS, LOOPER_STATES
 
 
-class ClyphXDeviceActions(ControlSurfaceComponent):
+class XDeviceActions(XComponent):
+    '''Device and Looper actions.
+    '''
     __module__ = __name__
-    __doc__ = 'Device and Looper actions'
 
     def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(XDeviceActions, self).__init__(parent)
         self._looper_data = {}
 
     def disconnect(self):
         self._looper_data = {}
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        super(XDeviceActions, self).disconnect()
 
     def set_all_params(self, device, track, xclip, ident, args):
         """Set the value of all macros in a rack in one go. So don't need to
@@ -53,9 +46,9 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
             if args:
                 param_values = args.split(' ')
                 if len(param_values) == 8:
-                    for index in range(8):
-                        self._parent.do_parameter_adjustment(device.parameters[index + 1],
-                                                             param_values[index].strip())
+                    for i in range(8):
+                        self._parent.do_parameter_adjustment(device.parameters[i + 1],
+                                                             param_values[i].strip())
             else:
                 if isinstance(xclip, Live.Clip.Clip):
                     assign_string = xclip.name + ' '
@@ -138,19 +131,19 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
         """Toggles or turns device on/off."""
         on_off = self.get_device_on_off(device)
         if on_off and on_off.is_enabled:
-            on_off.value = KEYWORDS.get(value, not(on_off.value))
+            on_off.value = KEYWORDS.get(value, not on_off.value)
 
     def set_looper_on_off(self, track, xclip, ident, value = None):
         """Toggles or turns looper on/off."""
         self.get_looper(track)
         if self._looper_data and self._looper_data['Looper'] and self._looper_data['Device On'].is_enabled:
-            self._looper_data['Device On'].value = KEYWORDS.get(value, not(self._looper_data['Device On'].value))
+            self._looper_data['Device On'].value = KEYWORDS.get(value, not self._looper_data['Device On'].value)
 
     def set_looper_rev(self, track, xclip, ident, value = None):
         """Toggles or turns looper reverse on/off."""
         self.get_looper(track)
         if self._looper_data and self._looper_data['Looper'] and self._looper_data['Reverse'].is_enabled:
-            self._looper_data['Reverse'].value = KEYWORDS.get(value, not(self._looper_data['Reverse'].value))
+            self._looper_data['Reverse'].value = KEYWORDS.get(value, not self._looper_data['Reverse'].value)
 
     def set_looper_state(self, track, xclip, ident, value = None):
         """Sets looper state."""
@@ -173,12 +166,12 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
                     if len(arg_list) > 2 and arg_list[2] in KEYWORDS:
                         chain.mute = KEYWORDS[arg_list[2]]
                     else:
-                        chain.mute = not(chain.mute)
+                        chain.mute = not chain.mute
                 elif len(arg_list) > 1 and arg_list[1] == 'SOLO':
                     if len(arg_list) > 2 and arg_list[2] in KEYWORDS:
                         chain.solo = KEYWORDS[arg_list[2]]
                     else:
-                        chain.solo = not(chain.solo)
+                        chain.solo = not chain.solo
                 elif len(arg_list) > 2 and arg_list[1] == 'VOL' and not device.class_name.startswith('Midi'):
                     self._parent.do_parameter_adjustment(chain.mixer_device.volume, arg_list[2].strip())
                 elif len(arg_list) > 2 and arg_list[1] == 'PAN' and not device.class_name.startswith('Midi'):
@@ -217,7 +210,8 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
                     parameter = get_parameter_by_name(device, param_bank[param_num])
                     if parameter:
                         result = parameter
-            except: pass
+            except:
+                pass
         return result
 
     def get_banked_parameter(self, device, bank_string, param_string):
@@ -237,7 +231,8 @@ class ClyphXDeviceActions(ControlSurfaceComponent):
                     parameter = get_parameter_by_name(device, param_bank[param_num])
                     if parameter:
                         result = parameter
-            except: pass
+            except:
+                pass
         return result
 
     def get_looper(self, track):

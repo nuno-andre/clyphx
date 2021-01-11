@@ -17,18 +17,17 @@
 from __future__ import absolute_import, unicode_literals
 
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core import XComponent
 
 from .user_config import SYSEX_LIST
 
 
-class MacrobatMidiRack(ControlSurfaceComponent):
+class MacrobatMidiRack(XComponent):
     __module__ = __name__
     __doc__ = 'Macros To Midi CCs + PCs + SysEx'
 
     def __init__(self, parent, rack, name):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(MacrobatMidiRack, self).__init__(parent)
         self._macro_to_cc = []
         self._macro_to_pc = []
         self._macro_to_sysex = []
@@ -42,14 +41,7 @@ class MacrobatMidiRack(ControlSurfaceComponent):
         self._macro_to_pc = []
         self._macro_to_sysex = []
         self._sysex_list = []
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        super(MacrobatMidiRack, self).disconnect()
 
     def setup_device(self, rack, name):
         """

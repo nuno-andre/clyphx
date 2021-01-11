@@ -17,58 +17,46 @@
 from __future__ import absolute_import, unicode_literals
 
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from ..consts import KEYWORDS
 from ..consts import GQ_STATES, MON_STATES, XFADE_STATES
+from ..core import XComponent
 
 
-class ClyphXTrackActions(ControlSurfaceComponent):
+class XTrackActions(XComponent):
+    '''Track-related actions.
+    '''
     __module__ = __name__
-    __doc__ = 'Track-related actions'
-
-    def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
-
-    def disconnect(self):
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
 
     def duplicate_track(self, track, xclip, ident, args):
-        """Duplicates the given track (only regular tracks can be duplicated).
-        """
+        '''Duplicates the given track (only regular tracks can be
+        duplicated).
+        '''
         if track in self.song().tracks:
             self.song().duplicate_track(list(self.song().tracks).index(track))
 
     def delete_track(self, track, xclip, ident, args):
-        """Deletes the given track as long as it's not the last track in the
-        set (only regular tracks can be deleted).
-        """
+        '''Deletes the given track as long as it's not the last track in
+        the set (only regular tracks can be deleted).
+        '''
         if track in self.song().tracks:
             self.song().delete_track(list(self.song().tracks).index(track))
 
     def delete_device(self, track, xclip, ident, args):
-        """Delete the device on the track associated with the given index.
+        '''Delete the device on the track associated with the given index.
         Only top level devices can be deleted.
-        """
+        '''
         try:
-            index = int(args.strip()) - 1
+            index = int(args) - 1
             if index < len(track.devices):
                 track.delete_device(index)
         except:
             pass
 
     def create_clip(self, track, xclip, ident, args):
-        """Creates a clip in the given slot index (or sel if specified) at the
-        given length (in bars). If no args, creates a 1 bar clip in the
-        selected slot.
-        """
+        '''Creates a clip in the given slot index (or sel if specified)
+        at the given length (in bars). If no args, creates a 1 bar clip
+        in the selected slot.
+        '''
         if track.has_midi_input:
             slot = list(self.song().scenes).index(self.song().view.selected_scene)
             bar = (4.0 / self.song().signature_denominator) * self.song().signature_numerator
@@ -92,48 +80,46 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                     track.clip_slots[slot].create_clip(length)
 
     def set_name(self, track, xclip, ident, args):
-        """Set track's name."""
+        '''Set track's name.'''
         if track in self.song().tracks or track in self.song().return_tracks:
             args = args.strip()
             if args:
                 track.name = args
 
     def rename_all_clips(self, track, xclip, ident, args):
-        """Renames all clips on the track based on the track's name or the
-        name specified in args.
-        """
+        '''Renames all clips on the track based on the track's name or
+        the name specified in args.
+        '''
         if track in self.song().tracks and not track.is_foldable:
-            name = track.name
-            if args:
-                name = args.strip()
+            name = args.strip() if args.strip() else track.name
             for i in range(len(track.clip_slots)):
                 slot = track.clip_slots[i]
                 if slot.has_clip:
                     slot.clip.name = '{} {}'.format(name, i + 1)
 
-    def set_mute(self, track, xclip, ident, value = None):
-        """Toggles or turns on/off track mute.
-        """
+    def set_mute(self, track, xclip, ident, value=None):
+        '''Toggles or turns on/off track mute.
+        '''
         if track in self.song().tracks or track in self.song().return_tracks:
-            track.mute = KEYWORDS.get(value, not(track.mute))
+            track.mute = KEYWORDS.get(value, not track.mute)
 
-    def set_solo(self, track, xclip, ident, value = None):
-        """Toggles or turns on/off track solo."""
+    def set_solo(self, track, xclip, ident, value=None):
+        '''Toggles or turns on/off track solo.'''
         if track in self.song().tracks or track in self.song().return_tracks:
-            track.solo = KEYWORDS.get(value, not(track.solo))
+            track.solo = KEYWORDS.get(value, not track.solo)
 
-    def set_arm(self, track, xclip, ident, value = None):
-        """Toggles or turns on/off track arm."""
+    def set_arm(self, track, xclip, ident, value=None):
+        '''Toggles or turns on/off track arm.'''
         if track in self.song().tracks and track.can_be_armed:
-            track.arm = KEYWORDS.get(value, not(track.arm))
+            track.arm = KEYWORDS.get(value, not track.arm)
 
-    def set_fold(self, track, xclip, ident, value = None):
-        """Toggles or turns on/off track fold."""
+    def set_fold(self, track, xclip, ident, value=None):
+        '''Toggles or turns on/off track fold.'''
         if track.is_foldable:
-            track.fold_state = KEYWORDS.get(value, not(track.fold_state))
+            track.fold_state = KEYWORDS.get(value, not track.fold_state)
 
     def set_monitor(self, track, xclip, ident, args):
-        """Toggles or sets monitor state."""
+        '''Toggles or sets monitor state.'''
         if track in self.song().tracks and not track.is_foldable:
             try:
                 track.current_monitoring_state = MON_STATES[args]
@@ -144,7 +130,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                     track.current_monitoring_state += 1
 
     def set_xfade(self, track, xclip, ident, args):
-        """Toggles or sets crossfader assignment."""
+        '''Toggles or sets crossfader assignment.'''
         if track != self.song().master_track:
             try:
                 track.mixer_device.crossfade_assign = XFADE_STATES[args]
@@ -155,12 +141,12 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                     track.mixer_device.crossfade_assign += 1
 
     def set_selection(self, track, xclip, ident, args):
-        """Sets track/slot selection."""
+        '''Sets track/slot selection.'''
         self.song().view.selected_track = track
         if track in self.song().tracks:
             if args:
                 try:
-                    self.song().view.selected_scene = list(self.song().scenes)[int(args.strip())-1]
+                    self.song().view.selected_scene = list(self.song().scenes)[int(args)-1]
                 except:
                     pass
             else:
@@ -168,30 +154,31 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                     self.song().view.selected_scene = list(self.song().scenes)[track.playing_slot_index]
 
     def set_jump(self, track, xclip, ident, args):
-        """Jumps playing clip on track forward/backward."""
+        '''Jumps playing clip on track forward/backward.'''
         if track in self.song().tracks:
             try:
-                track.jump_in_running_session_clip(float(args.strip()))
+                track.jump_in_running_session_clip(float(args))
             except:
                 pass
 
-    def set_stop(self, track, xclip, ident, value = None):
-        """Stops all clips on track w/no quantization option for Live 9."""
+    def set_stop(self, track, xclip, ident, value=None):
+        '''Stops all clips on track w/no quantization option for Live 9.
+        '''
         if track in self.song().tracks:
             track.stop_all_clips(not value.strip() == 'NQ')
 
     def set_play(self, track, xclip, ident, args):
-        """Plays clips normally.  Allow empty slots unless using </> keywords.
-        """
+        '''Plays clips normally. Allow empty slots unless using </> keywords.
+        '''
         allow_empty_slots = args != '<' and args != '>'
         slot_to_play = self._get_slot_index_to_play(track, xclip, args.strip(), allow_empty_slots)
         if slot_to_play != -1:
             track.clip_slots[slot_to_play].fire()
 
     def set_play_w_legato(self, track, xclip, ident, args):
-        """Plays the clip with legato using the current global quantization.
+        '''Plays the clip with legato using the current global quantization.
         This will not launch empty slots.
-        """
+        '''
         slot_to_play = self._get_slot_index_to_play(track, xclip, args.strip())
         if slot_to_play != -1:
             track.clip_slots[slot_to_play].fire(
@@ -200,19 +187,19 @@ class ClyphXTrackActions(ControlSurfaceComponent):
             )
 
     def set_play_w_force_qntz(self, track, xclip, ident, args):
-        """Plays the clip with a specific quantization regardless of
+        '''Plays the clip with a specific quantization regardless of
         launch/global quantization. This will not launch empty slots.
-        """
+        '''
         self._handle_force_qntz_play(track, xclip, args, False)
 
     def set_play_w_force_qntz_and_legato(self, track, xclip, ident, args):
-        """Combination of play_legato and play_w_force_qntz."""
+        '''Combination of play_legato and play_w_force_qntz.'''
         self._handle_force_qntz_play(track, xclip, args, True)
 
     def _handle_force_qntz_play(self, track, xclip, args, w_legato):
-        """Handles playing clips with a specific quantization with or without
-        legato.
-        """
+        '''Handles playing clips with a specific quantization with or
+        without legato.
+        '''
         args = args.strip()
         arg_array = args.split()
         qntz_spec = arg_array[0]
@@ -222,11 +209,12 @@ class ClyphXTrackActions(ControlSurfaceComponent):
             qntz_to_use = GQ_STATES[qntz_spec]
             slot_to_play = self._get_slot_index_to_play(track, xclip, args.replace(qntz_spec, '').strip())
             if slot_to_play != -1:
-                track.clip_slots[slot_to_play].fire(force_legato=w_legato, launch_quantization=qntz_to_use)
+                track.clip_slots[slot_to_play].fire(force_legato=w_legato,
+                                                    launch_quantization=qntz_to_use)
 
     def _get_slot_index_to_play(self, track, xclip, args, allow_empty_slots=False):
-        """Returns the slot index to play based on keywords in the given args.
-        """
+        '''Returns the slot index to play based on keywords in the given args.
+        '''
         slot_to_play = -1
         if track in self.song().tracks:
             play_slot = track.playing_slot_index
@@ -245,8 +233,6 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                 if '-' in args:
                     rnd_range_data = args.replace('RND', '').split('-')
                     if len(rnd_range_data) == 2:
-                        new_min = 0
-                        new_max = num_scenes
                         try:
                             new_min = int(rnd_range_data[0]) - 1
                         except:
@@ -269,7 +255,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                 if factor < len(self.song().scenes):
                     #---Only launch slots that contain clips
                     if abs(factor) == 1:
-                        for index in range(len(self.song().scenes)):
+                        for _ in range(len(self.song().scenes)):
                             play_slot += factor
                             if play_slot >= len(self.song().scenes):
                                 play_slot = 0
@@ -284,15 +270,15 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                     slot_to_play = play_slot
             elif args.startswith('"') and args.endswith('"'):
                 clip_name = args.strip('"')
-                for index in range(len(track.clip_slots)):
-                    slot = track.clip_slots[index]
+                for i in range(len(track.clip_slots)):
+                    slot = track.clip_slots[i]
                     if slot.has_clip and slot.clip.name.upper() == clip_name:
-                        slot_to_play = index
+                        slot_to_play = i
                         break
             else:
                 try:
                     if 0 <= int(args) < len(self.song().scenes) + 1:
-                        slot_to_play = int(args)-1
+                        slot_to_play = int(args) - 1
                 except:
                     pass
         else:
@@ -306,25 +292,25 @@ class ClyphXTrackActions(ControlSurfaceComponent):
             return -1
 
     def adjust_preview_volume(self, track, xclip, ident, args):
-        """Adjust/set master preview volume."""
+        '''Adjust/set master preview volume.'''
         if track == self.song().master_track:
             self._parent.do_parameter_adjustment(self.song().master_track.mixer_device.cue_volume, args.strip())
 
     def adjust_crossfader(self, track, xclip, ident, args):
-        """Adjust/set master crossfader."""
+        '''Adjust/set master crossfader.'''
         if track == self.song().master_track:
             self._parent.do_parameter_adjustment(self.song().master_track.mixer_device.crossfader, args.strip())
 
     def adjust_volume(self, track, xclip, ident, args):
-        """Adjust/set track volume."""
+        '''Adjust/set track volume.'''
         self._parent.do_parameter_adjustment(track.mixer_device.volume, args.strip())
 
     def adjust_pan(self, track, xclip, ident, args):
-        """Adjust/set track pan."""
+        '''Adjust/set track pan.'''
         self._parent.do_parameter_adjustment(track.mixer_device.panning, args.strip())
 
     def adjust_sends(self, track, xclip, ident, args):
-        """Adjust/set track sends."""
+        '''Adjust/set track sends.'''
         args = args.split()
         if len(args) > 1:
             param = self.get_send_parameter(track, args[0].strip())
@@ -332,7 +318,7 @@ class ClyphXTrackActions(ControlSurfaceComponent):
                 self._parent.do_parameter_adjustment(param, args[1].strip())
 
     def get_send_parameter(self, track, send_string):
-        """Gets the send parameter to operate on."""
+        '''Gets the send parameter to operate on.'''
         param = None
         if track != self.song().master_track:
             try:
@@ -342,43 +328,47 @@ class ClyphXTrackActions(ControlSurfaceComponent):
         return param
 
     def adjust_input_routing(self, track, xclip, ident, args):
-        """Adjust track input routing."""
+        '''Adjust track input routing.'''
         if track in self.song().tracks and not track.is_foldable:
             routings = list(track.input_routings)
-            current_routing = 0
             if track.current_input_routing in routings:
                 current_routing = routings.index(track.current_input_routing)
+            else:
+                current_routing = 0
             track.current_input_routing = self.handle_track_routing(args, routings, current_routing)
 
     def adjust_input_sub_routing(self, track, xclip, ident, args):
-        """Adjust track input sub-routing."""
+        '''Adjust track input sub-routing.'''
         if track in self.song().tracks and not track.is_foldable:
             routings = list(track.input_sub_routings)
-            current_routing = 0
             if track.current_input_sub_routing in routings:
                 current_routing = routings.index(track.current_input_sub_routing)
+            else:
+                current_routing = 0
             track.current_input_sub_routing = self.handle_track_routing(args, routings, current_routing)
 
     def adjust_output_routing(self, track, xclip, ident, args):
-        """Adjust track output routing."""
+        '''Adjust track output routing.'''
         if track != self.song().master_track:
             routings = list(track.output_routings)
-            current_routing = 0
             if track.current_output_routing in routings:
                 current_routing = routings.index(track.current_output_routing)
+            else:
+                current_routing = 0
             track.current_output_routing = self.handle_track_routing(args, routings, current_routing)
 
     def adjust_output_sub_routing(self, track, xclip, ident, args):
-        """Adjust track output sub-routing."""
+        '''Adjust track output sub-routing.'''
         if track != self.song().master_track:
             routings = list(track.output_sub_routings)
-            current_routing = 0
             if track.current_output_sub_routing in routings:
                 current_routing = routings.index(track.current_output_sub_routing)
+            else:
+                current_routing = 0
             track.current_output_sub_routing = self.handle_track_routing(args, routings, current_routing)
 
     def handle_track_routing(self, args, routings, current_routing):
-        """Handle track routing adjustment."""
+        '''Handle track routing adjustment.'''
         new_routing = routings[current_routing]
         args = args.strip()
         if args in ('<', '>'):

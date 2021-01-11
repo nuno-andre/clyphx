@@ -16,10 +16,10 @@
 
 from __future__ import absolute_import
 
-from .clip import ClyphXClipActions
-from .track import ClyphXTrackActions
-from .device import ClyphXDeviceActions
-from .global_ import ClyphXGlobalActions
-from .dr import ClyphXDRActions
-from .snap9 import ClyphXSnapActions
-from .control_surface import ClyphXControlSurfaceActions
+from .clip import XClipActions
+from .track import XTrackActions
+from .device import XDeviceActions
+from .global_ import XGlobalActions
+from .dr import XDrActions
+from .snap9 import XSnapActions
+from .control_surface import XControlSurfaceActions

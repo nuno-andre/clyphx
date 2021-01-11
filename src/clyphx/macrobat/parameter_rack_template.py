@@ -17,19 +17,32 @@
 from __future__ import absolute_import, unicode_literals
 
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core import XComponent
 
+class _MacrobatParameterRackTemplate(XComponent):
+    '''Template for Macrobat racks that control parameters.
+    '''
+    __module__ = __name__
 
-class _MacrobatParameterRackTemplate(ControlSurfaceComponent):
-    def on_enabled_changed(self):
-        pass
+    def __init__(self, parent, rack, track):
+        super(_MacrobatParameterRackTemplate, self).__init__(parent)
+        self._on_off_param = []
+        self._param_macros = {}
+        self._update_macro = 0
+        self._update_param = 0
+        self._track = track
+        self.setup_device(rack)
 
-    def update(self):
-        pass
+    def disconnect(self):
+        self.remove_macro_listeners()
+        self._on_off_param = []
+        self._param_macros = {}
+        self._track = None
+        super(_MacrobatParameterRackTemplate, self).disconnect()
 
     def setup_device(self, rack):
-        '''Remove any current listeners and set up listener for on/off (used
-        for resetting assigned params).
+        '''Remove any current listeners and set up listener for on/off
+        (used for resetting assigned params).
         '''
         self.remove_macro_listeners()
         if not rack.parameters[0].value_has_listener(self.on_off_changed):
@@ -50,8 +63,8 @@ class _MacrobatParameterRackTemplate(ControlSurfaceComponent):
         return int(((param.value - param.min) / (param.max - param.min)) * 127.0)
 
     def get_drum_rack(self):
-        '''For use with DR racks, get drum rack to operate on as well as the
-        params of any simplers/samplers in the rack.
+        '''For use with DR racks, get drum rack to operate on as well as
+        the params of any simplers/samplers in the rack.
         '''
         drum_rack = {'devs_by_index': {}, 'devs_by_name': {}}
 
@@ -94,26 +107,6 @@ class _MacrobatParameterRackTemplate(ControlSurfaceComponent):
 
 # TODO: join to parent class
 class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
-    __module__ = __name__
-    __doc__ = 'Template for Macrobat racks that control parameters in Live 9'
-
-    def __init__(self, parent, rack, track):
-        self._parent = parent
-        ControlSurfaceComponent.__init__(self)
-        self._on_off_param = []
-        self._param_macros = {}
-        self._update_macro = 0
-        self._update_param = 0
-        self._track = track
-        self.setup_device(rack)
-
-    def disconnect(self):
-        self.remove_macro_listeners()
-        self._on_off_param = []
-        self._param_macros = {}
-        self._track = None
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
 
     def macro_changed(self, index):
         '''Called on macro changes to update param values.'''
@@ -124,6 +117,16 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
                 self._tasks.kill()
                 self._tasks.clear()
                 self._tasks.add(self.update_param)
+
+    def update_macro(self, arg=None):
+        '''Update macro to match value of param.'''
+        if self._update_macro in self._param_macros:
+            if self._param_macros[self._update_macro][0] and self._param_macros[self._update_macro][1]:
+                self._param_macros[self._update_macro][0].value = self.scale_param_value_to_macro(
+                    self._param_macros[self._update_macro][1],
+                )
+        self._tasks.kill()
+        self._tasks.clear()
 
     def param_changed(self, index):
         '''Called on param changes to update macros.'''
@@ -147,16 +150,6 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
         self._tasks.kill()
         self._tasks.clear()
 
-    def update_macro(self, arg=None):
-        '''Update macro to match value of param.'''
-        if self._update_macro in self._param_macros:
-            if self._param_macros[self._update_macro][0] and self._param_macros[self._update_macro][1]:
-                self._param_macros[self._update_macro][0].value = self.scale_param_value_to_macro(
-                    self._param_macros[self._update_macro][1],
-                )
-        self._tasks.kill()
-        self._tasks.clear()
-
     def get_initial_value(self, arg=None):
         '''Get initial values to set macros to.'''
         for i in range(1, 9):
@@ -171,7 +164,7 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
         self._update_macro = 0
         self._tasks.kill()
         self._tasks.clear()
-        for k, v in self._param_macros.items():
+        for k, v in iteritems(self._param_macros):
             if v[1] and not v[1].is_quantized and v[1].name != 'Chain Selector':
                 v[1].value = v[1].default_value
                 v[0].value = self.scale_param_value_to_macro(v[1])
@@ -236,7 +229,7 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
 #         self._update_macro = False
 #         self._param_update_in_progress = False
 #         self._macro_update_in_progress = False
-#         for k, v in self._param_macros.items():
+#         for k, v in iteritems(self._param_macros):
 #             if v[1] and not v[1].is_quantized and v[1].name != 'Chain Selector':
 #                 v[1].value = v[1].default_value
 #                 v[0].value = self.scale_param_value_to_macro(v[1])
@@ -257,11 +250,11 @@ class MacrobatParameterRackTemplate(_MacrobatParameterRackTemplate):
 #                 self._update_param = 0
 #                 self._parent.schedule_message(8, self.allow_macro_updates)
 #         else:
-#             for index in range(1,9):
-#                 if index in self._param_macros:
-#                     if self._param_macros[index][0] and self._param_macros[index][1]:
-#                         if self._param_macros[index][0].value != self.scale_param_value_to_macro(self._param_macros[index][1]):
-#                             self._param_macros[index][0].value = self.scale_param_value_to_macro(self._param_macros[index][1])
+#            for i in range(1,9):
+#                if i in self._param_macros:
+#                    if self._param_macros[i][0] and self._param_macros[i][1]:
+#                        if self._param_macros[i][0].value != self.scale_param_value_to_macro(self._param_macros[i][1]):
+#                            self._param_macros[i][0].value = self.scale_param_value_to_macro(self._param_macros[i][1])
 #             self._get_initial_value = False
 
 #     def allow_macro_updates(self):

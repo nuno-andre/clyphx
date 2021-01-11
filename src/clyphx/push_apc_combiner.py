@@ -16,18 +16,19 @@
 
 from __future__ import absolute_import, unicode_literals
 
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.SessionComponent import SessionComponent
 from ableton.v2.control_surface.components.session_ring import SessionRingComponent
+from .core import XComponent
 
 
-class Push_APC_Combiner(ControlSurfaceComponent):
+class PushApcCombiner(XComponent):
+    '''Syncs Push and APC40 session grids for proper
+    emulation.
+    '''
     __module__ = __name__
-    __doc__ = 'Class that syncs Push and APC40 session grids for proper emulation.'
 
     def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(PushApcCombiner, self).__init__(parent)
         self._push = None
         self._push_session = None
         self._apc = None
@@ -39,14 +40,7 @@ class Push_APC_Combiner(ControlSurfaceComponent):
         self._push_session = None
         self._apc = None
         self._apc_session = None
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        super(PushApcCombiner, self).disconnect()
 
     def set_up_scripts(self, scripts):
         '''Remove current listeners, get Push/APC scripts, set up listeners
@@ -75,19 +69,28 @@ class Push_APC_Combiner(ControlSurfaceComponent):
     def _get_session_component(self, script):
         '''Get the session component for the given script.
         '''
-        comp = None
+        # comp = None
+        # if script and script._components:
+        #     for c in script.components:
+        #         if isinstance(c, SessionComponent):
+        #             comp = c
+        #             break
+        # if comp is None:
+        #     if hasattr(script, '_session_ring'):
+        #         return script._session_ring
+        # return comp
         if script and script._components:
             for c in script.components:
                 if isinstance(c, SessionComponent):
-                    comp = c
-                    break
-        if comp is None:
-            if hasattr(script, '_session_ring'):
-                return script._session_ring
-        return comp
+                    return c
+        try:
+            return script._session_ring
+        except AttributeError:
+            pass
 
     def _on_apc_offset_changed(self):
-        '''Update Push offset on APC offset changed and suppress its highlight.
+        '''Update Push offset on APC offset changed and suppress its
+        highlight.
         '''
         if self._push_session and self._apc_session:
             self._push_session.set_offsets(self._apc_session.track_offset(),

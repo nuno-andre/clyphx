@@ -19,6 +19,7 @@
 from __future__ import absolute_import, unicode_literals
 
 from functools import partial
+from itertools import chain
 from _Generic.Devices import *
 from .parameter_rack_template import MacrobatParameterRackTemplate
 
@@ -70,8 +71,9 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
 
 
 class MacrobatChainMixRack(MacrobatParameterRackTemplate):
+    '''Macros to params of Rack chains.
+    '''
     __module__ = __name__
-    __doc__ = 'Macros to params of Rack chains'
 
     def __init__(self, parent, rack, track):
         self._rack = {}
@@ -215,7 +217,7 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
         receiver_macros = self.get_ident_macros(rack)
         if receiver_macros:
             self._sender_macros = []
-            for t in (tuple(self.song().tracks) + tuple(self.song().return_tracks) + (self.song().master_track,)):
+            for t in chain(self.song().tracks, self.song().return_tracks, (self.song().master_track,)):
                 self.get_sender_macros(t.devices)
             if self._sender_macros:
                 for r in receiver_macros:

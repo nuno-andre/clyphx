@@ -74,16 +74,17 @@ def get_component(script, comp_name):
     return None
 
 
-class ClyphXArsenalActions(ControlSurfaceComponent):
+# TODO: update...
+class XArsenalActions(ControlSurfaceComponent):
     """Actions related to Arsenal control surface scripts."""
 
     def __init__(self, parent):
-        super(ControlSurfaceComponent, self).__init__()
+        super(XArsenalActions, self).__init__()
         self._parent = parent
         self._scripts = {}
 
     def disconnect(self):
-        super(ControlSurfaceComponent, self).disconnect()
+        super(XArsenalActions, self).disconnect()
         self._parent = None
         self._scripts = None
 

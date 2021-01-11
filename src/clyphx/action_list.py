@@ -15,11 +15,11 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class ActionList:
+class ActionList(object):
+    '''Allows X-Triggers with no name to trigger Action Lists. It can
+    also be used to trigger ClyphX Actions via UserActions.
+    '''
     __module__ = __name__
-    __doc__ = ('Simple class that allows X-Triggers with no name to trigger '
-               'Action Lists and can also be used to trigger ClyphX Actions '
-               'via UserActions.')
 
     def __init__(self, name='none'):
         self.name = name

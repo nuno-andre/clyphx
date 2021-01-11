@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import absolute_import, unicode_literals
+from raven.utils.six import iteritems
 
 from functools import partial
 import logging
@@ -24,12 +25,17 @@ from .action_list import ActionList
 log = logging.getLogger(__name__)
 
 
-class ClyphXControlComponent(ControlSurfaceComponent):
+class XTrigger(ControlSurfaceComponent):
+    pass
+
+
+class XControlComponent(XTrigger):
+    '''Control component for ClyphX.
+    '''
     __module__ = __name__
-    __doc__ = 'Control component for ClyphX'
 
     def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
+        super(XControlComponent, self).__init__()
         self._parent = parent
         self._control_list = {}
         self._xt_scripts = []
@@ -47,7 +53,7 @@ class ClyphXControlComponent(ControlSurfaceComponent):
         pass
 
     def connect_script_instances(self, instanciated_scripts):
-        """Try to connect to ClyphX_XT instances."""
+        '''Try to connect to ClyphX_XT instances.'''
         ClyphX_XT = None
         for i in range(5):
             try:
@@ -71,13 +77,13 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                             break
 
     def assign_new_actions(self, string):
-        """Assign new actions to controls via xclips."""
+        '''Assign new actions to controls via xclips.'''
         if self._xt_scripts:
             for x in self._xt_scripts:
                 x.assign_new_actions(string)
         ident = string[string.index('[')+2:string.index(']')].strip()
         actions = string[string.index(']')+2:].strip()
-        for c, v in self._control_list.items():
+        for c, v in iteritems(self._control_list):
             if ident == v['ident']:
                 new_actions = actions.split(',')
                 on_action = '[{}] {}'.format(ident, new_actions[0])
@@ -93,7 +99,7 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                 break
 
     def receive_midi(self, bytes):
-        """Receive user-defined midi messages."""
+        '''Receive user-defined midi messages.'''
         if self._control_list:
             ctrl_data = None
             if bytes[2] == 0 or bytes[0] < 144:
@@ -113,9 +119,9 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                                                         ctrl_data['name'])
 
     def get_user_control_settings(self, data, midi_map_handle):
-        """Receives control data from user settings file and builds
+        '''Receives control data from user settings file and builds
         control dictionary.
-        """
+        '''
         self._control_list = {}
         for d in data:
             status_byte = None
@@ -131,17 +137,18 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                     status_byte = 144
                 elif new_ctrl_data[0].strip() == 'CC':
                     status_byte = 176
-                if 1 <= int(new_ctrl_data[1].strip()) < 17:
-                    channel = int(new_ctrl_data[1].strip()) - 1
-                if 0 <= int(new_ctrl_data[2].strip()) < 128:
-                    ctrl_num = int(new_ctrl_data[2].strip())
+                if 1 <= int(new_ctrl_data[1]) < 17:
+                    channel = int(new_ctrl_data[1]) - 1
+                if 0 <= int(new_ctrl_data[2]) < 128:
+                    ctrl_num = int(new_ctrl_data[2])
                 on_action = '[{}] {}'.format(ctrl_name, new_ctrl_data[3])
                 if on_action and len(new_ctrl_data) > 4:
                     if new_ctrl_data[4].strip() == '*':
                         off_action = on_action
                     else:
                         off_action = '[{}] {}'.format(ctrl_name, new_ctrl_data[4])
-            except: pass
+            except:
+                pass
             if status_byte and channel is not None and ctrl_num is not None and on_action:
                 self._control_list[(status_byte + channel, ctrl_num)] = {
                     'ident':      ctrl_name,
@@ -156,8 +163,7 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                 fn(self._parent._c_instance.handle(), midi_map_handle, channel, ctrl_num)
 
     def rebuild_control_map(self, midi_map_handle):
-        """Called from main when build_midi_map is called.
-        """
+        '''Called from main when build_midi_map is called.'''
         for key in self._control_list.keys():
             if key[0] >= 176:
                 Live.MidiMap.forward_midi_cc(
@@ -169,13 +175,14 @@ class ClyphXControlComponent(ControlSurfaceComponent):
                 )
 
 
-class ClyphXTrackComponent(ControlSurfaceComponent):
+class XTrackComponent(XTrigger):
+    '''Track component that monitors play slot index and calls main
+    script on changes.
+    '''
     __module__ = __name__
-    __doc__ = 'Track component that monitors play slot index and calls main script on changes'
 
     def __init__(self, parent, track):
-        # ControlSurfaceComponent.__init__(self)
-        super(ClyphXTrackComponent, self).__init__()
+        super(XTrackComponent, self).__init__()
         self._parent = parent
         self._track = track
         self._clip = None
@@ -196,8 +203,7 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
         self._triggered_clips = []
         self._triggered_lseq_clip = None
         self._parent = None
-        super(ClyphXTrackComponent, self).disconnect()
-        # ControlSurfaceComponent.disconnect(self)
+        super(XTrackComponent, self).disconnect()
 
     def on_enabled_changed(self):
         pass
@@ -206,9 +212,9 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
         pass
 
     def play_slot_index_changed(self):
-        """Called on track play slot index changes to set up clips to trigger
-        (on play and stop) and set up loop listener for LSEQ.
-        """
+        '''Called on track play slot index changes to set up clips to
+        trigger (on play and stop) and set up loop listener for LSEQ.
+        '''
         self.remove_loop_jump_listener()
         new_clip = self.get_xclip(self._track.playing_slot_index)
         prev_clip = self.get_xclip(self._last_slot_index)
@@ -227,7 +233,7 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
             self._clip.add_loop_jump_listener(self.on_loop_jump)
 
     def get_xclip(self, slot_index):
-        """Get the xclip associated with slot_index or None."""
+        '''Get the xclip associated with slot_index or None.'''
         clip = None
         if self._track and 0 <= slot_index < len(self._track.clip_slots):
             slot = self._track.clip_slots[slot_index]
@@ -238,17 +244,17 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
         return clip
 
     def on_loop_jump(self):
-        """Called on loop changes to increment loop count and set clip to
-        trigger.
-        """
+        '''Called on loop changes to increment loop count and set clip
+        to trigger.
+        '''
         self._loop_count += 1
         if self._clip:
             self._triggered_lseq_clip = self._clip
 
     def on_timer(self):
-        """Continuous timer, calls main script if there are any triggered
+        '''Continuous timer, calls main script if there are any triggered
         clips.
-        """
+        '''
         if self._track and (not self._track.mute or self._parent._process_xclips_if_track_muted):
             if self._triggered_clips:
                 for clip in self._triggered_clips:
@@ -264,12 +270,14 @@ class ClyphXTrackComponent(ControlSurfaceComponent):
             self._clip.remove_loop_jump_listener(self.on_loop_jump)
 
 
-class ClyphXCueComponent(ControlSurfaceComponent):
+class XCueComponent(XTrigger):
+    '''Cue component that monitors cue points and calls main script on
+    changes.
+    '''
     __module__ = __name__
-    __doc__ = 'Cue component that monitors cue points and calls main script on changes'
 
     def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
+        super(XCueComponent, self).__init__()
         self._parent = parent
         self.song().add_current_song_time_listener(self.arrange_time_changed)
         self.song().add_is_playing_listener(self.arrange_time_changed)
@@ -287,7 +295,7 @@ class ClyphXCueComponent(ControlSurfaceComponent):
         self.song().remove_cue_points_listener(self.cue_points_changed)
         self._x_points = {}
         self._parent = None
-        ControlSurfaceComponent.disconnect(self)
+        super(XCueComponent, self).disconnect()
 
     def on_enabled_changed(self):
         pass
@@ -296,10 +304,10 @@ class ClyphXCueComponent(ControlSurfaceComponent):
         pass
 
     def cue_points_changed(self):
-        """Called on cue point changes to set up points to watch, cue points
-        can't be named via the API so cue points can't perform any actions
-        requiring naming.
-        """
+        '''Called on cue point changes to set up points to watch, cue
+        points can't be named via the API so cue points can't perform
+        any actions requiring naming.
+        '''
         self.remove_cue_point_listeners()
         self._sorted_times = []
         for cp in self.song().cue_points:
@@ -315,9 +323,9 @@ class ClyphXCueComponent(ControlSurfaceComponent):
         self.set_x_point_time_to_watch()
 
     def arrange_time_changed(self):
-        """Called on arrange time changed and schedules actions where
+        '''Called on arrange time changed and schedules actions where
         necessary.
-        """
+        '''
         if self.song().is_playing:
             if self._x_point_time_to_watch_for != -1 and self._last_arrange_position < self.song().current_song_time:
                 if (self.song().current_song_time >= self._x_point_time_to_watch_for and
@@ -331,7 +339,7 @@ class ClyphXCueComponent(ControlSurfaceComponent):
         self._last_arrange_position = self.song().current_song_time
 
     def set_x_point_time_to_watch(self):
-        """Determine which cue point time to watch for next."""
+        '''Determine which cue point time to watch for next.'''
         if self._x_points:
             if self.song().is_playing:
                 for t in self._sorted_times:
@@ -342,7 +350,8 @@ class ClyphXCueComponent(ControlSurfaceComponent):
                 self._x_point_time_to_watch_for = -1
 
     def schedule_x_point_action_list(self, point):
-        self._parent.handle_action_list_trigger(self.song().view.selected_track, self._x_points[point])
+        self._parent.handle_action_list_trigger(self.song().view.selected_track,
+                                                self._x_points[point])
 
     def remove_cue_point_listeners(self):
         for cp in self.song().cue_points:

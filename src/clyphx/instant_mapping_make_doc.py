@@ -67,19 +67,15 @@ HEADER = (
 
 
 class InstantMappingMakeDoc(object):
-    """Creates a HTML file in the user's home directory containing information
-    on the parameter banks defined for all Live devices in Devices.pyc.
+    """Creates a HTML file in the user's home directory containing
+    information on the parameter banks defined for all Live devices in
+    Devices.pyc.
     """
 
     def __init__(self):
         log.info('InstantMappingMakeDoc initialized.')
         self._create_html_file(self._collect_device_infos())
         log.info('InstantMappingMakeDoc finished.')
-
-    # TODO: Does Live capture loggers?
-    # def log(self, msg):
-    #     """Writes a message to Live's log file."""
-    #     log.info(str(msg))
 
     def _collect_device_infos(self):
         """Returns a dict of dicts for each device containing its friendly
@@ -116,7 +112,8 @@ class InstantMappingMakeDoc(object):
             log.error('IOError: Unable to write file.')
 
     def _get_device_index(self, dev_dict):
-        """Returns a sorted device index for quickly navigating the file."""
+        """Returns a sorted device index for quickly navigating the file.
+        """
         # return sorted(map('<a href="#{name}">{name}<br>'.format_map, dev_dict.values()))
         return sorted(['<a href="#{0}">{0}<br>'.format(v['name'])
                        for v in dev_dict.values()])

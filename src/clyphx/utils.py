@@ -1,5 +1,9 @@
+from raven.utils.six import iteritems
+
 
 def get_python_info(serialize=True):
+    '''Returns info about the Live Python runtime.
+    '''
     import sys
     import json
 
@@ -8,7 +12,7 @@ def get_python_info(serialize=True):
 
     modules = {k: {'module': getattr(v, '__name__', None),
                    'file': getattr(v, '__file__', None)}
-               for k, v in sys.modules.items()}
+               for k, v in iteritems(sys.modules)}
 
     info = {
         'version':         sys.version,

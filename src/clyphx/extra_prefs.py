@@ -18,16 +18,16 @@ from __future__ import absolute_import, unicode_literals
 
 from functools import partial
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from .core import XComponent
 
 
-class ExtraPrefs(ControlSurfaceComponent):
+class ExtraPrefs(XComponent):
+    '''Extra prefs component for ClyphX.
+    '''
     __module__ = __name__
-    __doc__ = 'Extra prefs component for ClyphX'
 
     def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(ExtraPrefs, self).__init__(parent)
         self._show_highlight = True
         self._exclusive_arm = False
         self._exclusive_fold = False
@@ -43,14 +43,7 @@ class ExtraPrefs(ControlSurfaceComponent):
         self._last_track = None
         self._clip_record_slot = None
         self._midi_clip_length_slot = None
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        super(ExtraPrefs, self).disconnect()
 
     def get_user_settings(self, data):
         '''Get user settings from config file and make sure they are in
@@ -76,15 +69,17 @@ class ExtraPrefs(ControlSurfaceComponent):
 
     def on_selected_track_changed(self):
         '''Handles navigation highlight, triggering exclusive arm/fold
-        functions and removes/sets up listeners for clip-related functions.
+        functions and removes/sets up listeners for clip-related
+        functions.
         '''
-        ControlSurfaceComponent.on_selected_track_changed(self)
+        super(ExtraPrefs, self).on_selected_track_changed()
         track = self.song().view.selected_track
         clip_slot = self.song().view.highlighted_clip_slot
         self.remove_listeners()
         if self._show_highlight:
-            tracks = list(tuple(self.song().visible_tracks) + tuple(self.song().return_tracks))
-            tracks.append(self.song().master_track)
+            tracks = list(tuple(self.song().visible_tracks) +
+                          tuple(self.song().return_tracks) +
+                          (self.song().master_track,))
             if self.song().view.selected_track in tracks:
                 self._parent._set_session_highlight(
                     tracks.index(self.song().view.selected_track),
@@ -174,5 +169,5 @@ class ExtraPrefs(ControlSurfaceComponent):
         self._midi_clip_length_slot = None
 
     def on_selected_scene_changed(self):
-        ControlSurfaceComponent.on_selected_scene_changed(self)
+        super(ExtraPrefs, self).on_selected_scene_changed()
         self.on_selected_track_changed()

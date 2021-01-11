@@ -25,9 +25,8 @@ from _Framework.SessionComponent import SessionComponent
 log = logging.getLogger(__name__)
 
 
-class CSLinker(ControlSurfaceComponent):
-    '''CSLinker links the SessionComponents of two control surface scripts in
-    Live 9.
+class CsLinker(ControlSurfaceComponent):
+    '''Links the SessionComponents of two control surface scripts.
     '''
 
     def __init__(self):
@@ -46,8 +45,12 @@ class CSLinker(ControlSurfaceComponent):
         self._slave_objects = None
         ControlSurfaceComponent.disconnect(self)
 
+    def update(self):
+        pass
+
     def parse_settings(self, settings_string):
-        '''Parses settings data read from UserPrefs for linker settings.'''
+        '''Parses settings data read from UserPrefs for linker settings.
+        '''
         line_data = settings_string.split('=')
         if 'MATCHED' in line_data[0]:
             self._matched_link = line_data[1].strip() == 'TRUE'
@@ -151,8 +154,6 @@ class CSLinker(ControlSurfaceComponent):
             if obj:
                 obj._on_offsets_changed()
 
-    def update(self):
-        pass
 
 
 class SessionSlave(object):
@@ -179,8 +180,8 @@ class SessionSlave(object):
         self._observed_ssn_comp = None
 
     def _on_offsets_changed(self, arg_a=None, arg_b=None):
-        '''Called on offset changes to the observed SessionComponent to handle
-        moving offsets if possible.
+        '''Called on offset changes to the observed SessionComponent to
+        handle moving offsets if possible.
         '''
         if self._horizontal_link or self._multi_axis_link:
             new_num_tracks = len(self._self_ssn_comp.tracks_to_use())

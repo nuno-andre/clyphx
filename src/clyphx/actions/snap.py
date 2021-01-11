@@ -15,20 +15,22 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from raven.utils.six import iteritems
 
 from functools import partial
+from itertools import chain
 import math
 import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core import XComponent
 
 
-class ClyphXSnapActions(ControlSurfaceComponent):
+class XSnapActions(XComponent):
     __module__ = __name__
     __doc__ = 'Snapshot-related actions'
 
     def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(XSnapActions, self).__init__(parent)
         self._current_tracks = {}
         self._parameters_to_smooth = {}
         self._rack_parameters_to_smooth = {}
@@ -60,17 +62,10 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         self._rack_parameters_to_smooth = {}
         self._control_rack = None
         self._snap_id = None
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        super(XSnapActions, self).disconnect()
 
     def store_track_snapshot(self, track_list, xclip, ident, action, args):
-        """Store snapshot of track params."""
+        '''Store snapshot of track params.'''
         param_count = 0
         if not isinstance(xclip, Live.Clip.Clip):
             return ()
@@ -123,13 +118,13 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                     self._parent.schedule_message(8, partial(self.refresh_xclip_name, (xclip, current_name)))
 
     def refresh_xclip_name(self, xclip_data):
-        """Refreshes xclip's previous name in cases where a snap is asking to
+        '''Refreshes xclip's previous name in cases where a snap is asking to
         store too many params.
-        """
+        '''
         xclip_data[0].name = xclip_data[1]
 
     def get_nested_devices(self, rack, nested_list, parameter_count):
-        """Get list of nested devices and count of parameters."""
+        '''Get list of nested devices and count of parameters.'''
         if rack.chains:
             for c in rack.chains:
                 for d in c.devices:
@@ -151,7 +146,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             return [nested_list, parameter_count]
 
     def recall_track_snapshot(self, name, xclip):
-        """Recall snapshot of track params."""
+        '''Recall snapshot of track params.'''
         self._smoothing_count = 0
         self._snap_id = xclip.name[xclip.name.index('['):xclip.name.index(']')+1].strip().upper()
         track_name = self._parent.get_name(xclip.canonical_parent.canonical_parent.name)
@@ -186,7 +181,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                 new_speed *= self.song().signature_numerator
             if 0 <= new_speed < 501:
                 self._smoothing_speed = new_speed
-        for track, param_data in snap_data.items():
+        for track, param_data in iteritems(snap_data):
             if track in self._current_tracks:
                 track = self._current_tracks[track]
                 if param_data[0]:
@@ -195,10 +190,10 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                     if track.mixer_device.panning.is_enabled and param_data[0][1] != -1:
                         self.get_parameter_data_to_smooth(track.mixer_device.panning, param_data[0][1])
                     if track is not self.song().master_track:
-                        for index in range(len(param_data[0])-2):
-                            if index <= len(track.mixer_device.sends)-1 and track.mixer_device.sends[index].is_enabled:
-                                self.get_parameter_data_to_smooth(track.mixer_device.sends[index],
-                                                                  param_data[0][2+index])
+                        for i in range(len(param_data[0]) - 2):
+                            if i <= len(track.mixer_device.sends)-1 and track.mixer_device.sends[i].is_enabled:
+                                self.get_parameter_data_to_smooth(track.mixer_device.sends[i],
+                                                                  param_data[0][2 + i])
                 if param_data[1] and track is not self.song().master_track:
                     track.mute = param_data[1][0]
                     track.solo = param_data[1][1]
@@ -224,7 +219,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                 self._parent.schedule_message(1, self.refresh_control_rack)
 
     def recall_device_snap(self, device, device_data):
-        """Recall device snap."""
+        '''Recall device snap.'''
         if device and len(device.parameters) == len(device_data):
             for i in range(len(device.parameters)):
                 if device.parameters[i].is_enabled:
@@ -232,7 +227,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                                                       device_data[i])
 
     def recall_nested_device_snap(self, rack, device_data):
-        """Recall snaps of nested devices."""
+        '''Recall snaps of nested devices.'''
         if rack.chains and device_data:
             for c in rack.chains:
                 combined_data = zip(c.devices, device_data)
@@ -257,9 +252,9 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                         self.recall_nested_device_snap(cd[0], device_data)
 
     def setup_control_rack(self, track):
-        """Setup rack to use for morphing between current vals and snapped
+        '''Setup rack to use for morphing between current vals and snapped
         vals.
-        """
+        '''
         self.remove_control_rack()
         for dev in track.devices:
             dev_name = self._parent.get_name(dev.name)
@@ -268,9 +263,9 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                 break
 
     def refresh_control_rack(self):
-        """Refresh rack name and macro value on snap triggered. If triggered
+        '''Refresh rack name and macro value on snap triggered. If triggered
         when rack off, clear snap id from rack name.
-        """
+        '''
         if self._control_rack and self._snap_id:
             if self._control_rack.parameters[0].value == 1.0:
                 self._control_rack.name = 'ClyphX Snap {}'.format(self._snap_id)
@@ -282,12 +277,12 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                 self._control_rack.name = 'ClyphX Snap'
 
     def control_rack_macro_changed(self):
-        """Get param values to set based on macro value and build dict."""
+        '''Get param values to set based on macro value and build dict.'''
         if self._rack_smoothing_active and self._parameters_to_smooth and self._control_rack.parameters[0].value == 1.0:
             self._rack_parameters_to_smooth = {}
             macro_value = self._control_rack.parameters[1].value
             new_dict = {}
-            for p, v in self._parameters_to_smooth.items():
+            for p, v in iteritems(self._parameters_to_smooth):
                 param_value = v[2] + (macro_value * v[0])
                 if p.is_quantized:
                     if macro_value < 63 and p.value != v[2]:
@@ -301,16 +296,16 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             self._rack_parameters_to_smooth = new_dict
 
     def on_timer(self):
-        """Smooth parameter value changes via timer."""
+        '''Smooth parameter value changes via timer.'''
         if self._smoothing_active and self._parameters_to_smooth:
             self.apply_timed_smoothing()
         if self._rack_smoothing_active and self._rack_parameters_to_smooth:
-            for p, v in self._rack_parameters_to_smooth.items():
+            for p, v in iteritems(self._rack_parameters_to_smooth):
                 p.value = v
                 del self._rack_parameters_to_smooth[p]
 
     def on_time_changed(self):
-        """Smooth parameter value changes synced to playback."""
+        '''Smooth parameter value changes synced to playback.'''
         if self._synced_smoothing_active and self._parameters_to_smooth and self.song().is_playing:
             time = int(str(self.song().get_current_beats_song_time()).split('.')[2])
             if self._last_beat != time:
@@ -318,9 +313,9 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                 self._tasks.add(self.apply_timed_smoothing)
 
     def apply_timed_smoothing(self, arg=None):
-        """Apply smoothing for either timer or sync."""
+        '''Apply smoothing for either timer or sync.'''
         self._smoothing_count += 1
-        for p, v in self._parameters_to_smooth.items():
+        for p, v in iteritems(self._parameters_to_smooth):
             param_value = v[2] + (self._smoothing_count * v[0])
             if p.is_quantized:
                 p.value = v[1]
@@ -332,9 +327,9 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                 p.value = param_value
 
     def get_parameter_data_to_smooth(self, parameter, new_value):
-        """Get parameter data to smooth and return list of smoothing value,
-        target value and current value.
-        """
+        '''Get parameter data to smooth and return list of smoothing
+        value, target value and current value.
+        '''
         factor = self._smoothing_speed
         if self._is_control_track and self._control_rack and self._control_rack.parameters[0].value == 1.0:
             factor = 127
@@ -353,7 +348,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
             parameter.value = new_value
 
     def get_snap_device_range(self, args, track):
-        """Get range of devices to snapshot."""
+        '''Get range of devices to snapshot.'''
         dev_args = args.replace('MIX', '')
         dev_args = dev_args.replace('PLAY', '')
         dev_args = dev_args.replace('DEV', '')
@@ -382,10 +377,10 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         return (start, end)
 
     def setup_tracks(self):
-        """Store dictionary of tracks by name."""
+        '''Store dictionary of tracks by name.'''
         self._current_tracks = {}
         self.remove_track_listeners()
-        for track in (tuple(self.song().tracks) + tuple(self.song().return_tracks) + (self.song().master_track,)):
+        for track in chain(self.song().tracks, self.song().return_tracks, (self.song().master_track,)):
             if not track.name_has_listener(self.setup_tracks):
                 track.add_name_listener(self.setup_tracks)
             name = self._parent.get_name(track.name)
@@ -393,7 +388,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
                 self._current_tracks[track.name] = track
 
     def remove_control_rack(self):
-        """Remove control rack listeners."""
+        '''Remove control rack listeners.'''
         if self._control_rack:
             self._control_rack.name = 'ClyphX Snap'
             if self._control_rack.parameters[1].value_has_listener(self.control_rack_macro_changed):
@@ -401,7 +396,7 @@ class ClyphXSnapActions(ControlSurfaceComponent):
         self._control_rack = None
 
     def remove_track_listeners(self):
-        """Remove track name listeners."""
-        for track in (tuple(self.song().tracks) + tuple(self.song().return_tracks) + (self.song().master_track,)):
+        '''Remove track name listeners.'''
+        for track in chain(self.song().tracks, self.song().return_tracks, (self.song().master_track,)):
             if track.name_has_listener(self.setup_tracks):
                 track.remove_name_listener(self.setup_tracks)

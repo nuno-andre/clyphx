@@ -17,7 +17,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core import XComponent
 from .midi_rack import MacrobatMidiRack
 from .rn_r_rack import MacrobatRnRRack
 from .sidechain_rack import MacrobatSidechainRack
@@ -29,25 +29,18 @@ from .parameter_racks9 import MacrobatChainSelectorRack, MacrobatDRPadMixRack
 from .push_rack import MacrobatPushRack
 
 
-class Macrobat(ControlSurfaceComponent):
+class Macrobat(XComponent):
+    '''Macrobat script component for ClyphX.
+    '''
     __module__ = __name__
-    __doc__ = 'Macrobat script component for ClyphX'
 
     def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(Macrobat, self).__init__(parent)
         self._current_tracks = []
 
     def disconnect(self):
         self._current_tracks = []
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        super(Macrobat, self).disconnect()
 
     def setup_tracks(self, track):
         """Setup component tracks on ini and track list changes."""
@@ -56,13 +49,13 @@ class Macrobat(ControlSurfaceComponent):
             MacrobatTrackComponent(track, self._parent)
 
 
-class MacrobatTrackComponent(ControlSurfaceComponent):
+class MacrobatTrackComponent(XComponent):
+    '''Track component that monitors track devices.
+    '''
     __module__ = __name__
-    __doc__ = 'Track component that monitors track devices'
 
     def __init__(self, track, parent):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(MacrobatTrackComponent, self).__init__(parent)
         self._track = track
         self._track.add_devices_listener(self.setup_devices)
         self._current_devices = []
@@ -78,19 +71,15 @@ class MacrobatTrackComponent(ControlSurfaceComponent):
             self.remove_devices(self._track.devices)
         self._track = None
         self._current_devices = []
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
+        super(MacrobatTrackComponent, self).disconnect()
 
     def update(self):
         if self._track and self.song().view.selected_track == self._track:
             self.setup_devices()
 
-    def on_enabled_changed(self):
-        pass
-
     def reallow_updates(self):
-        """Reallow device updates, used to prevent updates happening in quick
-        succession.
+        """Reallow device updates, used to prevent updates happening in
+        quick succession.
         """
         self._update_in_progress = False
 

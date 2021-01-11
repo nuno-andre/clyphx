@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import with_statement, absolute_import, unicode_literals
+from raven.utils.six import iteritems
 
 # from builtins import range
 from functools import partial
@@ -26,46 +27,40 @@ from _Framework.ControlSurface import ControlSurface
 from _Framework.SessionComponent import SessionComponent
 from _Framework.MixerComponent import MixerComponent
 from _Framework.DeviceComponent import DeviceComponent
+from ..core import XComponent
 from ..consts import REPEAT_STATES
 from .push import ClyphXPushActions
-from .pxt_live import ClyphXPXTActions
-from .mxt_live import ClyphXMXTActions
-from .arsenal import ClyphXArsenalActions
+from .pxt_live import XPxtActions
+from .mxt_live import XMxtActions
+from .arsenal import XArsenalActions
 
 
-class ClyphXControlSurfaceActions(ControlSurfaceComponent):
+# TODO: update, enable... ??
+class XControlSurfaceActions(XComponent):
     __module__ = __name__
     __doc__ = 'Actions related to control surfaces.'
 
     def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(XControlSurfaceActions, self).__init__(parent)
         self._push_actions = ClyphXPushActions(parent)
-        self._pxt_actions = ClyphXPXTActions(parent)
-        self._mxt_actions = ClyphXMXTActions(parent)
-        self._arsenal_actions = ClyphXArsenalActions(parent)
+        self._pxt_actions = XPxtActions(parent)
+        self._mxt_actions = XMxtActions(parent)
+        self._arsenal_actions = XArsenalActions(parent)
         self._scripts = {}
 
     def disconnect(self):
         self._scripts = {}
-        self._parent = None
         self._arsenal_actions = None
         self._push_actions = None
         self._pxt_actions = None
         self._mxt_actions = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        super(XControlSurfaceActions, self).disconnect()
 
     def connect_script_instances(self, instanciated_scripts):
-        """Build dict of connected scripts and their components, doesn't
+        '''Build dict of connected scripts and their components, doesn't
         work with non-Framework scripts, but does work with User Remote
         Scripts.
-        """
+        '''
         instanciated_scripts = self._parent._control_surfaces()
         self._scripts = {}
         for i in range(len(instanciated_scripts)):
@@ -150,27 +145,27 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         self._scripts[index]['device'] = script._device_component
 
     def dispatch_push_action(self, track, xclip, ident, action, args):
-        """Dispatch Push-related actions to PushActions."""
+        '''Dispatch Push-related actions to PushActions.'''
         if self._push_actions:
             self._push_actions.dispatch_action(track, xclip, ident, action, args)
 
     def dispatch_pxt_action(self, track, xclip, ident, action, args):
-        """Dispatch PXT-related actions to PXTActions."""
+        '''Dispatch PXT-related actions to PXTActions.'''
         if self._pxt_actions:
             self._pxt_actions.dispatch_action(track, xclip, ident, action, args)
 
     def dispatch_mxt_action(self, track, xclip, ident, action, args):
-        """Dispatch MXT-related actions to MXTActions."""
+        '''Dispatch MXT-related actions to MXTActions.'''
         if self._mxt_actions:
             self._mxt_actions.dispatch_action(track, xclip, ident, action, args)
 
     def dispatch_arsenal_action(self, track, xclip, ident, action, args):
-        """Dispatch Arsenal-related actions to ArsenalActions."""
+        '''Dispatch Arsenal-related actions to ArsenalActions.'''
         if self._arsenal_actions:
             self._arsenal_actions.dispatch_action(track, xclip, ident, action, args)
 
     def dispatch_cs_action(self, track, xclip, ident, action, args):
-        """Dispatch appropriate control surface actions."""
+        '''Dispatch appropriate control surface actions.'''
         script = self._get_script_to_operate_on(action)
         if script is not None:
             if 'METRO ' in args and 'metro' in self._scripts[script]:
@@ -202,10 +197,10 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                 )
 
     def _get_script_to_operate_on(self, script_info):
-        """Returns the script index to operate on, which can be specified in
+        '''Returns the script index to operate on, which can be specified in
         terms of its index or its name. Also, can use SURFACE (legacy) or CS
         (new) to indicate a surface action.
-        """
+        '''
         script = None
         try:
             script_spec = None
@@ -220,7 +215,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                     script = None
             else:
                 script_spec = script_spec.strip('"').strip()
-                for k, v in self._scripts.items():
+                for k, v in iteritems(self._scripts):
                     if v['name'] == script_spec:
                         script = k
         except:
@@ -228,7 +223,7 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         return script
 
     def handle_note_repeat(self, script, script_index, args):
-        """Set note repeat for the given surface."""
+        '''Set note repeat for the given surface.'''
         args = args.replace('RPT', '').strip()
         if args in REPEAT_STATES:
             if args == 'OFF':
@@ -243,9 +238,9 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
             script._c_instance.note_repeat.enabled = self._scripts[script_index]['repeat']
 
     def handle_track_action(self, script_key, mixer, xclip, ident, args):
-        """Get control surface track(s) to operate on and call main action
+        '''Get control surface track(s) to operate on and call main action
         dispatch.
-        """
+        '''
         track_start = None
         track_end = None
         track_range = args.split('/')[0]
@@ -273,7 +268,9 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                 track_start = None
                 track_end = None
         if track_start is not None and track_end is not None:
-            if 0 <= track_start and track_end < len(mixer._channel_strips) + 1 and track_start < track_end:
+            if (0 <= track_start and
+                    track_end < len(mixer._channel_strips) + 1 and
+                    track_start < track_end):
                 track_list = []
                 if self._scripts[script_key]['name'] == 'PUSH':
                     offset, _ = self._push_actions.get_session_offsets(self._scripts[script_key]['session'])
@@ -288,9 +285,9 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                     self._parent.action_dispatch(track_list, xclip, new_action, new_args, ident)
 
     def handle_track_bank(self, script_key, xclip, ident, mixer, session, args):
-        """Move track bank (or session bank) and select first track in bank...
+        '''Move track bank (or session bank) and select first track in bank...
         this works even with controllers without banks like User Remote Scripts.
-        """
+        '''
         if self._scripts[script_key]['name'] == 'PUSH':
             t_offset, s_offset = self._push_actions.get_session_offsets(session)
             tracks = session.tracks_to_use()
@@ -317,9 +314,9 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                 self.handle_track_action(script_key, mixer, xclip, ident, '1/SEL')
 
     def handle_session_offset(self, script_key, session, args):
-        """Handle moving session offset absolutely or relatively as well
+        '''Handle moving session offset absolutely or relatively as well
         as storing/recalling its last position.
-        """
+        '''
         if self._scripts[script_key]['name'] in ('PUSH', 'PUSH2'):
             last_pos = self._push_actions.handle_session_offset(
                 session, self._scripts[script_key]['last_ring_pos'], args, self._parse_ring_spec
@@ -345,10 +342,10 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
             pass
 
     def _parse_ring_spec(self, spec_id, arg_string, default_index, list_to_search):
-        """Parses a ring action specification and returns the specified
+        '''Parses a ring action specification and returns the specified
         track/scene index as well as the arg_string without the
         specification that was parsed.
-        """
+        '''
         index = default_index
         arg_array = arg_string.split()
         for a in arg_array:
@@ -375,15 +372,15 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
         return (index, arg_string)
 
     def handle_ring_link(self, session, script_index, args):
-        """Handles linking/unliking session offsets to the selected
+        '''Handles linking/unliking session offsets to the selected
         track or scene with centering if specified.
-        """
+        '''
         self._scripts[script_index]['track_link'] = args == 'T' or 'T ' in args or ' T' in args
         self._scripts[script_index]['scene_link'] = 'S' in args
         self._scripts[script_index]['centered_link'] = 'CENTER' in args
 
     def handle_session_colors(self, session, colors, args):
-        """Handle changing clip launch LED colors."""
+        '''Handle changing clip launch LED colors.'''
         args = args.split()
         if len(args) == 3:
             for a in args:
@@ -401,11 +398,11 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                     clip_slot.update()
 
     def handle_visual_metro(self, script, args):
-        """Handle visual metro for APCs and Launchpad.
+        '''Handle visual metro for APCs and Launchpad.
 
         This is a specialized version for L9 that uses component guard
         to avoid dependency issues.
-        """
+        '''
         if 'ON' in args and not script['metro']['component']:
             with self._parent.component_guard():
                 m = VisualMetro(self._parent,
@@ -417,13 +414,13 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
             script['metro']['component'] = None
 
     def on_selected_track_changed(self):
-        """Moves the track offset of all track linked surfaces to the
+        '''Moves the track offset of all track linked surfaces to the
         selected track with centering if specified.
-        """
+        '''
         trk = self.song().view.selected_track
         if trk in self.song().tracks:
             trk_id = list(self.song().visible_tracks).index(trk)
-            for k, v in self._scripts.items():
+            for k, v in iteritems(self._scripts):
                 if v['track_link']:
                     new_trk_id = trk_id
                     try:
@@ -450,11 +447,11 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                         pass
 
     def on_selected_scene_changed(self):
-        """Moves the scene offset of all scene linked surfaces to the
+        '''Moves the scene offset of all scene linked surfaces to the
         selected scene with centering if specified.
-        """
+        '''
         scn_id = list(self.song().scenes).index(self.song().view.selected_scene)
-        for k, v in self._scripts.items():
+        for k, v in iteritems(self._scripts):
             if v['scene_link']:
                 new_scn_id = scn_id
                 try:
@@ -482,13 +479,13 @@ class ClyphXControlSurfaceActions(ControlSurfaceComponent):
                     pass
 
 
-class VisualMetro(ControlSurfaceComponent):
+class VisualMetro(XComponent):
+    '''Visual metro for APCs and Launchpad.
+    '''
     __module__ = __name__
-    __doc__ = 'Visual metro for APCs and Launchpad'
 
     def __init__(self, parent, controls, override):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(VisualMetro, self).__init__(parent)
         self._controls = controls
         self._override = override
         self._last_beat = -1
@@ -502,19 +499,12 @@ class VisualMetro(ControlSurfaceComponent):
         self.song().remove_current_song_time_listener(self.on_time_changed)
         self.song().remove_is_playing_listener(self.on_time_changed)
         self._override = None
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        super(VisualMetro, self).disconnect()
 
     def on_time_changed(self):
-        """Show visual metronome via control LEDs upon beat changes
+        '''Show visual metronome via control LEDs upon beat changes
         (will not be shown if in Launchpad User 1).
-        """
+        '''
         if self.song().is_playing and (not self._override or
             (self._override and self._override._mode_index != 1)
         ):
@@ -530,6 +520,6 @@ class VisualMetro(ControlSurfaceComponent):
             self.clear()
 
     def clear(self):
-        """Clear all control LEDs."""
+        '''Clear all control LEDs.'''
         for c in self._controls:
             c.turn_off()

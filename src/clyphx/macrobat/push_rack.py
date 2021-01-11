@@ -16,18 +16,18 @@
 
 from __future__ import with_statement, absolute_import, unicode_literals
 
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core import XComponent
 from ..consts import NOTE_NAMES
 
 
-class MacrobatPushRack(ControlSurfaceComponent):
+class MacrobatPushRack(XComponent):
+    '''Sets up Macros 1 and 2 to control Push root note and scale type
+    respectively.
+    '''
     __module__ = __name__
-    __doc__ = ('Sets up Macros 1 and 2 to control Push root note and '
-               'scale type respectively.')
 
     def __init__(self, parent, rack):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
+        super(MacrobatPushRack, self).__init__(parent)
         self._rack = rack
         self._script = None
         self._push_ins = self._connect_to_push()
@@ -38,11 +38,7 @@ class MacrobatPushRack(ControlSurfaceComponent):
         self._rack = None
         self._script = None
         self._push_ins = None
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
+        super(MacrobatPushRack, self).disconnect()
 
     def update(self):
         self._push_ins = self._connect_to_push()
@@ -106,7 +102,8 @@ class MacrobatPushRack(ControlSurfaceComponent):
         self._script._scales_enabler._mode_map['enabled'].mode._component.update()
 
     def _update_rack_name(self):
-        '''Update rack name to reflect selected root note and scale type.'''
+        '''Update rack name to reflect selected root note and scale type.
+        '''
         if self._rack and self._push_ins:
             self._rack.name = 'nK SCL - {} - {}'.format(
                 NOTE_NAMES[self._push_ins._note_layout.root_note],
