@@ -9,7 +9,6 @@
   "editor.insertSpaces": true,
   "editor.unusualLineTerminators": "auto",
   "python.disableInstallationCheck": true,
-  "python.linting.flake8Enabled": true,
   "[python]": {
     "editor.rulers": [
       72,
@@ -27,5 +26,5 @@
   "[powershell]": {
     "files.encoding": "utf16le",
     "files.eol": "\r\n"
-  },
+  }
 }
