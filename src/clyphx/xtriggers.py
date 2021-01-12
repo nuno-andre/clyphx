@@ -52,7 +52,7 @@ class XControlComponent(XTrigger):
     def update(self):
         pass
 
-    def connect_script_instances(self, instanciated_scripts):
+    def connect_script_instances(self, instantiated_scripts):
         '''Try to connect to ClyphX_XT instances.'''
         ClyphX_XT = None
         for i in range(5):
@@ -67,11 +67,11 @@ class XControlComponent(XTrigger):
                     from ClyphX_XTD.ClyphX_XT import ClyphX_XT
                 elif i == 4:
                     from ClyphX_XTE.ClyphX_XT import ClyphX_XT
-            except:
+            except ImportError:
                 pass
             else:
                 if ClyphX_XT:
-                    for i in instanciated_scripts:
+                    for i in instantiated_scripts:
                         if isinstance(i, ClyphX_XT) and not i in self._xt_scripts:
                             self._xt_scripts.append(i)
                             break

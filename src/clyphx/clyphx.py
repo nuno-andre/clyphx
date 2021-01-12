@@ -84,7 +84,6 @@ class ClyphX(ControlSurface):
             self._play_seq_clips = {}
             self._loop_seq_clips = {}
             self._current_tracks = []
-            # live = Live.Application.get_application()
             self._can_have_nested_devices = True
             self.setup_tracks()
         msg = 'ClyphX LOG ------- %s ------- Live Version: %s ------- END LOG'
@@ -801,12 +800,12 @@ class ClyphX(ControlSurface):
         super(ClyphX, self)._on_track_list_changed()
         self.setup_tracks()
 
-    def connect_script_instances(self, instanciated_scripts):
+    def connect_script_instances(self, instantiated_scripts):
         '''Pass connect scripts call to control component.'''
-        self._control_component.connect_script_instances(instanciated_scripts)
-        self._control_surface_actions.connect_script_instances(instanciated_scripts)
+        self._control_component.connect_script_instances(instantiated_scripts)
+        self._control_surface_actions.connect_script_instances(instantiated_scripts)
         if self._push_emulation:
-            self.enable_push_emulation(instanciated_scripts)
+            self.enable_push_emulation(instantiated_scripts)
 
     def build_midi_map(self, midi_map_handle):
         '''Build user-defined list of midi messages for controlling

@@ -277,7 +277,8 @@ class XSnapActions(XComponent):
                 self._control_rack.name = 'ClyphX Snap'
 
     def control_rack_macro_changed(self):
-        '''Get param values to set based on macro value and build dict.'''
+        '''Get param values to set based on macro value and build dict.
+        '''
         if self._rack_smoothing_active and self._parameters_to_smooth and self._control_rack.parameters[0].value == 1.0:
             self._rack_parameters_to_smooth = {}
             macro_value = self._control_rack.parameters[1].value
@@ -331,16 +332,22 @@ class XSnapActions(XComponent):
         value, target value and current value.
         '''
         factor = self._smoothing_speed
-        if self._is_control_track and self._control_rack and self._control_rack.parameters[0].value == 1.0:
+        if (self._is_control_track and
+                self._control_rack and
+                self._control_rack.parameters[0].value == 1.0):
             factor = 127
         if factor and self._is_control_track:
             difference = new_value - parameter.value
             if difference and (factor == 127 or (factor != 127 and abs(difference) > 0.01)):
                 if parameter.is_quantized:
                     factor = 1
-                param_data = [(new_value - parameter.value) / factor, new_value, parameter.value]
+                param_data = [(new_value - parameter.value) / factor,
+                              new_value,
+                              parameter.value]
                 if difference < 0.0:
-                    param_data = [((parameter.value - new_value) / factor) * -1, new_value, parameter.value]
+                    param_data = [((parameter.value - new_value) / factor) * -1,
+                                  new_value,
+                                  parameter.value]
                 self._parameters_to_smooth[parameter] = param_data
             else:
                 parameter.value = new_value
@@ -380,7 +387,9 @@ class XSnapActions(XComponent):
         '''Store dictionary of tracks by name.'''
         self._current_tracks = {}
         self.remove_track_listeners()
-        for track in chain(self.song().tracks, self.song().return_tracks, (self.song().master_track,)):
+        for track in chain(self.song().tracks,
+                           self.song().return_tracks,
+                           (self.song().master_track,)):
             if not track.name_has_listener(self.setup_tracks):
                 track.add_name_listener(self.setup_tracks)
             name = self._parent.get_name(track.name)
@@ -397,6 +406,8 @@ class XSnapActions(XComponent):
 
     def remove_track_listeners(self):
         '''Remove track name listeners.'''
-        for track in chain(self.song().tracks, self.song().return_tracks, (self.song().master_track,)):
+        for track in chain(self.song().tracks,
+                           self.song().return_tracks,
+                           (self.song().master_track,)):
             if track.name_has_listener(self.setup_tracks):
                 track.remove_name_listener(self.setup_tracks)

@@ -20,14 +20,13 @@ import Live
 import _Framework.Task
 from ..core import XComponent
 
-HAS_PXT = False
 try:
     from _NKFW.ClipUtils import SEQ_RESOLUTIONS
     from _NKFW.Scales import SCALE_TYPES
     from _NKFW.ScalesComponent import EDITABLE_SCALE
     HAS_PXT = True
 except:
-    pass
+    HAS_PXT = False
 
 UNWRITABLE_INDEXES = (17, 35, 53)
 FULL_SEGMENT = 17
@@ -56,7 +55,8 @@ class XPxtActions(XComponent):
         super(XPxtActions, self).disconnect()
 
     def set_script(self, pxt_script):
-        '''Set the PXT script to connect to and get necessary components.
+        '''Set the PXT script to connect to and get necessary
+        components.
         '''
         self._script = pxt_script
         if self._script and self._script._components:

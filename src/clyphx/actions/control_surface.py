@@ -56,15 +56,15 @@ class XControlSurfaceActions(XComponent):
         self._mxt_actions = None
         super(XControlSurfaceActions, self).disconnect()
 
-    def connect_script_instances(self, instanciated_scripts):
+    def connect_script_instances(self, instantiated_scripts):
         '''Build dict of connected scripts and their components, doesn't
         work with non-Framework scripts, but does work with User Remote
         Scripts.
         '''
-        instanciated_scripts = self._parent._control_surfaces()
+        instantiated_scripts = self._parent._control_surfaces()
         self._scripts = {}
-        for i in range(len(instanciated_scripts)):
-            script = instanciated_scripts[i]
+        for i in range(len(instantiated_scripts)):
+            script = instantiated_scripts[i]
             self._scripts[i] = {
                 'script':        script,
                 'name':          None,
@@ -175,11 +175,15 @@ class XControlSurfaceActions(XComponent):
                     self._scripts[script]['session'], script, args[9:]
                 )
             elif 'RING ' in args and self._scripts[script]['session']:
-                self.handle_session_offset(script, self._scripts[script]['session'], args[5:])
-            elif 'COLORS ' in args and self._scripts[script]['session'] and self._scripts[script]['color']:
-                self.handle_session_colors(
-                    self._scripts[script]['session'], self._scripts[script]['color'], args[7:]
-                    )
+                self.handle_session_offset(script,
+                                           self._scripts[script]['session'],
+                                           args[5:])
+            elif ('COLORS ' in args and
+                    self._scripts[script]['session'] and
+                    self._scripts[script]['color']):
+                self.handle_session_colors(self._scripts[script]['session'],
+                                           self._scripts[script]['color'],
+                                           args[7:])
             elif 'DEV LOCK' in args and self._scripts[script]['device']:
                 self._scripts[script]['device'].canonical_parent.toggle_lock()
             elif 'BANK ' in args and self._scripts[script]['mixer']:
@@ -197,9 +201,9 @@ class XControlSurfaceActions(XComponent):
                 )
 
     def _get_script_to_operate_on(self, script_info):
-        '''Returns the script index to operate on, which can be specified in
-        terms of its index or its name. Also, can use SURFACE (legacy) or CS
-        (new) to indicate a surface action.
+        '''Returns the script index to operate on, which can be
+        specified in terms of its index or its name. Also, can use
+        SURFACE (legacy) or CS (new) to indicate a surface action.
         '''
         script = None
         try:
@@ -238,8 +242,8 @@ class XControlSurfaceActions(XComponent):
             script._c_instance.note_repeat.enabled = self._scripts[script_index]['repeat']
 
     def handle_track_action(self, script_key, mixer, xclip, ident, args):
-        '''Get control surface track(s) to operate on and call main action
-        dispatch.
+        '''Get control surface track(s) to operate on and call main
+        action dispatch.
         '''
         track_start = None
         track_end = None
@@ -285,8 +289,10 @@ class XControlSurfaceActions(XComponent):
                     self._parent.action_dispatch(track_list, xclip, new_action, new_args, ident)
 
     def handle_track_bank(self, script_key, xclip, ident, mixer, session, args):
-        '''Move track bank (or session bank) and select first track in bank...
-        this works even with controllers without banks like User Remote Scripts.
+        '''Move track (or session) bank and select first track in bank.
+
+        This works even with controllers without banks like
+        User Remote Scripts.
         '''
         if self._scripts[script_key]['name'] == 'PUSH':
             t_offset, s_offset = self._push_actions.get_session_offsets(session)

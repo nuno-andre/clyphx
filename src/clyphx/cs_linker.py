@@ -72,7 +72,7 @@ class CsLinker(ControlSurfaceComponent):
             else:
                 self.connect_script_instances(self.canonical_parent._control_surfaces())
 
-    def connect_script_instances(self, instanciated_scripts):
+    def connect_script_instances(self, instantiated_scripts):
         '''Attempts to find the two specified scripts, find their
         SessionComponents and create slave objects for them.
         '''
@@ -80,7 +80,7 @@ class CsLinker(ControlSurfaceComponent):
             scripts = [None, None]
             found_scripts = False
             scripts_have_same_name = self._script_names[0] == self._script_names[1]
-            for script in instanciated_scripts:
+            for script in instantiated_scripts:
                 script_name = script.__class__.__name__.upper()
                 if script_name in ('PUSH', 'PUSH2') or (
                     isinstance(script, ControlSurface) and script.components
@@ -157,7 +157,8 @@ class CsLinker(ControlSurfaceComponent):
 
 
 class SessionSlave(object):
-    '''SessionSlave is the base class for linking two SessionComponents.'''
+    '''SessionSlave is the base class for linking two SessionComponents.
+    '''
 
     def __init__(self, horz_link, multi_axis, self_comp, observed_comp, h_offset, v_offset):
         self._horizontal_link = horz_link

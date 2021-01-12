@@ -22,6 +22,7 @@ def get_python_info(serialize=True):
         'builtin_modules': sys.builtin_module_names,
         'executable':      sys.executable,
         # 'dllhandle':       sys.dllhandle,
+        'prefix':          sys.prefix,
         'exec_prefix':     sys.exec_prefix,
     }
 

@@ -21,9 +21,9 @@ accessing Live's API through Python.
 
 These are extremely vast subjects that would be difficult to support,
 particularly in the context of ClyphX, which is sometimes difficult to support
-on its own.  However, this script is full of comments to help you.  Also, the
+on its own. However, this script is full of comments to help you. Also, the
 rest of the scripts in the ClyphX folder include plenty of examples of how to
-do things.  Lastly, we would make the following recommendations:
+do things. Lastly, we would make the following recommendations:
 
 - You can edit this file with any text editor, but an IDE makes this easier: http://wingware.com/
 
@@ -33,8 +33,8 @@ do things.  Lastly, we would make the following recommendations:
 
 - Reference of Live functions and such that you can access: http://cycling74.com/docs/max5/refpages/m4l-ref/m4l_live_object_model.html
 
-- After making changes to this file, you will need to recompile.  The quickest
-  way to do that is by loading a set.  Note, however, that if you make a change
+- After making changes to this file, you will need to recompile. The quickest
+  way to do that is by loading a set. Note, however, that if you make a change
   that results in errors, this can sometimes break all control surface scripts
   (cause them to throw strange errors for no reason) until you reload Live.
 
@@ -51,16 +51,16 @@ TO CREATE ACTIONS:
   for some examples of how to set up functions.
 
 PARAMETER EXPLANATION:
-- track = the track to apply the action to.  If the action isn't applied to any
+- track = the track to apply the action to. If the action isn't applied to any
   particular track, this will either be the selected track (in the case of
-  X-Controls and X-Cues) or the track the X-Clip resides on.  All of the
+  X-Controls and X-Cues) or the track the X-Clip resides on. All of the
   actions CAN be (but don't HAVE to be) applied to ranges of tracks
-  (like 1-8/MY_ACTION, which will apply to tracks 1-8).  If applied to a range
+  (like 1-8/MY_ACTION, which will apply to tracks 1-8). If applied to a range
   of tracks, the function associated with the action will be called once for
   each track in the range.
 
-- args = these are arguments that follow the name of the action.  For example,
-  with the action VOL 10.  The 10 is an argument.  These arguments will always
+- args = these are arguments that follow the name of the action. For example,
+  with the action VOL 10. The 10 is an argument. These arguments will always
   be in all caps.
 
 RESTRICTIONS:

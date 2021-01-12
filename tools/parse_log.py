@@ -136,4 +136,4 @@ def rotate_logfile():
             except PermissionError:
                 log.error('Cannot rotate log. Is Live running?')
             else:
-                log.info(f'Log rotated. Last logs moved to: {dest}')
+                log.info('Log rotated. Last logs moved to: %s', dest)

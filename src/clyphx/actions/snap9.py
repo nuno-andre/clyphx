@@ -205,7 +205,9 @@ class XSnapActions(XComponent):
             if track in self._current_tracks:
                 track = self._current_tracks[track]
                 self._recall_mix_settings(track, param_data)
-                if param_data[PLAY_SETTINGS_POS] is not None and not track.is_foldable and track is not self.song().master_track:
+                if (param_data[PLAY_SETTINGS_POS] is not None and
+                        not track.is_foldable and
+                        track is not self.song().master_track):
                     if param_data[PLAY_SETTINGS_POS] < 0:
                         track.stop_all_clips()
                     elif (track.clip_slots[param_data[PLAY_SETTINGS_POS]].has_clip and
@@ -214,7 +216,9 @@ class XSnapActions(XComponent):
                 if param_data[DEVICE_SETTINGS_POS]:
                     self._recall_device_settings(track, param_data)
         if self._is_control_track and self._parameters_to_smooth:
-            if not self._control_rack or (self._control_rack and not self._control_rack.parameters[0].value == 1.0):
+            if (not self._control_rack or
+                    (self._control_rack and
+                        not self._control_rack.parameters[0].value == 1.0)):
                 self._smoothing_active = not is_synced
                 self._synced_smoothing_active = is_synced
             else:
@@ -224,18 +228,29 @@ class XSnapActions(XComponent):
         '''Recalls mixer related settings.'''
         if param_data[MIX_STD_SETTINGS_POS]:
             pan_value = param_data[MIX_STD_SETTINGS_POS][MIX_PAN_POS]
-            if track.mixer_device.volume.is_enabled and param_data[MIX_STD_SETTINGS_POS][MIX_VOL_POS] != -1:
-                self._get_parameter_data_to_smooth(track.mixer_device.volume, param_data[MIX_STD_SETTINGS_POS][MIX_VOL_POS])
+            if (track.mixer_device.volume.is_enabled and
+                    param_data[MIX_STD_SETTINGS_POS][MIX_VOL_POS] != -1):
+                self._get_parameter_data_to_smooth(
+                    track.mixer_device.volume,
+                    param_data[MIX_STD_SETTINGS_POS][MIX_VOL_POS]
+                )
             if track.mixer_device.panning.is_enabled and not isinstance(pan_value, int):
-                self._get_parameter_data_to_smooth(track.mixer_device.panning, param_data[MIX_STD_SETTINGS_POS][MIX_PAN_POS])
+                self._get_parameter_data_to_smooth(
+                    track.mixer_device.panning,
+                    param_data[MIX_STD_SETTINGS_POS][MIX_PAN_POS]
+                )
             if track is not self.song().master_track:
                 for i in range(len(param_data[MIX_STD_SETTINGS_POS])-MIX_SEND_START_POS):
-                    if i <= len(track.mixer_device.sends)-1 and track.mixer_device.sends[i].is_enabled:
-                        self._get_parameter_data_to_smooth(track.mixer_device.sends[i], param_data[MIX_STD_SETTINGS_POS][MIX_SEND_START_POS+i])
+                    if (i <= len(track.mixer_device.sends)-1 and
+                            track.mixer_device.sends[i].is_enabled):
+                        self._get_parameter_data_to_smooth(
+                            track.mixer_device.sends[i],
+                            param_data[MIX_STD_SETTINGS_POS][MIX_SEND_START_POS+i]
+                        )
         if param_data[1] and track is not self.song().master_track:
             track.mute = param_data[MIX_EXT_SETTINGS_POS][MIX_MUTE_POS]
             track.solo = param_data[MIX_EXT_SETTINGS_POS][MIX_SOLO_POS]
-            track.mixer_device.crossfade_assign =  param_data[MIX_EXT_SETTINGS_POS][MIX_CF_POS]
+            track.mixer_device.crossfade_assign = param_data[MIX_EXT_SETTINGS_POS][MIX_CF_POS]
 
     def _recall_device_settings(self, track, param_data):
         '''Recalls device related settings.'''
@@ -471,7 +486,9 @@ class XSnapActions(XComponent):
         '''Stores dictionary of tracks by name.'''
         self._current_tracks = {}
         self._remove_track_listeners()
-        for track in chain(self.song().tracks, self.song().return_tracks, (self.song().master_track,)):
+        for track in chain(self.song().tracks,
+                           self.song().return_tracks,
+                           (self.song().master_track,)):
             if not track.name_has_listener(self.setup_tracks):
                 track.add_name_listener(self.setup_tracks)
             name = self._parent.get_name(track.name)
@@ -498,6 +515,8 @@ class XSnapActions(XComponent):
 
     def _remove_track_listeners(self):
         '''Removes track name listeners.'''
-        for track in chain(self.song().tracks, self.song().return_tracks, (self.song().master_track,)):
+        for track in chain(self.song().tracks,
+                           self.song().return_tracks,
+                           (self.song().master_track,)):
             if track.name_has_listener(self.setup_tracks):
                 track.remove_name_listener(self.setup_tracks)

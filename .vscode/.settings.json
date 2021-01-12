@@ -9,6 +9,10 @@
   "editor.insertSpaces": true,
   "editor.unusualLineTerminators": "auto",
   "python.disableInstallationCheck": true,
+  "search.exclude": {
+    "**/.bin": true,
+    "**/.git": true
+  },
   "[python]": {
     "editor.rulers": [
       72,

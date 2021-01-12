@@ -163,6 +163,7 @@ class ExtraPrefs(XComponent):
             if self._clip_record_slot.has_clip_has_listener(self.clip_record_slot_changed):
                 self._clip_record_slot.remove_has_clip_listener(self.clip_record_slot_changed)
         self._clip_record_slot = None
+
         if self._midi_clip_length_slot:
             if self._midi_clip_length_slot.has_clip_has_listener(self.midi_clip_length_slot_changed):
                 self._midi_clip_length_slot.remove_has_clip_listener(self.midi_clip_length_slot_changed)

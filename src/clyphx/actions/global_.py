@@ -195,8 +195,7 @@ class XGlobalActions(XComponent):
         if isinstance(xclip, Live.Clip.Clip):
             current_name = xclip.name
             xclip.name = ''
-        value = value.strip()
-        if value:
+        if value and value.strip():
             try:
                 index = int(value) - 1
                 if 0 <= index < len(self.song().scenes):
@@ -710,12 +709,11 @@ class XGlobalActions(XComponent):
             new_gq = self.song().clip_trigger_quantization + factor
             if 0 <= new_gq < 14:
                 self.song().clip_trigger_quantization = new_gq
+        elif self.song().clip_trigger_quantization != 0:
+            self._last_gqntz = int(self.song().clip_trigger_quantization)
+            self.song().clip_trigger_quantization = 0
         else:
-            if self.song().clip_trigger_quantization != 0:
-                self._last_gqntz = int(self.song().clip_trigger_quantization)
-                self.song().clip_trigger_quantization = 0
-            else:
-                self.song().clip_trigger_quantization = self._last_gqntz
+            self.song().clip_trigger_quantization = self._last_gqntz
 
     def adjust_record_quantize(self, track, xclip, ident, args):
         '''Adjust/set/toggle record quantization.'''
@@ -727,12 +725,11 @@ class XGlobalActions(XComponent):
             new_rq = self.song().midi_recording_quantization + factor
             if 0 <= new_rq < 9:
                 self.song().midi_recording_quantization = new_rq
+        elif self.song().midi_recording_quantization != 0:
+            self._last_rqntz = int(self.song().midi_recording_quantization)
+            self.song().midi_recording_quantization = 0
         else:
-            if self.song().midi_recording_quantization != 0:
-                self._last_rqntz = int(self.song().midi_recording_quantization)
-                self.song().midi_recording_quantization = 0
-            else:
-                self.song().midi_recording_quantization = self._last_rqntz
+            self.song().midi_recording_quantization = self._last_rqntz
 
     def adjust_time_signature(self, track, xclip, ident, args):
         '''Adjust global time signature.'''
@@ -776,10 +773,7 @@ class XGlobalActions(XComponent):
             if t.is_foldable:
                 if state_to_set is None:
                     state_to_set = not t.fold_state
-                if value in KEYWORDS:
-                    t.fold_state = KEYWORDS[value]
-                else:
-                    t.fold_state = state_to_set
+                t.fold_state = KEYWORDS.get(value, state_to_set)
 
     def set_scene(self, track, xclip, ident, args):
         '''Sets scene to play (doesn't launch xclip).'''
@@ -827,23 +821,22 @@ class XGlobalActions(XComponent):
         scene = list(self.song().scenes).index(self.song().view.selected_scene)
         if isinstance(xclip, Live.Clip.Clip):
             scene = xclip.canonical_parent.canonical_parent.playing_slot_index
-        if args != '':
-            if '"' in args:
-                scene_name = args[args.index('"')+1:]
-                if '"' in scene_name:
-                    scene_name = scene_name[0:scene_name.index('"')]
-                    for i in range(len(self.song().scenes)):
-                        if scene_name == self.song().scenes[i].name.upper():
-                            scene = i
-                            break
-            elif args == 'SEL':
-                scene = list(self.song().scenes).index(self.song().view.selected_scene)
-            else:
-                try:
-                    if 0 <= int(args) < len(self.song().scenes) + 1:
-                        scene = int(args) - 1
-                except:
-                    pass
+        if '"' in args:
+            scene_name = args[args.index('"')+1:]
+            if '"' in scene_name:
+                scene_name = scene_name[0:scene_name.index('"')]
+                for i in range(len(self.song().scenes)):
+                    if scene_name == self.song().scenes[i].name.upper():
+                        scene = i
+                        break
+        elif args == 'SEL':
+            scene = list(self.song().scenes).index(self.song().view.selected_scene)
+        elif args:
+            try:
+                if 0 <= int(args) < len(self.song().scenes) + 1:
+                    scene = int(args) - 1
+            except:
+                pass
         return scene
 
     def set_locator(self, track, xclip, ident, args):
@@ -911,7 +904,7 @@ class XGlobalActions(XComponent):
         factor = self.song().loop_length
         if args == '<':
             factor = -(factor)
-        if len(args) > 1:
+        elif len(args) > 1:
             factor = self._parent.get_adjustment_factor(args, True)
         new_start = self.song().loop_start + factor
         if new_start < 0.0:
@@ -922,6 +915,7 @@ class XGlobalActions(XComponent):
         '''For use with other loop actions, ensures that loop settings
         are within range.
         '''
+        # TODO: maybe (new_start + new_length < self.song().song_length) ?
         if new_start >= 0 and new_length >= 0 and new_length <= self.song().song_length:
             self.song().loop_start = new_start
             self.song().loop_length = new_length

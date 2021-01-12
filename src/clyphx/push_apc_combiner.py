@@ -43,8 +43,8 @@ class PushApcCombiner(XComponent):
         super(PushApcCombiner, self).disconnect()
 
     def set_up_scripts(self, scripts):
-        '''Remove current listeners, get Push/APC scripts, set up listeners
-        and also set feedback delay on APC+Push encoders.
+        '''Remove current listeners, get Push/APC scripts, set up
+        listeners and also set feedback delay on APC+Push encoders.
         '''
         self._remove_listeners()
         for script in scripts:
@@ -69,16 +69,6 @@ class PushApcCombiner(XComponent):
     def _get_session_component(self, script):
         '''Get the session component for the given script.
         '''
-        # comp = None
-        # if script and script._components:
-        #     for c in script.components:
-        #         if isinstance(c, SessionComponent):
-        #             comp = c
-        #             break
-        # if comp is None:
-        #     if hasattr(script, '_session_ring'):
-        #         return script._session_ring
-        # return comp
         if script and script._components:
             for c in script.components:
                 if isinstance(c, SessionComponent):

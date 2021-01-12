@@ -165,7 +165,7 @@ class XTrackActions(XComponent):
         '''Stops all clips on track w/no quantization option for Live 9.
         '''
         if track in self.song().tracks:
-            track.stop_all_clips(not value.strip() == 'NQ')
+            track.stop_all_clips(value.strip() != 'NQ')
 
     def set_play(self, track, xclip, ident, args):
         '''Plays clips normally. Allow empty slots unless using </> keywords.
@@ -205,12 +205,14 @@ class XTrackActions(XComponent):
         qntz_spec = arg_array[0]
         if 'BAR' in args:
             qntz_spec = '{} {}'.format(arg_array[0], arg_array[1])
-        if qntz_spec in GQ_STATES.keys():
+        try:
             qntz_to_use = GQ_STATES[qntz_spec]
-            slot_to_play = self._get_slot_index_to_play(track, xclip, args.replace(qntz_spec, '').strip())
-            if slot_to_play != -1:
-                track.clip_slots[slot_to_play].fire(force_legato=w_legato,
-                                                    launch_quantization=qntz_to_use)
+        except KeyError:
+            return
+        slot_to_play = self._get_slot_index_to_play(track, xclip, args.replace(qntz_spec, '').strip())
+        if slot_to_play != -1:
+            track.clip_slots[slot_to_play].fire(force_legato=w_legato,
+                                                launch_quantization=qntz_to_use)
 
     def _get_slot_index_to_play(self, track, xclip, args, allow_empty_slots=False):
         '''Returns the slot index to play based on keywords in the given args.
@@ -219,7 +221,7 @@ class XTrackActions(XComponent):
         if track in self.song().tracks:
             play_slot = track.playing_slot_index
             select_slot = list(self.song().scenes).index(self.song().view.selected_scene)
-            if args == '':
+            if not args:
                 if isinstance(xclip, Live.Clip.Clip):
                     slot_to_play = xclip.canonical_parent.canonical_parent.playing_slot_index
                 else:

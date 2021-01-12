@@ -31,29 +31,30 @@ class ClyphXClipEnvCapture(ControlSurfaceComponent):
 
     def capture(self, clip, track, args):
         clip.clear_all_envelopes()
-        if args == '' or 'MIX' in args:
+        if not args or 'MIX' in args:
             self._capture_mix_settings(clip, track, args)
-        if (args == '' or 'DEV' in args) and track.devices:
+        if (not args or 'DEV' in args) and track.devices:
             self._capture_device_settings(clip, track, args)
 
     def _capture_mix_settings(self, clip, track, args):
-        if not 'MIXS' in args:
+        if 'MIXS' not in args:
             self._insert_envelope(clip, track.mixer_device.volume)
             self._insert_envelope(clip, track.mixer_device.panning)
-        if not 'MIX-' in args:
+        if 'MIX-' not in args:
             for s in track.mixer_device.sends:
                 self._insert_envelope(clip, s)
 
     def _capture_device_settings(self, clip, track, args):
         dev_range = self._get_device_range(args, track)
         if dev_range:
-            for i in range(dev_range[0], dev_range[1]):
-                if i < len(track.devices):
-                    current_device = track.devices[i]
-                    for p in current_device.parameters:
-                        self._insert_envelope(clip, p)
-                    if current_device.can_have_chains:
-                        self._capture_nested_devices(clip, current_device)
+            start, end = dev_range[0:2]
+            end = min(end, len(track.devices))
+            for i in range(start, end):
+                current_device = track.devices[i]
+                for p in current_device.parameters:
+                    self._insert_envelope(clip, p)
+                if current_device.can_have_chains:
+                    self._capture_nested_devices(clip, current_device)
 
     def _capture_nested_devices(self, clip, rack):
         if rack.chains:
@@ -81,19 +82,18 @@ class ClyphXClipEnvCapture(ControlSurfaceComponent):
         """Returns range of devices to capture."""
         dev_args = args.replace('MIX', '')
         dev_args = dev_args.replace('DEV', '')
-        start = 0
-        end = start + 1
+        start, end = 0, 1
         if dev_args:
             if 'ALL' in dev_args:
                 start = 0
                 end = len(track.devices)
             elif '-' in dev_args:
                 try:
-                    name_split = dev_args.split('-')
-                    start = int(name_split[0].strip()) - 1
-                    end = int(name_split[1].strip())
+                    start, end = dev_args.split('-')
+                    start = int(start) - 1
+                    end = int(end)
                 except:
-                    pass
+                    start, end = 0, 1
             else:
                 try:
                     start = int(dev_args) - 1

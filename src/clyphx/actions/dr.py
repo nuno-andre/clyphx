@@ -17,29 +17,16 @@
 from __future__ import absolute_import, unicode_literals
 
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core import XComponent
 from ..consts import KEYWORDS
 
 MAX_SCROLL_POS = 28
 
 
-class XDrActions(ControlSurfaceComponent):
+class XDrActions(XComponent):
+    '''Drum Rack actions.
+    '''
     __module__ = __name__
-    __doc__ = 'Drum Rack actions'
-
-    def __init__(self, parent):
-        ControlSurfaceComponent.__init__(self)
-        self._parent = parent
-
-    def disconnect(self):
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
 
     def scroll_selector(self, dr, track, xclip, ident, args):
         '''Scroll Drum Rack selector up/down.'''
@@ -49,14 +36,15 @@ class XDrActions(ControlSurfaceComponent):
             pos = dr.view.drum_pads_scroll_position
             if factor > 0:
                 if pos < MAX_SCROLL_POS - factor:
-                    dr.view.drum_pads_scroll_position = pos + factor
+                    value = pos + factor
                 else:
-                    dr.view.drum_pads_scroll_position = MAX_SCROLL_POS
+                    value = MAX_SCROLL_POS
             else:
                 if pos + factor > 0:
-                    dr.view.drum_pads_scroll_position = pos + factor
+                    value = pos + factor
                 else:
-                    dr.view.drum_pads_scroll_position = 0
+                    value = 0
+            dr.view.drum_pads_scroll_position = value
 
     def unmute_all(self, dr, track, xclip, ident, args):
         '''Unmute all pads in the Drum Rack.'''

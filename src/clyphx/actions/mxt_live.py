@@ -18,7 +18,6 @@ from __future__ import absolute_import, unicode_literals
 
 import Live
 import _Framework.Task
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from ..core import XComponent
 
 MAX_CHARS = 52

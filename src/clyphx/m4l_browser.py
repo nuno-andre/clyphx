@@ -26,8 +26,8 @@ class XM4LBrowserInterface(XComponent):
     '''XM4LBrowserInterface provides access to browser data and
     methods for use in M4L devices.
 
-    NOTE: Lazy initialization is used, get_browser_tags method needs to be
-    called first in order to use other methods.
+    NOTE: Lazy initialization is used, get_browser_tags method needs to
+    be called first in order to use other methods.
     '''
     __module__ = __name__
 
@@ -59,7 +59,8 @@ class XM4LBrowserInterface(XComponent):
 
     def activate_hotswap(self):
         '''Activates hotswap for the device selected in Live, finds the
-        appropriate tag and device to use and returns the items for the device.
+        appropriate tag and device to use and returns the items for the
+        device.
         '''
         device = self.song().view.selected_track.view.selected_device
         items = []
@@ -115,7 +116,8 @@ class XM4LBrowserInterface(XComponent):
         return BROWSER_TAGS
 
     def get_devices_for_tag(self, tag_name):
-        '''Returns the list of devices for the given tag and stores the tag.
+        '''Returns the list of devices for the given tag and stores the
+        tag.
         '''
         self._selected_tag = self._browser[tag_name]
         return sorted(self._selected_tag['devices'])
@@ -179,7 +181,8 @@ class XM4LBrowserInterface(XComponent):
         return device_dict
 
     def _create_items_for_device(self, device):
-        '''Creates dict of loadable items for the given device or folder.
+        '''Returns a dict of loadable items for the given device or
+        folder.
         '''
         items = {c.name: c for c in device.children
                  if c.is_loadable and c.name != 'Drum Rack'}

@@ -217,7 +217,9 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
         receiver_macros = self.get_ident_macros(rack)
         if receiver_macros:
             self._sender_macros = []
-            for t in chain(self.song().tracks, self.song().return_tracks, (self.song().master_track,)):
+            for t in chain(self.song().tracks,
+                           self.song().return_tracks,
+                           (self.song().master_track,)):
                 self.get_sender_macros(t.devices)
             if self._sender_macros:
                 for r in receiver_macros:

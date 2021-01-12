@@ -305,5 +305,5 @@ class ClyphXPushActions(ControlSurfaceComponent):
         note = self._script._drum_component.selected_note
         if clip and note is not None:
             self._parent._clip_actions.do_clip_note_action(
-                clip, None, None, '', 'NOTES%s %s' % (note, args)
+                clip, None, None, '', 'NOTES{} {}'.format(note, args)
             )
