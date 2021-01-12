@@ -39,22 +39,22 @@ class XClipActions(XComponent):
         self._env_capture = ClyphXClipEnvCapture()
 
     def set_clip_name(self, clip, track, xclip, ident, args):
-        """Set clip's name."""
+        '''Set clip's name.'''
         args = args.strip()
         if args:
             clip.name = args
 
     def set_clip_on_off(self, clip, track, xclip, ident, value = None):
-        """Toggles or turns clip on/off."""
+        '''Toggles or turns clip on/off.'''
         clip.muted = not KEYWORDS.get(value, clip.muted)
 
     def set_warp(self, clip, track, xclip, ident, value = None):
-        """Toggles or turns clip warp on/off."""
+        '''Toggles or turns clip warp on/off.'''
         if clip.is_audio_clip:
             clip.warping = KEYWORDS.get(value.strip(), not clip.warping)
 
     def adjust_time_signature(self, clip, track, xclip, ident, args):
-        """Adjust clip's time signature."""
+        '''Adjust clip's time signature.'''
         if '/' in args:
             try:
                 num, denom = args.split('/')
@@ -64,7 +64,7 @@ class XClipActions(XComponent):
                 pass
 
     def adjust_detune(self, clip, track, xclip, ident, args):
-        """Adjust/set audio clip detune."""
+        '''Adjust/set audio clip detune.'''
         if clip.is_audio_clip:
             args = args.strip()
             if args.startswith(('<', '>')):
@@ -77,8 +77,8 @@ class XClipActions(XComponent):
                     pass
 
     def adjust_transpose(self, clip, track, xclip, ident, args):
-        """Adjust audio or midi clip transpose, also set audio clip transpose.
-        """
+        '''Adjust audio or midi clip transpose, also set audio clip transpose.
+        '''
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args)
@@ -94,8 +94,8 @@ class XClipActions(XComponent):
                     pass
 
     def adjust_gain(self, clip, track, xclip, ident, args):
-        """Adjust/set clip gain for Live 9. For settings, range is 0 - 127.
-        """
+        '''Adjust/set clip gain for Live 9. For settings, range is 0 - 127.
+        '''
         if clip.is_audio_clip:
             args = args.strip()
             if args.startswith(('<', '>')):
@@ -108,9 +108,9 @@ class XClipActions(XComponent):
                     pass
 
     def adjust_start(self, clip, track, xclip, ident, args):
-        """Adjust/set clip start exclusively for Live 9. In Live 8, same
+        '''Adjust/set clip start exclusively for Live 9. In Live 8, same
         as adjust_loop_start.
-        """
+        '''
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
@@ -128,7 +128,7 @@ class XClipActions(XComponent):
                 pass
 
     def adjust_loop_start(self, clip, track, xclip, ident, args):
-        """Adjust/set clip loop start if loop is on or clip start otherwise."""
+        '''Adjust/set clip loop start if loop is on or clip start otherwise.'''
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
@@ -140,9 +140,9 @@ class XClipActions(XComponent):
                 pass
 
     def adjust_end(self, clip, track, xclip, ident, args):
-        """Adjust/set clip end exclusively for Live 9. In Live 8, same as
+        '''Adjust/set clip end exclusively for Live 9. In Live 8, same as
         adjust_loop_end.
-        """
+        '''
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
@@ -162,7 +162,7 @@ class XClipActions(XComponent):
                 pass
 
     def adjust_loop_end(self, clip, track, xclip, ident, args):
-        """Adjust/set clip loop end if loop is on or close end otherwise."""
+        '''Adjust/set clip loop end if loop is on or close end otherwise.'''
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
@@ -174,9 +174,9 @@ class XClipActions(XComponent):
                 pass
 
     def adjust_cue_point(self, clip, track, xclip, ident, args):
-        """Adjust clip's start point and fire (also stores cue point if
+        '''Adjust clip's start point and fire (also stores cue point if
         not specified). Will not fire xclip itself as this causes a loop.
-        """
+        '''
         if clip.is_midi_clip or (clip.is_audio_clip and clip.warping):
             if args:
                 args = args.strip()
@@ -198,9 +198,9 @@ class XClipActions(XComponent):
                     xclip.name = '{} {}'.format(xclip.name.strip(), clip.loop_start)
 
     def adjust_warp_mode(self, clip, track, xclip, ident, args):
-        """Adjusts the warp mode of the clip. This cannot be applied if the
+        '''Adjusts the warp mode of the clip. This cannot be applied if the
         warp mode is currently rex (5).
-        """
+        '''
         if clip.is_audio_clip and clip.warping and clip.warp_mode != 5:
             args = args.strip()
             if args in WARP_MODES:
@@ -216,23 +216,23 @@ class XClipActions(XComponent):
                     clip.warp_mode = new_mode
 
     def adjust_grid_quantization(self, clip, track, xclip, ident, args):
-        """Adjusts clip grid quantization."""
+        '''Adjusts clip grid quantization.'''
         args = args.strip()
         if args in CLIP_GRID_STATES:
             clip.view.grid_quantization = CLIP_GRID_STATES[args]
 
     def set_triplet_grid(self, clip, track, xclip, ident, args):
-        """Toggles or turns triplet grid on or off."""
+        '''Toggles or turns triplet grid on or off.'''
         clip.view.grid_is_triplet = KEYWORDS.get(args, not clip.view.grid_is_triplet)
 
     def capture_to_envelope(self, clip, track, xclip, ident, args):
         self._env_capture.capture(clip, track, args)
 
     def insert_envelope(self, clip, track, xclip, ident, args):
-        """Inserts an envelope for the given parameter into the clip.
+        '''Inserts an envelope for the given parameter into the clip.
 
         This doesn't apply to quantized parameters.
-        """
+        '''
         args = args.strip()
         arg_array = args.split()
         if len(arg_array) > 1:
@@ -270,7 +270,7 @@ class XClipActions(XComponent):
                     self._perform_envelope_insertion(clip, param, env_type, env_range)
 
     def _perform_envelope_insertion(self, clip, param, env_type, env_range):
-        """Performs the actual insertion of the envelope into the clip."""
+        '''Performs the actual insertion of the envelope into the clip.'''
         env = clip.automation_envelope(param)
         if env:
             median = ((clip.loop_end - clip.loop_start) / 2.0) + clip.loop_start
@@ -306,9 +306,9 @@ class XClipActions(XComponent):
                             env.insert_step(beat, 1.0, env_range[0])
 
     def clear_envelope(self, clip, track, xclip, ident, args):
-        """Clears the envelope of the specified param or all envelopes from
+        '''Clears the envelope of the specified param or all envelopes from
         the given clip.
-        """
+        '''
         if args:
             param = self._get_envelope_parameter(track, args.strip())
             if param:
@@ -317,9 +317,9 @@ class XClipActions(XComponent):
             clip.clear_all_envelopes()
 
     def show_envelope(self, clip, track, xclip, ident, args):
-        """Shows the clip's envelope view and a particular envelope if
+        '''Shows the clip's envelope view and a particular envelope if
         specified. Requires 9.1 or later.
-        """
+        '''
         self.song().view.detail_clip = clip
         clip.view.show_envelope()
         if args:
@@ -328,9 +328,9 @@ class XClipActions(XComponent):
                 clip.view.select_envelope_parameter(param)
 
     def _get_envelope_parameter(self, track, args):
-        """Gets the selected, mixer or device parameter for envelope-related
+        '''Gets the selected, mixer or device parameter for envelope-related
         actions.
-        """
+        '''
         param = None
         if 'SEL' in args:
             param = self.song().view.selected_parameter
@@ -359,15 +359,15 @@ class XClipActions(XComponent):
         return param
 
     def hide_envelopes(self, clip, track, xclip, ident, args):
-        """Hides the clip's envelope view."""
+        '''Hides the clip's envelope view.'''
         clip.view.hide_envelope()
 
     def quantize(self, clip, track, xclip, ident, args):
-        """Quantizes notes or warp markers to the given quantization
+        '''Quantizes notes or warp markers to the given quantization
         value, at the (optional) given strength and with the (optional)
         percentage of swing. Can optionally be applied to specific notes
         or ranges of notes.
-        """
+        '''
         args = args.strip()
         arg_array = args.split()
         array_offset = 0
@@ -409,9 +409,9 @@ class XClipActions(XComponent):
             self.song().swing_amount = current_swing
 
     def duplicate_clip_content(self, clip, track, xclip, ident, args):
-        """Duplicates all the content in a MIDI clip and doubles loop length.
+        '''Duplicates all the content in a MIDI clip and doubles loop length.
         Will also zoom out to show entire loop if loop is on.
-        """
+        '''
         if clip.is_midi_clip:
             try:
                 clip.duplicate_loop()
@@ -419,23 +419,23 @@ class XClipActions(XComponent):
                 pass
 
     def delete_clip(self, clip, track, xclip, ident, args):
-        """Deletes the given clip."""
+        '''Deletes the given clip.'''
         clip.canonical_parent.delete_clip()
 
     def duplicate_clip(self, clip, track, xclip, ident, args):
-        """Duplicates the given clip. This will overwrite clips if any exist
+        '''Duplicates the given clip. This will overwrite clips if any exist
         in the slots used for duplication.
-        """
+        '''
         try:
             track.duplicate_clip_slot(list(track.clip_slots).index(clip.canonical_parent))
         except:
             pass
 
     def chop_clip(self, clip, track, xclip, ident, args):
-        """Duplicates the clip the number of times specified and sets evenly
+        '''Duplicates the clip the number of times specified and sets evenly
         distributed start points across all duplicates. This will overwrite
         clips if any exist in the slots used for duplication.
-        """
+        '''
         args = args.strip()
         num_chops = 8
         if args:
@@ -458,10 +458,10 @@ class XClipActions(XComponent):
             pass
 
     def split_clip(self, clip, track, xclip, ident, args):
-        """Duplicates the clip and sets each duplicate to have the length
+        '''Duplicates the clip and sets each duplicate to have the length
         specified in args.  This will overwrite clips if any exist in the
         slots used for duplication.
-        """
+        '''
         try:
             bar_arg = float(args)
             bar_length = (4.0 / clip.signature_denominator) * clip.signature_numerator
@@ -488,9 +488,9 @@ class XClipActions(XComponent):
             pass
 
     def do_clip_loop_action(self, clip, track, xclip, ident, args):
-        """Handle clip loop actions."""
+        '''Handle clip loop actions.'''
         args = args.strip()
-        if args == '' or args in KEYWORDS:
+        if not args or args in KEYWORDS:
             self.set_loop_on_off(clip, args)
         else:
             if args.startswith('START'):
@@ -524,11 +524,11 @@ class XClipActions(XComponent):
                 self.set_new_loop_position(clip, new_start, new_end, clip_stats)
 
     def set_loop_on_off(self, clip, value = None):
-        """Toggles or turns clip loop on/off."""
+        '''Toggles or turns clip loop on/off.'''
         clip.looping = KEYWORDS.get(value, not clip.looping)
 
     def move_clip_loop_by_factor(self, clip, args, clip_stats):
-        """Move clip loop by its length or by a specified factor."""
+        '''Move clip loop by its length or by a specified factor.'''
         factor = clip_stats['loop_length']
         if args == '<':
             factor = -(factor)
@@ -542,9 +542,9 @@ class XClipActions(XComponent):
         self.set_new_loop_position(clip, new_start, new_end, clip_stats)
 
     def do_loop_set(self, clip, args, clip_stats):
-        """Set loop length and (if clip is playing) position, quantizes to 1/4
+        '''Set loop length and (if clip is playing) position, quantizes to 1/4
         by default or bar if specified.
-        """
+        '''
         try:
             qntz = False
             if 'B' in args:
@@ -566,9 +566,9 @@ class XClipActions(XComponent):
             pass
 
     def set_new_loop_position(self, clip, new_start, new_end, clip_stats):
-        """For use with other clip loop actions, ensures that loop settings
+        '''For use with other clip loop actions, ensures that loop settings
         are within range and applies in correct order.
-        """
+        '''
         if new_end <= clip_stats['real_end'] and new_start >= 0:
             # FIXME: same values
             if new_end > clip.loop_start:
@@ -579,7 +579,7 @@ class XClipActions(XComponent):
                 clip.loop_end = new_end
 
     def do_clip_note_action(self, clip, track, xclip, ident, args):
-        """Handle clip note actions."""
+        '''Handle clip note actions.'''
         if clip.is_audio_clip:
             return ()
         note_data = self.get_notes_to_operate_on(clip, args.strip())
@@ -613,11 +613,11 @@ class XClipActions(XComponent):
                 self.do_note_velo_adjustment(*args)
 
     def set_notes_on_off(self, clip, args, notes_to_edit, other_notes):
-        """Toggles or turns note mute on/off."""
+        '''Toggles or turns note mute on/off.'''
         edited_notes = []
         for n in notes_to_edit:
             new_mute = False
-            if args == '':
+            if not args:
                 new_mute = not n[4]
             elif args == 'ON':
                 new_mute = True
@@ -626,9 +626,9 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_pitch_adjustment(self, clip, factor):
-        """Adjust note pitch. This isn't a note action, it's called via Clip
-        Semi.
-        """
+        '''Adjust note pitch. This isn't a note action, it's called via
+        Clip Semi.
+        '''
         edited_notes = []
         note_data = self.get_notes_to_operate_on(clip)
         if note_data['notes_to_edit']:
@@ -643,7 +643,7 @@ class XClipActions(XComponent):
                 self.write_all_notes(clip, edited_notes, note_data['other_notes'])
 
     def do_note_gate_adjustment(self, clip, args, notes_to_edit, other_notes):
-        """Adjust note gate."""
+        '''Adjust note gate.'''
         edited_notes = []
         factor = self._parent.get_adjustment_factor(args.split()[1], True)
         for n in notes_to_edit:
@@ -657,7 +657,7 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_nudge_adjustment(self, clip, args, notes_to_edit, other_notes):
-        """Adjust note position."""
+        '''Adjust note position.'''
         edited_notes = []
         factor = self._parent.get_adjustment_factor(args.split()[1], True)
         for n in notes_to_edit:
@@ -671,7 +671,7 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_velo_adjustment(self, clip, args, notes_to_edit, other_notes):
-        """Adjust/set/randomize note velocity."""
+        '''Adjust/set/randomize note velocity.'''
         edited_notes = []
         args = args.replace('VELO ', '')
         args = args.strip()
@@ -695,7 +695,7 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_pitch_scramble(self, clip, args, notes_to_edit, other_notes):
-        """Scrambles the pitches in the clip, but maintains rhythm."""
+        '''Scrambles the pitches in the clip, but maintains rhythm.'''
         edited_notes = []
         pitches = [n[0] for n in notes_to_edit]
         random.shuffle(pitches)
@@ -711,8 +711,8 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_position_scramble(self, clip, args, notes_to_edit, other_notes):
-        """Scrambles the position of notes in the clip, but maintains pitches.
-        """
+        '''Scrambles the position of notes in the clip, but maintains pitches.
+        '''
         edited_notes = []
         positions = [n[1] for n in notes_to_edit]
         random.shuffle(positions)
@@ -728,7 +728,7 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_reverse(self, clip, args, notes_to_edit, other_notes):
-        """Reverse the position of notes."""
+        '''Reverse the position of notes.'''
         edited_notes = []
         for n in notes_to_edit:
             edited_notes.append(
@@ -738,7 +738,7 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_invert(self, clip, args, notes_to_edit, other_notes):
-        """ Inverts the pitch of notes."""
+        ''' Inverts the pitch of notes.'''
         edited_notes = []
         for n in notes_to_edit:
             edited_notes.append((127 - n[0], n[1], n[2], n[3], n[4]))
@@ -746,7 +746,7 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_compress(self, clip, args, notes_to_edit, other_notes):
-        """Compresses the position and duration of notes by half."""
+        '''Compresses the position and duration of notes by half.'''
         edited_notes = []
         for n in notes_to_edit:
             edited_notes.append((n[0], n[1] / 2, n[2] / 2, n[3], n[4]))
@@ -754,7 +754,7 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_expand(self, clip, args, notes_to_edit, other_notes):
-        """Expands the position and duration of notes by 2."""
+        '''Expands the position and duration of notes by 2.'''
         edited_notes = []
         for n in notes_to_edit:
             edited_notes.append((n[0], n[1] * 2, n[2] * 2, n[3], n[4]))
@@ -762,9 +762,9 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_split_or_combine(self, clip, args, notes_to_edit, other_notes):
-        """Split notes into 2 equal parts or combine each consecutive set of 2
+        '''Split notes into 2 equal parts or combine each consecutive set of 2
         notes.
-        """
+        '''
         edited_notes = [] ; current_note = [] ; check_next_instance = False
         if args == 'SPLIT':
             for n in notes_to_edit:
@@ -796,7 +796,7 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_crescendo(self, clip, args, notes_to_edit, other_notes):
-        """Applies crescendo/decrescendo to notes."""
+        '''Applies crescendo/decrescendo to notes.'''
         edited_notes = []; last_pos = -1; pos_index = 0; new_pos = -1; new_index = 0
         sorted_notes = sorted(notes_to_edit, key=lambda note: note[1], reverse=False)
         if args == 'VELO <<':
@@ -814,11 +814,11 @@ class XClipActions(XComponent):
             self.write_all_notes(clip, edited_notes, other_notes)
 
     def do_note_delete(self, clip, args, notes_to_edit, other_notes):
-        """Delete notes."""
+        '''Delete notes.'''
         self.write_all_notes(clip, [], other_notes)
 
     def get_clip_stats(self, clip):
-        """Get real length and end of looping clip."""
+        '''Get real length and end of looping clip.'''
         clip.looping = 0
         length = clip.length
         end = clip.loop_end
@@ -831,7 +831,7 @@ class XClipActions(XComponent):
         }
 
     def get_notes_to_operate_on(self, clip, args = None):
-        """Get notes within loop braces to operate on."""
+        '''Get notes within loop braces to operate on.'''
         notes_to_edit = []
         other_notes = []
         new_args = None
@@ -860,7 +860,7 @@ class XClipActions(XComponent):
         }
 
     def get_pos_range(self, clip, string):
-        """Get note position or range to operate on."""
+        '''Get note position or range to operate on.'''
         pos_range = (clip.loop_start, clip.loop_end)
         user_range = string.split('-')
         try:
@@ -877,7 +877,7 @@ class XClipActions(XComponent):
         return pos_range
 
     def get_note_range(self, string):
-        """Get note lane or range to operate on."""
+        '''Get note lane or range to operate on.'''
         note_range = (0,128)
         string = string.replace('NOTES', '')
         if len(string) > 1:
@@ -898,9 +898,9 @@ class XClipActions(XComponent):
         return note_range
 
     def get_note_range_from_string(self, string):
-        """Attempt to get note range (specified in ints) from string and
+        '''Attempt to get note range (specified in ints) from string and
         return it or None if not specified or invalid.
-        """
+        '''
         result = None
         int_split = string.split('-')
         try:
@@ -917,7 +917,7 @@ class XClipActions(XComponent):
         return result
 
     def get_note_name_from_string(self, string):
-        """Get the first note name specified in the given string."""
+        '''Get the first note name specified in the given string.'''
         result = None
         if len(string) >= 2:
             result = string[0:2].strip()
@@ -928,7 +928,7 @@ class XClipActions(XComponent):
         return result
 
     def string_to_note(self, string):
-        """Get note value from string."""
+        '''Get note value from string.'''
         converted_note = None
         base_note = None
         octave = None
@@ -947,7 +947,7 @@ class XClipActions(XComponent):
         return converted_note
 
     def write_all_notes(self, clip, edited_notes, other_notes):
-        """Writes new notes to clip."""
+        '''Writes new notes to clip.'''
         edited_notes.extend(other_notes)
         clip.select_all_notes()
         clip.replace_selected_notes(tuple(edited_notes))

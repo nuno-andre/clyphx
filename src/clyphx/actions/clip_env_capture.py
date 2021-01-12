@@ -20,11 +20,11 @@ from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
 
 class ClyphXClipEnvCapture(ControlSurfaceComponent):
-    """Captures mixer/device parameters as clip envelopes."""
+    '''Captures mixer/device parameters as clip envelopes.'''
 
     def disconnect(self):
         self._parent = None
-        ControlSurfaceComponent.disconnect(self)
+        super(ClyphXClipEnvCapture, self).disconnect()
 
     def update(self):
         pass
@@ -79,7 +79,7 @@ class ClyphXClipEnvCapture(ControlSurfaceComponent):
             env.insert_step(clip.loop_start, 0.0, param.value)
 
     def _get_device_range(self, args, track):
-        """Returns range of devices to capture."""
+        '''Returns range of devices to capture.'''
         dev_args = args.replace('MIX', '')
         dev_args = dev_args.replace('DEV', '')
         start, end = 0, 1

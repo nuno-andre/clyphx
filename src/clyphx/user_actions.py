@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
-"""This script allows you to create your own ClyphX actions that can be used
+'''This script allows you to create your own ClyphX actions that can be used
 like any other ClyphX action.
 
 PLEASE NOTE: nativeKONTROL cannot provide support on writing Python code or on
@@ -70,7 +70,7 @@ RESTRICTIONS:
 
 - Arguments should NOT use any of the special characters used in ClyphX:
   semi-colon(;), comma(,), percent sign(%), equals sign(=)
-"""
+'''
 from __future__ import absolute_import, unicode_literals
 
 import logging
@@ -78,9 +78,9 @@ import Live
 from .core import XComponent
 from .action_list import ActionList
 
-"""Through this logger you can write to Live's Log.txt file, which you'll
+'''Through this logger you can write to Live's Log.txt file, which you'll
 likely use quite a bit. The Troubleshooting section of the ClyphX manual covers
-how to access Log.txt."""
+how to access Log.txt.'''
 log = logging.getLogger(__name__)
 
 
@@ -93,7 +93,7 @@ class XUserActions(XComponent):
         # parent ClyphX initialization
         super(XUserActions, self).__init__(parent)
 
-        """Below is the dictionary of actions that this script provides.
+        '''Below is the dictionary of actions that this script provides.
 
         For each entry:
         - key: the one-word (case-insensitive) name of the action. This
@@ -103,7 +103,7 @@ class XUserActions(XComponent):
           perform the action.
 
         You can remove the 2 example entries from the dictionary if you wish.
-        """
+        '''
         # DO NOT REMOVE THIS
         self._action_dict = {
             'EX_ACTION_1': 'example_action_one',
@@ -111,7 +111,7 @@ class XUserActions(XComponent):
         }
 
     def example_action_one(self, track, args):
-        """Example action that writes to Live's log file and then triggers
+        '''Example action that writes to Live's log file and then triggers
         standard ClyphX METRO action.
 
         This can receive the same args as the METRO action (like EX_ACTION_1 ON),
@@ -124,19 +124,19 @@ class XUserActions(XComponent):
          - The ActionList object, which is just a simple object that contains
            a name field. You just instantiate one of these with the action
            list as a string(proceeded by an identifier).
-        """
+        '''
         log.info('example_action_one triggered with args=%s', args)
         self._parent.handle_action_list_trigger(self.song().view.selected_track,
                                                 ActionList('[] METRO {}'.format(args)))
 
     def example_action_two(self, track, args):
-        """Example action that sets mixer settings of the given track to
+        '''Example action that sets mixer settings of the given track to
         be the same as the master track.
 
         If no args or args contains VOL, sets volume.
         If no args or args contains PAN, sets panning.
         Obviously, does nothing if the given track is the master track.
-        """
+        '''
         if track != self.song().master_track:
             if not args or 'VOL' in args:
                 track.mixer_device.volume.value = self.song().master_track.mixer_device.volume.value
@@ -144,25 +144,25 @@ class XUserActions(XComponent):
                 track.mixer_device.panning.value = self.song().master_track.mixer_device.panning.value
 
     def on_track_list_changed(self):
-        """Called by the control surface if tracks are added/removed, to
+        '''Called by the control surface if tracks are added/removed, to
         be overridden.
-        """
+        '''
         pass
 
     def on_scene_list_changed(self):
-        """Called by the control surface if scenes are added/removed, to
+        '''Called by the control surface if scenes are added/removed, to
         be overridden.
-        """
+        '''
         pass
 
     def on_selected_track_changed(self):
-        """Called by the control surface when a track is selected, to be
+        '''Called by the control surface when a track is selected, to be
         overridden.
-        """
+        '''
         pass
 
     def on_selected_scene_changed(self):
-        """Called by the control surface when a scene is selected, to be
+        '''Called by the control surface when a scene is selected, to be
         overridden.
-        """
+        '''
         pass

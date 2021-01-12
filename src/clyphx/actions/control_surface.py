@@ -37,8 +37,9 @@ from .arsenal import XArsenalActions
 
 # TODO: update, enable... ??
 class XControlSurfaceActions(XComponent):
+    '''Actions related to control surfaces.
+    '''
     __module__ = __name__
-    __doc__ = 'Actions related to control surfaces.'
 
     def __init__(self, parent):
         super(XControlSurfaceActions, self).__init__(parent)

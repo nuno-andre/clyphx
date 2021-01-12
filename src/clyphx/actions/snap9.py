@@ -100,12 +100,12 @@ class XSnapActions(XComponent):
                 track_name = self._parent.get_name(track.name)
                 if not track_name.startswith('CLYPHX SNAP') and track.name not in snap_data:
                     self._current_track_data = [[], [], None, {}]
-                    if args == '' or 'MIX' in args:
+                    if not args or 'MIX' in args:
                         param_count += self._store_mix_settings(track, args)
                     if 'PLAY' in args and track in self.song().tracks:
                         self._current_track_data[PLAY_SETTINGS_POS] = track.playing_slot_index
                         param_count += 1
-                    if (args == '' or 'DEV' in args) and track.devices:
+                    if (not args or 'DEV' in args) and track.devices:
                         param_count += self._store_device_settings(track, args)
                     snap_data[track.name] = self._current_track_data
             if snap_data:
@@ -240,8 +240,8 @@ class XSnapActions(XComponent):
                     param_data[MIX_STD_SETTINGS_POS][MIX_PAN_POS]
                 )
             if track is not self.song().master_track:
-                for i in range(len(param_data[MIX_STD_SETTINGS_POS])-MIX_SEND_START_POS):
-                    if (i <= len(track.mixer_device.sends)-1 and
+                for i in range(len(param_data[MIX_STD_SETTINGS_POS]) - MIX_SEND_START_POS):
+                    if (i <= len(track.mixer_device.sends) - 1 and
                             track.mixer_device.sends[i].is_enabled):
                         self._get_parameter_data_to_smooth(
                             track.mixer_device.sends[i],
@@ -261,7 +261,10 @@ class XSnapActions(XComponent):
                         self._parent._can_have_nested_devices and
                         device.can_have_chains and
                         'chains' in param_data[DEVICE_SETTINGS_POS][device.name]):
-                    self._recall_nested_device_snap(device, param_data[DEVICE_SETTINGS_POS][device.name]['chains'])
+                    self._recall_nested_device_snap(
+                        device,
+                        param_data[DEVICE_SETTINGS_POS][device.name]['chains'],
+                    )
                 del param_data[DEVICE_SETTINGS_POS][device.name]
 
     def _recall_device_snap(self, device, stored_params):
@@ -315,7 +318,10 @@ class XSnapActions(XComponent):
                             num_sends = len(sends)
                             for i in range(len(stored_chain['mixer']) - CHAIN_SEND_START_POS):
                                 if i < num_sends and sends[i].is_enabled:
-                                    self._get_parameter_data_to_smooth(sends[i], stored_chain['mixer'][CHAIN_SEND_START_POS + i])
+                                    self._get_parameter_data_to_smooth(
+                                        sends[i],
+                                        stored_chain['mixer'][CHAIN_SEND_START_POS + i],
+                                    )
 
     def _init_smoothing(self, xclip):
         '''Initializes smoothing and returns whether or not smoothing is

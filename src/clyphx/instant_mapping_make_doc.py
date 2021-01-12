@@ -67,10 +67,10 @@ HEADER = (
 
 
 class InstantMappingMakeDoc(object):
-    """Creates a HTML file in the user's home directory containing
+    '''Creates a HTML file in the user's home directory containing
     information on the parameter banks defined for all Live devices in
     Devices.pyc.
-    """
+    '''
 
     def __init__(self):
         log.info('InstantMappingMakeDoc initialized.')
@@ -78,9 +78,9 @@ class InstantMappingMakeDoc(object):
         log.info('InstantMappingMakeDoc finished.')
 
     def _collect_device_infos(self):
-        """Returns a dict of dicts for each device containing its friendly
+        '''Returns a dict of dicts for each device containing its friendly
         name, bob parameters and bank names/bank parameters if applicable.
-        """
+        '''
         dev_dict = {}
         for k, v in DEVICE_DICT.iteritems():
             has_banks = len(v) > 1
@@ -94,8 +94,8 @@ class InstantMappingMakeDoc(object):
         return dev_dict
 
     def _create_html_file(self, dev_dict):
-        """Creates an HTML file in the user's home directory.
-        """
+        '''Creates an HTML file in the user's home directory.
+        '''
         html_file = os.path.join(os.path.expanduser('~'),
                                  'Live Instant Mapping Info.html')
         try:
@@ -112,14 +112,14 @@ class InstantMappingMakeDoc(object):
             log.error('IOError: Unable to write file.')
 
     def _get_device_index(self, dev_dict):
-        """Returns a sorted device index for quickly navigating the file.
-        """
+        '''Returns a sorted device index for quickly navigating the file.
+        '''
         # return sorted(map('<a href="#{name}">{name}<br>'.format_map, dev_dict.values()))
         return sorted(['<a href="#{0}">{0}<br>'.format(v['name'])
                        for v in dev_dict.values()])
 
     def _write_device_info(self, file, info):
-        """Writes info to the file for a device."""
+        '''Writes info to the file for a device.'''
         file.write('<h3><a id="{0}">{0}</h3>'.format(info['name']))
         self._write_bank_parameters(file, 'Best Of Banks', info['bob'])
         for i, bank in enumerate(info['bank_names']):
@@ -127,6 +127,6 @@ class InstantMappingMakeDoc(object):
         file.write('<br><font size=1><a href="#top">Back to Device Index</a></font><hr>')
 
     def _write_bank_parameters(self, file, bank_name, bank):
-        """Writes the bank name and its parameters to the file."""
+        '''Writes the bank name and its parameters to the file.'''
         params = ['P{}: {}<br>'.format(i + 1, p) for i, p in enumerate(bank) if p]
         file.write('<b>{}</b><br>{}<br>'.format(bank_name, '<br>'.join(params)))

@@ -26,8 +26,9 @@ from ..core import XComponent
 
 
 class XSnapActions(XComponent):
+    '''Snapshot-related actions.
+    '''
     __module__ = __name__
-    __doc__ = 'Snapshot-related actions'
 
     def __init__(self, parent):
         super(XSnapActions, self).__init__(parent)
@@ -75,7 +76,7 @@ class XSnapActions(XComponent):
                 track_name = self._parent.get_name(track.name)
                 if not track_name.startswith('CLYPHX SNAP') and track.name not in snap_data:
                     track_data = [[], [], None, {}]
-                    if args == '' or 'MIX' in args:
+                    if not args or 'MIX' in args:
                         if not 'MIXS' in args:
                             mix_vals = [track.mixer_device.volume.value,
                                         track.mixer_device.panning.value]
@@ -86,12 +87,14 @@ class XSnapActions(XComponent):
                         param_count += len(mix_vals)
                         track_data[0] = mix_vals
                         if ('MIX+' in args or 'MIX-' in args) and track != self.song().master_track:
-                            track_data[1] = [int(track.mute), int(track.solo), track.mixer_device.crossfade_assign]
+                            track_data[1] = [int(track.mute),
+                                             int(track.solo),
+                                             track.mixer_device.crossfade_assign]
                             param_count += 3
                     if 'PLAY' in args and track in self.song().tracks:
                         track_data[2] = track.playing_slot_index
                         param_count += 1
-                    if (args == '' or 'DEV' in args) and track.devices:
+                    if (not args or 'DEV' in args) and track.devices:
                         dev_range = self.get_snap_device_range(args, track)
                         if dev_range:
                             track_devices = {}
@@ -99,9 +102,13 @@ class XSnapActions(XComponent):
                                 if dev_index < (len(track.devices)):
                                     current_device = track.devices[dev_index]
                                     if current_device.name not in track_devices:
-                                        track_devices[current_device.name] = [[p.value for p in current_device.parameters], []]
+                                        track_devices[current_device.name] = [
+                                            [p.value for p in current_device.parameters], []
+                                        ]
                                         param_count += len(current_device.parameters)
-                                        if self._include_nested_devices and self._parent._can_have_nested_devices and current_device.can_have_chains:
+                                        if (self._include_nested_devices and
+                                                self._parent._can_have_nested_devices and
+                                                current_device.can_have_chains):
                                             nested_devices = self.get_nested_devices(current_device, [], 0)
                                             if nested_devices:
                                                 track_devices[current_device.name][1] = nested_devices[0]
@@ -118,8 +125,8 @@ class XSnapActions(XComponent):
                     self._parent.schedule_message(8, partial(self.refresh_xclip_name, (xclip, current_name)))
 
     def refresh_xclip_name(self, xclip_data):
-        '''Refreshes xclip's previous name in cases where a snap is asking to
-        store too many params.
+        '''Refreshes xclip's previous name in cases where a snap is
+        asking to store too many params.
         '''
         xclip_data[0].name = xclip_data[1]
 

@@ -24,8 +24,8 @@ from .sidechain_rack import MacrobatSidechainRack
 from .parameter_racks import (
     MacrobatLearnRack, MacrobatChainMixRack, MacrobatDRMultiRack,
     MacrobatDRRack, MacrobatReceiverRack, MacrobatTrackRack,
+    MacrobatChainSelectorRack, MacrobatDRPadMixRack,
 )
-from .parameter_racks9 import MacrobatChainSelectorRack, MacrobatDRPadMixRack
 from .push_rack import MacrobatPushRack
 
 
@@ -43,7 +43,7 @@ class Macrobat(XComponent):
         super(Macrobat, self).disconnect()
 
     def setup_tracks(self, track):
-        """Setup component tracks on ini and track list changes."""
+        '''Setup component tracks on ini and track list changes.'''
         if not track in self._current_tracks:
             self._current_tracks.append(track)
             MacrobatTrackComponent(track, self._parent)
@@ -78,13 +78,13 @@ class MacrobatTrackComponent(XComponent):
             self.setup_devices()
 
     def reallow_updates(self):
-        """Reallow device updates, used to prevent updates happening in
+        '''Reallow device updates, used to prevent updates happening in
         quick succession.
-        """
+        '''
         self._update_in_progress = False
 
     def setup_devices(self):
-        """Get devices on device/chain list and device name changes."""
+        '''Get devices on device/chain list and device name changes.'''
         if self._track and not self._update_in_progress:
             self._update_in_progress = True
             self._has_learn_rack = False
@@ -93,13 +93,13 @@ class MacrobatTrackComponent(XComponent):
             self._parent.schedule_message(5, self.reallow_updates)
 
     def remove_listeners(self):
-        """Disconnect Macrobat rack components."""
+        '''Disconnect Macrobat rack components.'''
         for d in self._current_devices:
             d[0].disconnect()
         self._current_devices = []
 
     def get_devices(self, dev_list):
-        """Go through device and chain lists and setup Macrobat racks."""
+        '''Go through device and chain lists and setup Macrobat racks.'''
         for d in dev_list:
             self.setup_macrobat_rack(d)
             if not d.name_has_listener(self.setup_devices):
@@ -113,7 +113,7 @@ class MacrobatTrackComponent(XComponent):
                     self.get_devices(c.devices)
 
     def setup_macrobat_rack(self, rack):
-        """Setup Macrobat rack if meets criteria."""
+        '''Setup Macrobat rack if meets criteria.'''
         if rack.class_name.endswith('GroupDevice'):
             name = self._parent.get_name(rack.name)
             m = None
@@ -147,7 +147,7 @@ class MacrobatTrackComponent(XComponent):
                 self._current_devices.append((m, rack))
 
     def remove_devices(self, dev_list):
-        """Remove all device listeners."""
+        '''Remove all device listeners.'''
         for d in dev_list:
             if d.name_has_listener(self.setup_devices):
                 d.remove_name_listener(self.setup_devices)
