@@ -78,8 +78,9 @@ class InstantMappingMakeDoc(object):
         log.info('InstantMappingMakeDoc finished.')
 
     def _collect_device_infos(self):
-        '''Returns a dict of dicts for each device containing its friendly
-        name, bob parameters and bank names/bank parameters if applicable.
+        '''Returns a dict of dicts for each device containing its
+        friendly name, bob parameters and bank names/bank parameters if
+        applicable.
         '''
         dev_dict = {}
         for k, v in DEVICE_DICT.iteritems():

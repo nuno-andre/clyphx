@@ -23,14 +23,14 @@
 # Please DO NOT change the name of this file or its file extension.  When done 
 # making your changes to the settings below, just save the file.
  
-# After saving this file, you will need to close/restart Live for your changes 
+# After saving this file, you will need to restart Live for your changes 
 # to take effect.
    
-# For Windows 7/Vista users, depending on how your privileges are set up, you may 
-# not be able to save changes you make to this file. You may receive an error
-# such as Access Denied when trying to save. If this occurs, you will need to 
-# drag this file onto your desktop, then make your changes and save. When
-# done, drag the file back into the ClyphX folder.
+# For Windows 7/Vista users, depending on how your privileges are set up, you
+# may not be able to save changes you make to this file. You may receive an
+# error such as Access Denied when trying to save. If this occurs, you will
+# need to drag this file onto your desktop, then make your changes and save.
+# When done, drag the file back into the ClyphX folder.
 
 
 
@@ -58,7 +58,8 @@ SNAPSHOT_PARAMETER_LIMIT = 500
 
 # Note:
 # Please use caution when adjusting this setting. Recalling Snapshots that have
-# stored 1000 or more parameters can cause delays and momentary freezing of Live's GUI.
+# stored 1000 or more parameters can cause delays and momentary freezing of
+# Live's GUI.
 
 
 
@@ -126,9 +127,9 @@ CLIP_RECORD_LENGTH_SET_BY_GLOBAL_QUANTIZATION = Off
 
 # Description:
 # This changes the behavior of launching the selected Clip Slot so that 
-# (under the Conditions listed below) you can easily record a new Clip with a length 
-# defined by the Global Quantization value.  This will do nothing if the Conditions 
-# below aren't met.
+# (under the Conditions listed below) you can easily record a new Clip with a
+# length defined by the Global Quantization value.  This will do nothing if the
+# Conditions below aren't met.
 
 # Conditions:
 # - Selected Track is armed  
@@ -142,28 +143,30 @@ DEFAULT_INSERTED_MIDI_CLIP_LENGTH = 0
 # 0 (for Off) or 2 - 16 (for number of bars to use)
 
 # Description:
-# Upon inserting a blank MIDI Clip onto the selected Clip Slot, the Clip's length
-# will be set to the length (in bars) specified in the setting above.
+# Upon inserting a blank MIDI Clip onto the selected Clip Slot, the Clip's
+# length will be set to the length (in bars) specified in the setting above.
 
 # Note:
-# This will not change the default zoom setting of the Clip, so you'll only see the 
-# Clip's first bar. You'll need to zoom out to see the rest of the Clip.
+# This will not change the default zoom setting of the Clip, so you'll only see
+# the Clip's first bar. You'll need to zoom out to see the rest of the Clip.
 
 
 
 ***************************** [CSLINKER] **************************
 
 
-# CsLinker allows you to link the grid selectors (colored borders around clips) of 
-# two Control Surfaces either horizontally or vertically.    
+# CsLinker allows you to link the grid selectors (colored borders around clips)
+# of two Control Surfaces either horizontally or vertically.    
 
-# The Control Surface script names to use are as shown in Live's Control Surface chooser.  
-# If a Control Surface's name has a space in it (like MXT Live), you should use an underscore 
-# in place of the space (like MXT_Live).
+# The Control Surface script names to use are as shown in Live's Control Surface
+# chooser.  If a Control Surface's name has a space in it (like MXT Live), you
+# should use an underscore in place of the space (like MXT_Live).
 
-# Note, Push and Push2 cannot be used for matched linking.  Additionally, horizontal linking
-# with Push2 may produce undesirable results due to Push2's inclusion of Chain mixer settings
-# along side normal Track mixer settings. 
+# Note, Push and Push2 cannot be used for matched linking.  Additionally,
+# horizontal linking with Push2 may produce undesirable results due to Push2's
+# inclusion of Chain mixer settings along side normal Track mixer settings. 
+
+# You can also omit 'CSLINKER_' in props names, e.g.: MATCHED_LINK
 
 
 CSLINKER_MATCHED_LINK = False
@@ -171,9 +174,9 @@ CSLINKER_MATCHED_LINK = False
 # True for matched link or False for horizonal/vertical link.
 
 # Description:
-# Determines whether the two Control Surfaces should have a matched link meaning that
-# they will lay on top of each other.  This setting overrides CSLINKER_HORIZONTAL_LINK.
-# and CSLINKER_MULTI_AXIS_LINK.
+# Determines whether the two Control Surfaces should have a matched link meaning
+# that they will lay on top of each other.  This setting overrides
+# CSLINKER_HORIZONTAL_LINK and CSLINKER_MULTI_AXIS_LINK.
 
 
 
@@ -182,7 +185,8 @@ CSLINKER_HORIZONTAL_LINK = True
 # True for horizontal link or False for vertical link.
 
 # Description:
-# Determines whether the two Control Surfaces should be horizontal or vertically linked.
+# Determines whether the two Control Surfaces should be horizontal or vertically
+# linked.
 
 
 
@@ -190,8 +194,9 @@ CSLINKER_MULTI_AXIS_LINK = False
 # Setting:
 # True for multi-axis link.
 
-# Determines whether movement should be sychronized in all directions (vertical and horizontal) or
-# purely on a single axis determined by the CS_HORIZONTAL_LINK setting.
+# Determines whether movement should be sychronized in all directions (vertical
+# and horizontal) or purely on a single axis determined by the
+# CS_HORIZONTAL_LINK setting.
 
 
 
@@ -218,42 +223,39 @@ CSLINKER_SCRIPT_2_NAME = None
 
 # Below, you can specify a list of MIDI Controls to use as X-Controls. 
 
-# The entry format is: CONTROL_NAME = MSG_TYPE, MIDI_CHANNEL, NOTE_OR_CC_NUM, ON_ACTION_LIST
+# The entry format is:
+#     CONTROL_NAME = MSG_TYPE, MIDI_CHANNEL, NOTE_OR_CC_NUM, ON_ACTION_LIST
 
-# CONTROL_NAME = A unique one-word name (Identifier) for the control. See [IDENTIFIER NOTE] below. 
+# CONTROL_NAME = A unique one-word name (Identifier) for the control.
+#                See [IDENTIFIER NOTE] below. 
 # MSG_TYPE = The word Note or CC.
 # MIDI_CHANNEL = The MIDI Channel number in the range of 1 - 16
 # NOTE_OR_CC = The Note or CC number in the range of 0 - 127.
-# ON_ACTION_LIST = The Action List to perform when the control sends an on message.
+# ON_ACTION_LIST = The Action List to perform when the control sends an on
+#                  message.
 
 # Example: MY_BTN1 = NOTE, 1, 10, 1/MUTE ; 2/MUTE
 
-
-# You can optionally specify an Action List to perform when the control sends an off message.
-# To do this, place a comma after the On Action List and then specify the Off Action List.
+# You can optionally specify an Action List to perform when the control sends
+# an off message.  To do this, place a comma after the On Action List and then
+# specify the Off Action List.
 
 # Example: MY_BTN2 = CC, 16, 117, 1/MUTE ; 2/MUTE, 3/PLAY >
 
-
-# To perform the same Action List for the On Action List and Off Action List, just specify an asterick 
-# for the Off Action List.  
+# To perform the same Action List for the On Action List and Off Action List,
+# just specify an asterisk for the Off Action List.  
 
 # Example: MY_BTN3 = NOTE, 5, 0, 1/MUTE, *
 
-
-# Below is an example list that has been commented out (the # at the beginning of 
-# a line makes the line a comment). Your list should be formatted in the same way 
-# except without the # at the beginning of each line.
+# Below is an example list that has been commented out (the # at the beginning
+# of a line makes the line a comment). Your list should be formatted in the same
+# way except without the # at the beginning of each line.
 
 
 # btn_1 = note, 1, 0, mute , *
-
 # btn_2 = note, 1, 1, solo
-
 # btn_3 = cc, 9, 2, arm
-
 # btn_4 = cc, 9, 3, mon
-
 #>>>>>>>>DELETE THIS ENTIRE LINE AND START YOUR LIST HERE<<<<<<<<#
 
 
@@ -264,9 +266,10 @@ CSLINKER_SCRIPT_2_NAME = None
 
 # The entry format is: VARIABLE_NAME = VALUE
 
-# VARIABLE_NAME = A unique one-word name (Identifier) for the variable. See [IDENTIFIER NOTE] below.  
-# VALUE = Any value or word or combination of words. See the User Variables section of the manual for
-# more info on this.  
+# VARIABLE_NAME = A unique one-word name (Identifier) for the variable.
+#                 See [IDENTIFIER NOTE] below.  
+# VALUE = Any value or word or combination of words. See the User Variables
+#         section of the manual for more info on this.  
 
 # The Variables listed below are just examples and can be removed.
 
@@ -275,8 +278,10 @@ ex_var1 = 10
 ex_var2 = mute
 
 
-******************************* [IDENTIFIER NOTE] *******************************
+******************************* [IDENTIFIER NOTE] ******************************
 
 
-# Identifiers and Variable names should not contain characters other than letters, numbers and underscores.  
+# Identifiers and Variable names should not contain characters other than
+# letters, numbers and underscores.  
+
 # Also, Variable names and their values are not case-sensitive.

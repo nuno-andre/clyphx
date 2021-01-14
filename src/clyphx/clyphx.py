@@ -24,6 +24,7 @@ from _Framework.ControlSurface import ControlSurface
 from _Framework import Task
 from raven.utils.six import iteritems
 
+from .core import UserSettings
 from .macrobat import Macrobat
 from .extra_prefs import ExtraPrefs
 from .cs_linker import CsLinker
@@ -52,6 +53,9 @@ FOLDER = '/ClyphX/'
 SCRIPT_NAME = 'ClyphX v2.7.0'
 
 
+# def schedule_message(self, delay_in_ticks, callback, parameter = None):
+
+
 class ClyphX(ControlSurface):
     '''ClyphX Main.
     '''
@@ -64,9 +68,10 @@ class ClyphX(ControlSurface):
         self._push_emulation = False
         self._PushApcCombiner = None
         self._process_xclips_if_track_muted = True
+        self._user_settings = UserSettings()
         with self.component_guard():
             self._macrobat = Macrobat(self)
-            self._extra_prefs = ExtraPrefs(self)
+            self._extra_prefs = ExtraPrefs(self, self._user_settings.prefs)
             self._cs_linker = CsLinker()
             self._track_actions = XTrackActions(self)
             self._snap_actions = XSnapActions(self)
@@ -283,11 +288,12 @@ class ClyphX(ControlSurface):
                                       ident, self.track_list_to_string(action['track']), action['action'], action['args'])
 
     def get_xclip_action_list(self, xclip, full_action_list):
-        '''Get the action list to perform. X-Clips can have an on and
-        off action list separated by a comma. This will return which
-        action list to perform based on whether the clip is playing. If
-        the clip is not playing and there is no off action, this returns
-        None.
+        '''Get the action list to perform.
+
+        X-Clips can have an on and off action list separated by a comma.
+        This will return which action list to perform based on whether
+        the clip is playing. If the clip is not playing and there is no
+        off action, this returns None.
         '''
         result = None
         split_list = full_action_list.split(',')
@@ -301,37 +307,35 @@ class ClyphX(ControlSurface):
         log.debug('get_xclip_action_list returning %s', result)
         return result
 
-    def replace_user_variables(self, string_with_vars):
+    def replace_user_variables(self, string):
         '''Replace any user variables in the given string with the value
         the variable represents.
         '''
-        while '%' in string_with_vars:
-            var = string_with_vars[string_with_vars.index('%')+1:]
+        while '%' in string:
+            var = string[string.index('%')+1:]
             if '%' in var:
                 var = var[0:var.index('%')]
-                string_with_vars = string_with_vars.replace(
+                string = string.replace(
                     '%{}%'.format(var), self.get_user_variable_value(var), 1
                 )
             else:
-                string_with_vars = string_with_vars.replace('%', '', 1)
-        if '$' in string_with_vars:
+                string = string.replace('%', '', 1)
+        if '$' in string:
             # for compat with old-style variables
-            for string in string_with_vars.split():
-                if '$' in string and not '=' in string:
-                    var = string.replace('$', '')
-                    string_with_vars = string_with_vars.replace(
+            for s in string.split():
+                if '$' in s and not '=' in s:
+                    var = s.replace('$', '')
+                    string = string.replace(
                         '${}'.format(var), self.get_user_variable_value(var), 1
                     )
-        log.debug('replace_user_variables returning %s', string_with_vars)
-        return string_with_vars
+        log.debug('replace_user_variables returning %s', string)
+        return string
 
     def get_user_variable_value(self, var):
         '''Get the value of the given variable name or 0 if var name not
         found.
         '''
-        result = '0'
-        if var in self._user_variables:
-            result = self._user_variables[var]
+        result = self._user_variables.get(var, '0')
         log.debug('get_user_variable_value returning %s=%s', var, result)
         return result
 
@@ -556,7 +560,7 @@ class ClyphX(ControlSurface):
         if 'DEV"' in action_name:
             dev_name = action_name[action_name.index('"')+1:]
             if '"' in args:
-                dev_name = action_name[action_name.index('"')+1:] + ' ' + args
+                dev_name = '{} {}'.format(action_name[action_name.index('"')+1:], args)
                 device_args = args[args.index('"')+1:].strip()
             if '"' in dev_name:
                 dev_name = dev_name[0:dev_name.index('"')]
@@ -564,26 +568,25 @@ class ClyphX(ControlSurface):
                 if dev.name.upper() == dev_name:
                     device = dev
                     break
+        elif action_name == 'DEV':
+            device = track.view.selected_device
+            if device is None:
+                if track.devices:
+                    device = track.devices[0]
         else:
-            if action_name == 'DEV':
-                device = track.view.selected_device
-                if device is None:
-                    if track.devices:
-                        device = track.devices[0]
-            else:
-                try:
-                    dev_num = action_name.replace('DEV', '')
-                    if '.' in dev_num and self._can_have_nested_devices:
-                        dev_split = dev_num.split('.')
-                        top_level = track.devices[int(dev_split[0]) - 1]
-                        if top_level and top_level.can_have_chains:
-                            device = top_level.chains[int(dev_split[1]) - 1].devices[0]
-                            if len(dev_split) > 2:
-                                device = top_level.chains[int(dev_split[1]) - 1].devices[int(dev_split[2]) - 1]
-                    else:
-                        device = track.devices[int(dev_num) - 1]
-                except:
-                    pass
+            try:
+                dev_num = action_name.replace('DEV', '')
+                if '.' in dev_num and self._can_have_nested_devices:
+                    dev_split = dev_num.split('.')
+                    top_level = track.devices[int(dev_split[0]) - 1]
+                    if top_level and top_level.can_have_chains:
+                        device = top_level.chains[int(dev_split[1]) - 1].devices[0]
+                        if len(dev_split) > 2:
+                            device = top_level.chains[int(dev_split[1]) - 1].devices[int(dev_split[2]) - 1]
+                else:
+                    device = track.devices[int(dev_num) - 1]
+            except:
+                pass
         log.debug('get_device_to_operate_on returning device=%s and device args=%s',
                   device.name if device else 'None', device_args)
         return (device, device_args)
@@ -632,7 +635,7 @@ class ClyphX(ControlSurface):
                 dr = device
                 break
         log.debug('get_drum_rack_to_operate_on returning dr=%s',
-                  dr.name if dr else 'None')
+                  dr.name if dr else None)
         return dr
 
     def get_user_settings(self, midi_map_handle):
@@ -643,14 +646,13 @@ class ClyphX(ControlSurface):
 
         list_to_build = None
         ctrl_data = []
-        prefs_data = []
         try:
             mrs_path = ''
             for path in sys.path:
                 if 'MIDI Remote Scripts' in path:
                     mrs_path = path
                     break
-            user_file = mrs_path + FOLDER + 'UserSettings.txt'
+            user_file = '{}{}UserSettings.txt'.format(mrs_path, FOLDER)
             if not self._user_settings_logged:
                 log.info('Attempting to read UserSettings file: %s', user_file)
             for line in open(user_file):
@@ -675,8 +677,6 @@ class ClyphX(ControlSurface):
                             self.handle_user_variable_assignment(line)
                         elif list_to_build == 'controls':
                             ctrl_data.append(line)
-                        elif list_to_build == 'prefs':
-                            prefs_data.append(line)
                 elif 'PUSH_EMULATION' in line:
                     self._push_emulation = line.split('=')[1].strip() == 'ON'
                     if self._push_emulation:
@@ -686,10 +686,7 @@ class ClyphX(ControlSurface):
                         self.enable_push_emulation(self._control_surfaces())
                 elif line.startswith('INCLUDE_NESTED_DEVICES_IN_SNAPSHOTS ='):
                     include_nested = self.get_name(line[37:].strip())
-                    include_nested_devices = False
-                    if include_nested.startswith('ON'):
-                        include_nested_devices = True
-                    self._snap_actions._include_nested_devices = include_nested_devices
+                    self._snap_actions._include_nested_devices = include_nested.startswith('ON')
                 elif line.startswith('SNAPSHOT_PARAMETER_LIMIT ='):
                     try:
                         limit = int(line[26:].strip())
@@ -708,8 +705,6 @@ class ClyphX(ControlSurface):
                     self._cs_linker.parse_settings(line)
             if ctrl_data:
                 self._control_component.get_user_control_settings(ctrl_data, midi_map_handle)
-            if prefs_data:
-                self._extra_prefs.get_user_settings(prefs_data)
         except:
             pass
 
@@ -756,11 +751,12 @@ class ClyphX(ControlSurface):
         '''Convert list of tracks to a string of track names or None if
         no tracks. This is used for debugging.
         '''
+        # TODO: if no track_list result is 'None]'
         result = 'None'
         if track_list:
             result = '['
             for track in track_list:
-                result += track.name + ', '
+                result += '{}, '.format(track.name)
             result = result[:len(result)-2]
         return result + ']'
 
@@ -777,9 +773,7 @@ class ClyphX(ControlSurface):
         '''
         for t in self.song().tracks:
             self._macrobat.setup_tracks(t)
-            if self._current_tracks and t in self._current_tracks:
-                pass
-            else:
+            if not (self._current_tracks and t in self._current_tracks):
                 self._current_tracks.append(t)
                 XTrackComponent(self, t)
         for r in chain(self.song().return_tracks, (self.song().master_track,)):

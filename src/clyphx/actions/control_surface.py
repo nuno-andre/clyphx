@@ -92,9 +92,7 @@ class XControlSurfaceActions(XComponent):
                 if script_name == 'MXT_Live':
                     self._mxt_actions.set_script(script)
                 if not script_name.startswith('ClyphX'):
-                    if script._components is None:
-                        return
-                    else:
+                    if script._components is not None:
                         self._scripts[i]['name'] = script_name.upper()
                         for c in script.components:
                             if isinstance(c, SessionComponent):
@@ -110,7 +108,7 @@ class XControlSurfaceActions(XComponent):
                                         'component': None,
                                         'override':  None,
                                     }
-                                if script_name == 'Launchpad':
+                                elif script_name == 'Launchpad':
                                     self._scripts[i]['color'] = {
                                         'GREEN': (52, 56),
                                         'RED':   (7, 11),
@@ -516,8 +514,8 @@ class VisualMetro(XComponent):
             (self._override and self._override._mode_index != 1)
         ):
             time = str(self.song().get_current_beats_song_time()).split('.')
-            if self._last_beat != int(time[1])-1:
-                self._last_beat = int(time[1])-1
+            if self._last_beat != int(time[1]) - 1:
+                self._last_beat = int(time[1]) - 1
                 self.clear()
                 if self._last_beat < len(self._controls):
                     self._controls[self._last_beat].turn_on()

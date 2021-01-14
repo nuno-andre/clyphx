@@ -23,8 +23,8 @@ BROWSER_TAGS = ('Drums', 'Instruments', 'Audio Effects', 'MIDI Effects', 'Max fo
 
 
 class XM4LBrowserInterface(XComponent):
-    '''XM4LBrowserInterface provides access to browser data and
-    methods for use in M4L devices.
+    '''XM4LBrowserInterface provides access to browser data and methods
+    for use in M4L devices.
 
     NOTE: Lazy initialization is used, get_browser_tags method needs to
     be called first in order to use other methods.
@@ -130,7 +130,8 @@ class XM4LBrowserInterface(XComponent):
         return sorted(self._selected_device['folders'].keys()) + sorted(self._selected_device['items'])
 
     def get_items_for_folder(self, folder_name):
-        '''Returns the list of items in the given folder and stores the folder.
+        '''Returns the list of items in the given folder and stores the
+        folder.
         '''
         self._selected_folder = self._selected_device['folders'][folder_name]
         return sorted(self._selected_folder)

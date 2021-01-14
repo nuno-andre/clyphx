@@ -284,7 +284,9 @@ class XGlobalActions(XComponent):
         '''Returns the index of the current preset (based on the
         device's name) in the presets list. Returns -1 if not found.
         '''
-        current_preset_name = '{}.{}'.format(device.name, 'adg' if device.can_have_chains else 'adv')
+        current_preset_name = '{}.{}'.format(
+            device.name, 'adg' if device.can_have_chains else 'adv'
+        )
 
         for i in range(len(presets)):
             if presets[i].name == current_preset_name:
@@ -369,7 +371,7 @@ class XGlobalActions(XComponent):
                             break
             bar = (4.0 / self.song().signature_denominator) * self.song().signature_numerator
             try:
-                length = float(value.strip()) * bar
+                length = float(value) * bar
             except:
                 length = bar
             self.song().trigger_session_record(length)

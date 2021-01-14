@@ -8,4 +8,5 @@
 PS> git clone https://github.com/nuno-andre/clyphx.git
 PS> cd clyphx
 PS> . .\tools\win.ps1; install-runtime
+PS> python3 .\tools\vscode.py
 ```

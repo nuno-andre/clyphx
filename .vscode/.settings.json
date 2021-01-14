@@ -22,13 +22,18 @@
     "files.insertFinalNewline": true,
     "files.trimTrailingWhitespace": true
   },
-  "[git-commit]": {
+  "[properties]": {
     "editor.rulers": [
-      50
+      80
     ]
   },
   "[powershell]": {
     "files.encoding": "utf16le",
     "files.eol": "\r\n"
+  },
+  "[git-commit]": {
+    "editor.rulers": [
+      50
+    ]
   }
 }

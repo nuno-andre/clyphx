@@ -30,7 +30,7 @@ class CsLinker(ControlSurfaceComponent):
     '''
 
     def __init__(self):
-        ControlSurfaceComponent.__init__(self)
+        super(CsLinker, self).__init__()
         self._slave_objects = [None, None]
         self._script_names = None
         self._horizontal_link = False
@@ -43,7 +43,7 @@ class CsLinker(ControlSurfaceComponent):
             if obj:
                 obj.disconnect()
         self._slave_objects = None
-        ControlSurfaceComponent.disconnect(self)
+        super(CsLinker, self).disconnect()
 
     def update(self):
         pass
@@ -78,7 +78,6 @@ class CsLinker(ControlSurfaceComponent):
         '''
         if self._script_names:
             scripts = [None, None]
-            found_scripts = False
             scripts_have_same_name = self._script_names[0] == self._script_names[1]
             for script in instantiated_scripts:
                 script_name = script.__class__.__name__.upper()
@@ -92,50 +91,50 @@ class CsLinker(ControlSurfaceComponent):
                             scripts[0] = script
                     elif script_name == self._script_names[1]:
                         scripts[1] = script
-                    found_scripts = scripts[0] and scripts[1]
-                    if found_scripts:
+                    if scripts[0] and scripts[1]:
                         break
-            if found_scripts:
-                log.info('Scripts found (%s)', self.canonical_parent)
-                ssn_comps = []
-                for script in scripts:
-                    if script.__class__.__name__.upper() in ('PUSH', 'PUSH2'):
-                        ssn_comps.append(script._session_ring)
-                    for c in script.components:
-                        if isinstance (c, SessionComponent):
-                            ssn_comps.append(c)
-                            break
-                if len(ssn_comps) == 2:
-                    log.info('SessionComponents for specified scripts located (%s)',
-                             self.canonical_parent)
-                    if self._matched_link:
-                        for s in ssn_comps:
-                            s._link()
-                    else:
-                        if self._script_names[0] in ('PUSH', 'PUSH2'):
-                            h_offset = ssn_comps[0].num_tracks
-                            v_offset = ssn_comps[0].num_scenes
-                        else:
-                            h_offset = ssn_comps[0].width()
-                            v_offset = ssn_comps[0].height()
-                        h_offset_1 = 0 if not self._horizontal_link and self._multi_axis_link else -(h_offset)
-                        v_offset_1 = 0 if self._horizontal_link and self._multi_axis_link else -(v_offset)
-                        h_offset_2 = 0 if not self._horizontal_link and self._multi_axis_link else h_offset
-                        v_offset_2 = 0 if self._horizontal_link and self._multi_axis_link else v_offset
-                        self._slave_objects[0] = SessionSlave(
-                            self._horizontal_link, self._multi_axis_link,
-                            ssn_comps[0], ssn_comps[1], h_offset_1, v_offset_1,
-                        )
-                        self._slave_objects[1] = SessionSlaveSecondary(
-                            self._horizontal_link, self._multi_axis_link,
-                            ssn_comps[1], ssn_comps[0], h_offset_2, v_offset_2,
-                        )
-                        self.canonical_parent.schedule_message(10, self._refresh_slave_objects)
-                else:
-                    log.error('Unable to locate SessionComponents for specified scripts (%s)',
-                              self.canonical_parent)
             else:
                 log.error('Unable to locate specified scripts (%s)',
+                          self.canonical_parent)
+                return
+
+            log.info('Scripts found (%s)', self.canonical_parent)
+            ssn_comps = []
+            for script in scripts:
+                if script.__class__.__name__.upper() in ('PUSH', 'PUSH2'):
+                    ssn_comps.append(script._session_ring)
+                for c in script.components:
+                    if isinstance(c, SessionComponent):
+                        ssn_comps.append(c)
+                        break
+            if len(ssn_comps) == 2:
+                log.info('SessionComponents for specified scripts located (%s)',
+                         self.canonical_parent)
+                if self._matched_link:
+                    for s in ssn_comps:
+                        s._link()
+                else:
+                    if self._script_names[0] in ('PUSH', 'PUSH2'):
+                        h_offset = ssn_comps[0].num_tracks
+                        v_offset = ssn_comps[0].num_scenes
+                    else:
+                        h_offset = ssn_comps[0].width()
+                        v_offset = ssn_comps[0].height()
+                    h_offset_1 = 0 if not self._horizontal_link and self._multi_axis_link else -(h_offset)
+                    v_offset_1 = 0 if self._horizontal_link and self._multi_axis_link else -(v_offset)
+                    h_offset_2 = 0 if not self._horizontal_link and self._multi_axis_link else h_offset
+                    v_offset_2 = 0 if self._horizontal_link and self._multi_axis_link else v_offset
+                    self._slave_objects[0] = SessionSlave(
+                        self._horizontal_link, self._multi_axis_link,
+                        ssn_comps[0], ssn_comps[1], h_offset_1, v_offset_1,
+                    )
+                    self._slave_objects[1] = SessionSlaveSecondary(
+                        self._horizontal_link, self._multi_axis_link,
+                        ssn_comps[1], ssn_comps[0], h_offset_2, v_offset_2,
+                    )
+                    self.canonical_parent.schedule_message(10, self._refresh_slave_objects)
+            else:
+                log.error('Unable to locate SessionComponents for specified scripts (%s)',
                           self.canonical_parent)
 
     def on_track_list_changed(self):
@@ -155,9 +154,8 @@ class CsLinker(ControlSurfaceComponent):
                 obj._on_offsets_changed()
 
 
-
 class SessionSlave(object):
-    '''SessionSlave is the base class for linking two SessionComponents.
+    '''Base class for linking two SessionComponents.
     '''
 
     def __init__(self, horz_link, multi_axis, self_comp, observed_comp, h_offset, v_offset):
@@ -206,6 +204,7 @@ class SessionSlave(object):
                                                         self._self_scene_offset())
                 else:
                     return
+
         if not self._horizontal_link or self._multi_axis_link:
             if callable(self._self_ssn_comp.song):
                 new_num_scenes = len(self._self_ssn_comp.song().scenes)
@@ -233,27 +232,32 @@ class SessionSlave(object):
                     return
 
     def _observed_track_offset(self):
-        if callable(self._observed_ssn_comp.track_offset):
+        try:
             return self._observed_ssn_comp.track_offset()
-        return self._observed_ssn_comp.track_offset
+        except TypeError:
+            return self._observed_ssn_comp.track_offset
 
     def _self_track_offset(self):
-        if callable(self._self_ssn_comp.track_offset):
+        try:
             return self._self_ssn_comp.track_offset()
-        return self._self_ssn_comp.track_offset
+        except TypeError:
+            return self._self_ssn_comp.track_offset
 
     def _observed_scene_offset(self):
-        if callable(self._observed_ssn_comp.scene_offset):
+        try:
             return self._observed_ssn_comp.scene_offset()
-        return self._observed_ssn_comp.scene_offset
+        except TypeError:
+            return self._observed_ssn_comp.scene_offset
 
     def _self_scene_offset(self):
-        if callable(self._self_ssn_comp.scene_offset):
+        try:
             return self._self_ssn_comp.scene_offset()
-        return self._self_ssn_comp.scene_offset
+        except TypeError:
+            return self._self_ssn_comp.scene_offset
 
     def _track_offset_change_possible(self):
-        '''Returns whether or not moving the track offset is possible.'''
+        '''Returns whether or not moving the track offset is possible.
+        '''
         try:
             w = self._self_ssn_comp.width()
         except AttributeError:
@@ -265,7 +269,8 @@ class SessionSlave(object):
         return 0
 
     def _scene_offset_change_possible(self):
-        '''Returns whether or not moving the scene offset is possible.'''
+        '''Returns whether or not moving the scene offset is possible.
+        '''
         try:
             h = self._self_ssn_comp.height()
         except AttributeError:
@@ -278,10 +283,11 @@ class SessionSlave(object):
 
 
 class SessionSlaveSecondary(SessionSlave):
-    '''SessionSlaveSecondary is the second of the two linked slave objects.
+    '''SessionSlaveSecondary is the second of the two linked slave
+    objects.
 
-    This overrides the functions that return whether offsets can be changed
-    as well as the functions that return minimum offsets.
+    This overrides the functions that return whether offsets can be
+    changed as well as the functions that return minimum offsets.
     '''
 
     def _track_offset_change_possible(self):

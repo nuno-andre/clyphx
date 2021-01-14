@@ -19,7 +19,7 @@ from __future__ import absolute_import, unicode_literals
 import Live
 from ..core import XComponent
 from .midi_rack import MacrobatMidiRack
-from .rn_r_rack import MacrobatRnRRack
+from .rnr_rack import MacrobatRnRRack
 from .sidechain_rack import MacrobatSidechainRack
 from .parameter_racks import (
     MacrobatLearnRack, MacrobatChainMixRack, MacrobatDRMultiRack,
@@ -99,7 +99,8 @@ class MacrobatTrackComponent(XComponent):
         self._current_devices = []
 
     def get_devices(self, dev_list):
-        '''Go through device and chain lists and setup Macrobat racks.'''
+        '''Go through device and chain lists and setup Macrobat racks.
+        '''
         for d in dev_list:
             self.setup_macrobat_rack(d)
             if not d.name_has_listener(self.setup_devices):
@@ -130,7 +131,9 @@ class MacrobatTrackComponent(XComponent):
                     m = MacrobatChainMixRack(self._parent, rack, self._track)
                 elif name.startswith('NK DR'):
                     m = MacrobatDRRack(self._parent, rack, self._track)
-                elif name.startswith('NK LEARN') and self._track == self.song().master_track and not self._has_learn_rack:
+                elif (name.startswith('NK LEARN') and
+                        self._track == self.song().master_track and
+                        not self._has_learn_rack):
                     m = MacrobatLearnRack(self._parent, rack, self._track)
                     self._has_learn_rack = True
             elif name.startswith('NK MIDI'):

@@ -16,9 +16,12 @@
 
 from __future__ import absolute_import, unicode_literals
 
+import logging
 from functools import partial
 import Live
 from .core import XComponent
+
+log = logging.getLogger(__name__)
 
 
 class ExtraPrefs(XComponent):
@@ -26,14 +29,14 @@ class ExtraPrefs(XComponent):
     '''
     __module__ = __name__
 
-    def __init__(self, parent):
+    def __init__(self, parent, config):
         super(ExtraPrefs, self).__init__(parent)
-        self._show_highlight = True
-        self._exclusive_arm = False
-        self._exclusive_fold = False
-        self._clip_record = False
+        self._show_highlight = config.get('navigation_highlight', True)
+        self._exclusive_arm = config.get('exclusive_arm_on_select', False)
+        self._exclusive_fold = config.get('exclusive_show_group_on_select', False)
+        self._clip_record = config.get('clip_record_length_set_by_global_quantization', False)
         self._clip_record_slot = None
-        self._midi_clip_length = False
+        self._midi_clip_length = config.get('default_inserted_midi_clip_length', False)
         self._midi_clip_length_slot = None
         self._last_track = self.song().view.selected_track
         self.on_selected_track_changed()
@@ -44,28 +47,6 @@ class ExtraPrefs(XComponent):
         self._clip_record_slot = None
         self._midi_clip_length_slot = None
         super(ExtraPrefs, self).disconnect()
-
-    def get_user_settings(self, data):
-        '''Get user settings from config file and make sure they are in
-        proper range.
-        '''
-        for d in data:
-            k, v = d.split('=')
-            if 'NAVIGATION_HIGHLIGHT' in k:
-                self._show_highlight = 'ON' in v
-            elif 'EXCLUSIVE_ARM_ON_SELECT' in k and 'ON' in v:
-                self._exclusive_arm = True
-            elif 'EXCLUSIVE_SHOW_GROUP_ON_SELECT' in k and 'ON' in v:
-                self._exclusive_fold = True
-            elif 'CLIP_RECORD_LENGTH_SET_BY_GLOBAL_QUANTIZATION' in k and 'ON' in v:
-                self._clip_record = True
-            elif 'DEFAULT_INSERTED_MIDI_CLIP_LENGTH' in k:
-                try:
-                    if 2 <= int(v) < 17:
-                        self._midi_clip_length = int(v)
-                except:
-                    pass
-            self.on_selected_track_changed()
 
     def on_selected_track_changed(self):
         '''Handles navigation highlight, triggering exclusive arm/fold
@@ -95,13 +76,21 @@ class ExtraPrefs(XComponent):
         if self._clip_record:
             if track.can_be_armed and not clip_slot.has_clip:
                 self._clip_record_slot = clip_slot
-                if not self._clip_record_slot.has_clip_has_listener(self.clip_record_slot_changed):
-                    self._clip_record_slot.add_has_clip_listener(self.clip_record_slot_changed)
+                if not self._clip_record_slot.has_clip_has_listener(
+                    self.clip_record_slot_changed
+                ):
+                    self._clip_record_slot.add_has_clip_listener(
+                        self.clip_record_slot_changed
+                    )
         if self._midi_clip_length:
             if track.has_midi_input and not clip_slot.has_clip and not track.is_foldable:
                 self._midi_clip_length_slot = clip_slot
-                if not self._midi_clip_length_slot.has_clip_has_listener(self.midi_clip_length_slot_changed):
-                    self._midi_clip_length_slot.add_has_clip_listener(self.midi_clip_length_slot_changed)
+                if not self._midi_clip_length_slot.has_clip_has_listener(
+                    self.midi_clip_length_slot_changed
+                ):
+                    self._midi_clip_length_slot.add_has_clip_listener(
+                        self.midi_clip_length_slot_changed
+                    )
         self._last_track = track
 
     def do_exclusive_fold(self, track):
@@ -160,13 +149,21 @@ class ExtraPrefs(XComponent):
     def remove_listeners(self):
         '''Remove parameter listeners.'''
         if self._clip_record_slot:
-            if self._clip_record_slot.has_clip_has_listener(self.clip_record_slot_changed):
-                self._clip_record_slot.remove_has_clip_listener(self.clip_record_slot_changed)
+            if self._clip_record_slot.has_clip_has_listener(
+                self.clip_record_slot_changed
+            ):
+                self._clip_record_slot.remove_has_clip_listener(
+                    self.clip_record_slot_changed
+                )
         self._clip_record_slot = None
 
         if self._midi_clip_length_slot:
-            if self._midi_clip_length_slot.has_clip_has_listener(self.midi_clip_length_slot_changed):
-                self._midi_clip_length_slot.remove_has_clip_listener(self.midi_clip_length_slot_changed)
+            if self._midi_clip_length_slot.has_clip_has_listener(
+                self.midi_clip_length_slot_changed
+            ):
+                self._midi_clip_length_slot.remove_has_clip_listener(
+                    self.midi_clip_length_slot_changed
+                )
         self._midi_clip_length_slot = None
 
     def on_selected_scene_changed(self):

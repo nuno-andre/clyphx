@@ -27,3 +27,11 @@ def get_python_info(serialize=True):
     }
 
     return json.dumps(info, indent=4) if serialize else info
+
+
+def repr(self):
+    return '{}({})'.format(
+        type(self).__name__,
+        ', '.join('{}={}'.format(k, getattr(self, k))
+                    for k in self.__slots__),
+    )

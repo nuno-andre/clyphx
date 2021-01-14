@@ -50,15 +50,18 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
         '''Set up macro 1 and learned param.'''
         super(MacrobatLearnRack, self).setup_device(rack)
         self._rack = rack
-        param = self.song().view.selected_parameter
-        if 0 in LAST_PARAM:
+
+        try:
             param = LAST_PARAM[0]
+        except KeyError:
+            param = self.song().view.selected_parameter
+
         if self._rack and param:
             if self._rack.parameters[1].is_enabled and param.is_enabled:
                 index = 1
-                m_listener = lambda index = index:self.macro_changed(index)
+                m_listener = lambda i=index: self.macro_changed(i)
                 self._rack.parameters[1].add_value_listener(m_listener)
-                p_listener = lambda index = index:self.param_changed(index)
+                p_listener = lambda i=index: self.param_changed(i)
                 param.add_value_listener(p_listener)
                 self._param_macros[index] = (self._rack.parameters[1], param)
             self._tasks.add(self.get_initial_value)
