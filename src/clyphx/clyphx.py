@@ -53,9 +53,6 @@ FOLDER = '/ClyphX/'
 SCRIPT_NAME = 'ClyphX v2.7.0'
 
 
-# def schedule_message(self, delay_in_ticks, callback, parameter = None):
-
-
 class ClyphX(ControlSurface):
     '''ClyphX Main.
     '''

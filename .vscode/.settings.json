@@ -31,6 +31,9 @@
     "files.encoding": "utf16le",
     "files.eol": "\r\n"
   },
+  "[html]": {
+    "editor.tabSize": 2
+  },
   "[git-commit]": {
     "editor.rulers": [
       50
