@@ -22,4 +22,12 @@ from .device import XDeviceActions
 from .global_ import XGlobalActions
 from .dr import XDrActions
 from .snap9 import XSnapActions
-from .control_surface import XControlSurfaceActions
+from .control_surface import XCsActions
+from .consts import (
+    GLOBAL_ACTIONS,
+    TRACK_ACTIONS,
+    CLIP_ACTIONS,
+    DEVICE_ACTIONS,
+    LOOPER_ACTIONS,
+    DR_ACTIONS,
+)

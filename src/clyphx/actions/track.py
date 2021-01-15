@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import range
 
 import Live
 from ..consts import KEYWORDS
@@ -92,8 +93,7 @@ class XTrackActions(XComponent):
         '''
         if track in self.song().tracks and not track.is_foldable:
             name = args.strip() if args.strip() else track.name
-            for i in range(len(track.clip_slots)):
-                slot = track.clip_slots[i]
+            for i, slot in enumerate(track.clip_slots):
                 if slot.has_clip:
                     slot.clip.name = '{} {}'.format(name, i + 1)
 
@@ -146,7 +146,7 @@ class XTrackActions(XComponent):
         if track in self.song().tracks:
             if args:
                 try:
-                    self.song().view.selected_scene = list(self.song().scenes)[int(args)-1]
+                    self.song().view.selected_scene = list(self.song().scenes)[int(args) - 1]
                 except:
                     pass
             else:
@@ -209,7 +209,9 @@ class XTrackActions(XComponent):
             qntz_to_use = GQ_STATES[qntz_spec]
         except KeyError:
             return
-        slot_to_play = self._get_slot_index_to_play(track, xclip, args.replace(qntz_spec, '').strip())
+        slot_to_play = self._get_slot_index_to_play(
+            track, xclip, args.replace(qntz_spec, '').strip()
+        )
         if slot_to_play != -1:
             track.clip_slots[slot_to_play].fire(force_legato=w_legato,
                                                 launch_quantization=qntz_to_use)
@@ -228,7 +230,8 @@ class XTrackActions(XComponent):
                     slot_to_play = play_slot if play_slot >= 0 else select_slot
             elif args == 'SEL':
                 slot_to_play = select_slot
-            #--Don't allow randomization unless more than 1 scene
+            # TODO: repeated, check refactoring
+            # don't allow randomization unless more than 1 scene
             elif 'RND' in args and len(self.song().scenes) > 1:
                 num_scenes = len(self.song().scenes)
                 rnd_range = [0, num_scenes]
@@ -249,13 +252,13 @@ class XTrackActions(XComponent):
                 if slot_to_play == play_slot:
                     while slot_to_play == play_slot:
                         slot_to_play = Live.Application.get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
-            #--Don't allow adjustment unless more than 1 scene
+            # don't allow adjustment unless more than 1 scene
             elif args.startswith(('<', '>')) and len(self.song().scenes) > 1:
                 if track.is_foldable:
                     return -1
                 factor = self._parent.get_adjustment_factor(args)
                 if factor < len(self.song().scenes):
-                    #---Only launch slots that contain clips
+                    # only launch slots that contain clips
                     if abs(factor) == 1:
                         for _ in range(len(self.song().scenes)):
                             play_slot += factor

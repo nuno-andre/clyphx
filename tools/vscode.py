@@ -1,5 +1,3 @@
-
-
 #! /usr/bin/env python3
 from pathlib import Path
 from shutil import which
@@ -51,22 +49,26 @@ class Settings:
     def set_lib_paths(self):
         key = 'osx' if self.env.mac else 'windows'
 
-        paths = ['${workspaceFolder}/src/clyphx']
-        try:
-            path = self.env.resources / 'MIDI Remote Scripts'
-            paths.append(str(path))
-            self._config.update({
-                'python.autoComplete.extraPaths': [str(path)]
-            })
-        except:
-            pass
+        paths = [
+            '${workspaceFolder}/src/clyphx',
+            self.env.resources / 'Python/lib',
+            *list(self.env.resources.joinpath('Python/site-packages').iterdir()),
+            self.env.resources / 'Python/abl.live',
+            self.env.resources / 'MIDI Remote Scripts',
+        ]
 
         self._config.update({
+            'python.autoComplete.extraPaths': list(map(str, paths)),
+            'python.analysis.extraPaths': list(map(str, paths)),
             'terminal.integrated.env.{}'.format(key): {
                 'PATH': os.pathsep.join(['${workspaceFolder}/.bin', '${env:PATH}']),
-                'PYTHONPATH': os.pathsep.join(paths)
+                'PYTHONPATH': os.pathsep.join(map(str, paths)),
             }
         })
+
+        env = BASEDIR / '.env'
+        env.write_text('PYTHONPATH={}'.format(os.pathsep.join(map(str, paths))))
+        log.warning('.env file saved in %s', env)
 
     def set_linter(self):
         '''Add linting (flake8) configuration to VSCode.

@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super, dict
 
 import Live
 from .core import XComponent
@@ -32,12 +33,12 @@ class XM4LBrowserInterface(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
-        super(XM4LBrowserInterface, self).__init__(parent)
+        super().__init__(parent)
         self._selected_tag = None
         self._selected_device = None
         self._selected_folder = None
         self._selected_item = None
-        self._browser = {}
+        self._browser = dict()
 
     def disconnect(self):
         self._selected_tag = None
@@ -45,7 +46,7 @@ class XM4LBrowserInterface(XComponent):
         self._selected_folder = None
         self._selected_item = None
         self._browser = None
-        super(XM4LBrowserInterface, self).disconnect()
+        super().disconnect()
 
     def load_device(self):
         '''Loads the selected device if there is one.'''
@@ -109,10 +110,10 @@ class XM4LBrowserInterface(XComponent):
         if not self._browser:
             for tag in self.application().browser.tags:
                 if tag.name in BROWSER_TAGS:
-                    self._browser[tag.name] = {
-                        'tag':     tag,
-                        'devices': self._create_devices_for_tag(tag),
-                    }
+                    self._browser[tag.name] = dict(
+                        tag     = tag,
+                        devices = self._create_devices_for_tag(tag),
+                    )
         return BROWSER_TAGS
 
     def get_devices_for_tag(self, tag_name):
@@ -150,48 +151,48 @@ class XM4LBrowserInterface(XComponent):
         is needed for M4L tag, which only contains folders, and Drums
         tag, which ontains devices and folders.
         '''
-        device_dict = {}
+        device_dict = dict()
         if tag.name == 'Max for Live':
             for child in tag.children:
                 if child.is_folder:
                     for device in child.children:
                         if device.is_device:
-                            device_dict[child.name] = {
-                                'device':  device,
-                                'items':   self._create_items_for_device(child),
-                                'folders': {},
-                            }
+                            device_dict[child.name] = dict(
+                                device  = device,
+                                items   = self._create_items_for_device(child),
+                                folders = dict(),
+                            )
                             break
         else:
             for child in tag.children:
                 if child.is_device:
                     if tag.name == 'Drums':
-                        device_dict[child.name] = {
-                            'device':  child,
-                            'items':   self._create_items_for_device(tag),
-                            'folders': {},
-                        }
+                        device_dict[child.name] = dict(
+                            device  = child,
+                            items   = self._create_items_for_device(tag),
+                            folders = dict(),
+                        )
                     else:
-                        device_dict[child.name] = {
-                            'device':  child,
-                            'items':   self._create_items_for_device(child),
-                            'folders': self._create_folders_for_device(child),
-                        }
+                        device_dict[child.name] = dict(
+                            device  = child,
+                            items   = self._create_items_for_device(child),
+                            folders = self._create_folders_for_device(child),
+                        )
             if len(device_dict) == 1:
-                device_dict[' '] = {}
+                device_dict[' '] = dict()
         return device_dict
 
     def _create_items_for_device(self, device):
         '''Returns a dict of loadable items for the given device or
         folder.
         '''
-        items = {c.name: c for c in device.children
-                 if c.is_loadable and c.name != 'Drum Rack'}
+        items = dict((c.name, c) for c in device.children
+                     if c.is_loadable and c.name != 'Drum Rack')
         if len(items) == 1:
-            items[' '] = {}
+            items[' '] = dict()
         return items
 
     def _create_folders_for_device(self, device):
         '''Creates dict of folders for the given device.'''
-        return {'{} >'.format(c.name): self._create_items_for_device(c)
-                for c in device.children if c.is_folder}
+        return dict(('{} >'.format(c.name), self._create_items_for_device(c))
+                    for c in device.children if c.is_folder)

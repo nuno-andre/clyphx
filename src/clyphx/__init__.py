@@ -14,7 +14,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import, print_function, unicode_literals
+# from __future__ import absolute_import, unicode_literals
+import sys
+import os
+
+base = os.path.dirname(os.path.realpath(__file__))
+vendor = os.path.join(base, 'vendor', 'future')
+sys.path.insert(0, vendor)
+
+from future import standard_library
+standard_library.install_aliases()
 
 import Live
 from .clyphx import ClyphX

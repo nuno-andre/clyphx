@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super
 
 from functools import partial
 import Live
@@ -27,7 +28,7 @@ class MacrobatSidechainRack(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
-        super(MacrobatSidechainRack, self).__init__(parent)
+        super().__init__(parent)
         self._last_meter_left_val = -1
         self._last_meter_right_val = -1
         self._last_midi_meter_val = -1
@@ -45,7 +46,7 @@ class MacrobatSidechainRack(XComponent):
                 self._track.remove_output_meter_level_listener(self.midi_changed)
         self._track = None
         self._rack = None
-        super(MacrobatSidechainRack, self).disconnect()
+        super().disconnect()
 
     def setup_device(self):
         '''

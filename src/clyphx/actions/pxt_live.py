@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super, range, map
 
 import Live
 import _Framework.Task
@@ -39,7 +40,7 @@ class XPxtActions(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
-        super(XPxtActions, self).__init__(parent)
+        super().__init__(parent)
         self._script = None
         self._mono_seq_mode = None
         self._poly_seq_mode = None
@@ -52,7 +53,7 @@ class XPxtActions(XComponent):
         self._poly_seq_mode = None
         self._encoders = None
         self._message_display_line = None
-        super(XPxtActions, self).disconnect()
+        super().disconnect()
 
     def set_script(self, pxt_script):
         '''Set the PXT script to connect to and get necessary
@@ -96,7 +97,7 @@ class XPxtActions(XComponent):
                 note = comp._note_lane_components[comp._selected_lane_index]._note
                 start = comp._position_component._start_position
                 end = comp._position_component._end_position
-                self._parent._clip_actions.do_clip_note_action(
+                self._parent.clip_actions.do_clip_note_action(
                     clip, None, None, '', 'NOTES{} @{}-{} {}'.format(note, start, end, args)
                 )
 
@@ -131,7 +132,7 @@ class XPxtActions(XComponent):
                 if notes:
                     start = comp._position_component._start_position
                     end = comp._position_component._end_position
-                    self._parent._clip_actions.do_clip_note_action(
+                    self._parent.clip_actions.do_clip_note_action(
                         clip, None, None, '', 'NOTES{} @{}-{} {}'.format(notes, start, end, args)
                     )
 
@@ -160,27 +161,27 @@ class XPxtActions(XComponent):
 
     def _recall_seq_settings(self, args, comp):
         '''Recall the settings for the given seq comp.'''
-        arg_array = args.replace('CAP', '').strip().split()
+        arg_array = list(map(int, args.replace('CAP', '').strip().split()))
         if len(arg_array) >= 7:
             # res settings
-            res_comp = comp._resolution_component
-            if res_comp._resolution_buttons:
-                res_btn = res_comp._resolution_buttons[int(arg_array[0])]
-                res_comp._on_resolution_button_value(127, res_btn)
+            res = comp._resolution_component
+            if res._resolution_buttons:
+                res_btn = res._resolution_buttons[arg_array[0]]
+                res._on_resolution_button_value(127, res_btn)
             # velo settings
-            velo_comp = comp._velocity_component
-            velo_comp._fixed_velocity = int(arg_array[1])
-            velo_comp._velocity_type = int(arg_array[2])
-            velo_comp.update()
+            vel = comp._velocity_component
+            vel._fixed_velocity = arg_array[1]
+            vel._velocity_type = arg_array[2]
+            vel.update()
             # scale settings
-            scl_comp = comp._scales_component
-            scl_index = int(arg_array[3])
-            scl_comp._scale_index = scl_index
-            scl_comp._root_note = int(arg_array[4])
-            scl_comp._octave_offset = int(arg_array[5])
-            scl_comp._offset_within_octave = int(arg_array[6])
-            scl_comp._scale = EDITABLE_SCALE if scl_index == -1 else SCALE_TYPES[scl_index]
-            scl_comp._set_current_notes()
+            scl = comp._scales_component
+            i = arg_array[3]
+            scl._scale = EDITABLE_SCALE if i == -1 else SCALE_TYPES[i]
+            scl._scale_index = i
+            scl._root_note = arg_array[4]
+            scl._octave_offset = arg_array[5]
+            scl._offset_within_octave = arg_array[6]
+            scl._set_current_notes()
 
     def _handle_encoder_action(self, args):
         '''Reset or randomize the values of the parameters the encoders
@@ -193,6 +194,7 @@ class XPxtActions(XComponent):
                     p = enc.mapped_parameter()
                     if p and p.is_enabled and not p.is_quantized:
                         if randomize:
+                            # TODO: int?
                             p.value = (((p.max - p.min) / 127) * Live.Application.get_random_int(0, 128)) + p.min
                         else:
                             p.value = p.default_value
@@ -214,7 +216,7 @@ class XPxtActions(XComponent):
                                                      note_at_og_case[i:note_len])
                     note_len += 1
             new_len = len(note_at_og_case)
-            num_segments = (new_len / FULL_SEGMENT) + 1
+            num_segments = (new_len // FULL_SEGMENT) + 1
             for i in range(num_segments):
                 offset = FULL_SEGMENT_OFFSETS[i]
                 self._message_display_line.write_momentary(

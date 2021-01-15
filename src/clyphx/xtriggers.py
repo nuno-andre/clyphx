@@ -14,18 +14,18 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import absolute_import, unicode_literals
-from raven.utils.six import iteritems
+from builtins import super, dict, range
 
 from functools import partial
 import logging
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from .core import XComponent
 from .action_list import ActionList
 
 log = logging.getLogger(__name__)
 
 
-class XTrigger(ControlSurfaceComponent):
+class XTrigger(XComponent):
     pass
 
 
@@ -35,22 +35,14 @@ class XControlComponent(XTrigger):
     __module__ = __name__
 
     def __init__(self, parent):
-        super(XControlComponent, self).__init__()
-        self._parent = parent
-        self._control_list = {}
+        super().__init__(parent)
+        self._control_list = dict()
         self._xt_scripts = []
 
     def disconnect(self):
-        self._control_list = {}
+        self._control_list = dict()
         self._xt_scripts = []
-        self._parent = None
-        ControlSurfaceComponent.disconnect(self)
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        super().disconnect()
 
     def connect_script_instances(self, instantiated_scripts):
         '''Try to connect to ClyphX_XT instances.'''
@@ -83,7 +75,7 @@ class XControlComponent(XTrigger):
                 x.assign_new_actions(string)
         ident = string[string.index('[')+2:string.index(']')].strip()
         actions = string[string.index(']')+2:].strip()
-        for c, v in iteritems(self._control_list):
+        for c, v in self._control_list.items():
             if ident == v['ident']:
                 new_actions = actions.split(',')
                 on_action = '[{}] {}'.format(ident, new_actions[0])
@@ -122,7 +114,7 @@ class XControlComponent(XTrigger):
         '''Receives control data from user settings file and builds
         control dictionary.
         '''
-        self._control_list = {}
+        self._control_list = dict()
         for d in data:
             status_byte = None
             channel = None
@@ -150,12 +142,12 @@ class XControlComponent(XTrigger):
             except:
                 pass
             if status_byte and channel is not None and ctrl_num is not None and on_action:
-                self._control_list[(status_byte + channel, ctrl_num)] = {
-                    'ident':      ctrl_name,
-                    'on_action':  on_action,
-                    'off_action': off_action,
-                    'name':       ActionList(on_action),
-                }
+                self._control_list[(status_byte + channel, ctrl_num)] = dict(
+                    ident      = ctrl_name,
+                    on_action  = on_action,
+                    off_action = off_action,
+                    name       = ActionList(on_action),
+                )
                 if status_byte == 144:
                     fn = Live.MidiMap.forward_midi_note
                 else:
@@ -166,10 +158,12 @@ class XControlComponent(XTrigger):
         '''Called from main when build_midi_map is called.'''
         for key in self._control_list.keys():
             if key[0] >= 176:
+                # forwards a CC msg to the receive_midi method
                 Live.MidiMap.forward_midi_cc(
                     self._parent._c_instance.handle(), midi_map_handle, key[0] - 176, key[1]
                 )
             else:
+                # forwards a NOTE msg to the receive_midi method
                 Live.MidiMap.forward_midi_note(
                     self._parent._c_instance.handle(), midi_map_handle, key[0] - 144, key[1]
                 )
@@ -182,8 +176,7 @@ class XTrackComponent(XTrigger):
     __module__ = __name__
 
     def __init__(self, parent, track):
-        super(XTrackComponent, self).__init__()
-        self._parent = parent
+        super().__init__(parent)
         self._track = track
         self._clip = None
         self._loop_count = 0
@@ -202,14 +195,7 @@ class XTrackComponent(XTrigger):
         self._clip = None
         self._triggered_clips = []
         self._triggered_lseq_clip = None
-        self._parent = None
-        super(XTrackComponent, self).disconnect()
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        super().disconnect()
 
     def play_slot_index_changed(self):
         '''Called on track play slot index changes to set up clips to
@@ -255,13 +241,15 @@ class XTrackComponent(XTrigger):
         '''Continuous timer, calls main script if there are any triggered
         clips.
         '''
-        if self._track and (not self._track.mute or self._parent._process_xclips_if_track_muted):
+        if self._track and (not self._track.mute or
+                            self._parent._process_xclips_if_track_muted):
             if self._triggered_clips:
                 for clip in self._triggered_clips:
                     self._parent.handle_action_list_trigger(self._track, clip)
                 self._triggered_clips = []
             if self._triggered_lseq_clip:
-                self._parent.handle_loop_seq_action_list(self._triggered_lseq_clip, self._loop_count)
+                self._parent.handle_loop_seq_action_list(self._triggered_lseq_clip,
+                                                         self._loop_count)
                 self._triggered_lseq_clip = None
 
     def remove_loop_jump_listener(self):
@@ -277,12 +265,11 @@ class XCueComponent(XTrigger):
     __module__ = __name__
 
     def __init__(self, parent):
-        super(XCueComponent, self).__init__()
-        self._parent = parent
+        super().__init__(parent)
         self.song().add_current_song_time_listener(self.arrange_time_changed)
         self.song().add_is_playing_listener(self.arrange_time_changed)
         self.song().add_cue_points_listener(self.cue_points_changed)
-        self._x_points = {}
+        self._x_points = dict()
         self._x_point_time_to_watch_for = -1
         self._last_arrange_position = -1
         self._sorted_times = []
@@ -293,15 +280,8 @@ class XCueComponent(XTrigger):
         self.song().remove_current_song_time_listener(self.arrange_time_changed)
         self.song().remove_is_playing_listener(self.arrange_time_changed)
         self.song().remove_cue_points_listener(self.cue_points_changed)
-        self._x_points = {}
-        self._parent = None
-        super(XCueComponent, self).disconnect()
-
-    def on_enabled_changed(self):
-        pass
-
-    def update(self):
-        pass
+        self._x_points = dict()
+        super().disconnect()
 
     def cue_points_changed(self):
         '''Called on cue point changes to set up points to watch, cue
@@ -359,5 +339,5 @@ class XCueComponent(XTrigger):
                 cp.remove_time_listener(self.cue_points_changed)
             if cp.name_has_listener(self.cue_points_changed):
                 cp.remove_name_listener(self.cue_points_changed)
-        self._x_points = {}
+        self._x_points = dict()
         self._x_point_time_to_watch_for = -1

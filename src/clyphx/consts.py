@@ -14,10 +14,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-# NOTE: Action names and their corresponding values can't contain a '/' or '-'
-#       within the first four chars like this 'EX/ONE', but 'EXMP/ONE' is okay.
-
 from __future__ import unicode_literals
+from builtins import map, dict
 
 import Live
 
@@ -30,332 +28,191 @@ if LIVE_VERSION < (9, 5, 0):
     raise RuntimeError('Live releases earlier than 9.5 are not supported')
 
 
-GLOBAL_ACTIONS = {
-    'ASN':          'do_variable_assignment',
-    'ADDAUDIO':     'create_audio_track',
-    'ADDMIDI':      'create_midi_track',
-    'INSAUDIO':     'insert_and_configure_audio_track',
-    'INSMIDI':      'insert_and_configure_midi_track',
-    'ADDRETURN':    'create_return_track',
-    'ADDSCENE':     'create_scene',
-    'DELSCENE':     'delete_scene',
-    'DUPESCENE':    'duplicate_scene',
-    'LOADDEV':      'load_device',
-    'LOADM4L':      'load_m4l',
-    'SWAP':         'swap_device_preset',
-    'SREC':         'set_session_record',
-    'SRECFIX':      'trigger_session_record',
-    'SATM':         'set_session_automation_record',
-    'B2A':          'set_back_to_arrange',
-    'RPT':          'set_note_repeat',
-    'SWING':        'adjust_swing',
-    'BPM':          'adjust_tempo',
-    'DEVFIRST':     'move_to_first_device',
-    'DEVLAST':      'move_to_last_device',
-    'DEVLEFT':      'move_to_prev_device',
-    'DEVRIGHT':     'move_to_next_device',
-    'FOCBRWSR':     'focus_browser',
-    'FOCDETAIL':    'focus_detail',
-    'FOCMAIN':      'focus_main',
-    'GQ':           'adjust_global_quantize',
-    'GRV':          'adjust_groove',
-    'HZOOM':        'adjust_horizontal_zoom',
-    'VZOOM':        'adjust_vertical_zoom',
-    'UP':           'move_up',
-    'DOWN':         'move_down',
-    'LEFT':         'move_left',
-    'RIGHT':        'move_right',
-    'LOOP':         'do_loop_action',
-    'LOC':          'do_locator_action',
-    'LOCLOOP':      'do_locator_loop_action',
-    'METRO':        'set_metronome',
-    'MIDI':         'send_midi_message',
-    'OVER':         'set_overdub',
-    'PIN':          'set_punch_in',
-    'POUT':         'set_punch_out',
-    'REC':          'set_record',
-    'REDO':         'set_redo',
-    'UNDO':         'set_undo',
-    'RESTART':      'restart_transport',
-    'RQ':           'adjust_record_quantize',
-    'RTRIG':        'retrigger_recording_clips',
-    'SIG':          'adjust_time_signature',
-    'SCENE':        'set_scene',
-    'SHOWCLIP':     'show_clip_view',
-    'SHOWDEV':      'show_track_view',
-    'SHOWDETAIL':   'show_detail_view',
-    'TGLBRWSR':     'toggle_browser',
-    'TGLDETAIL':    'toggle_detail_view',
-    'TGLMAIN':      'toggle_main_view',
-    'STOPALL':      'set_stop_all',
-    'SETCONT':      'set_continue_playback',
-    'SETLOC':       'set_locator',
-    'SETSTOP':      'set_stop_transport',
-    'SETFOLD':      'set_fold_all',
-    'SETJUMP':      'set_jump_all',
-    'TAPBPM':       'set_tap_tempo',
-    'UNARM':        'set_unarm_all',
-    'UNMUTE':       'set_unmute_all',
-    'UNSOLO':       'set_unsolo_all',
-    'MAKE_DEV_DOC': 'make_instant_mapping_docs',
-}
+SCRIPT_NAME = 'ClyphX'
 
-TRACK_ACTIONS = {
-    'ARM':       'set_arm',
-    'MUTE':      'set_mute',
-    'SOLO':      'set_solo',
-    'MON':       'set_monitor',
-    'XFADE':     'set_xfade',
-    'SEL':       'set_selection',
-    'ADDCLIP':   'create_clip',
-    'DEL':       'delete_track',
-    'DELDEV':    'delete_device',
-    'DUPE':      'duplicate_track',
-    'FOLD':      'set_fold',
-    'PLAY':      'set_play',
-    'PLAYL':     'set_play_w_legato',
-    'PLAYQ':     'set_play_w_force_qntz',
-    'PLAYLQ':    'set_play_w_force_qntz_and_legato',
-    'STOP':      'set_stop',
-    'JUMP':      'set_jump',
-    'VOL':       'adjust_volume',
-    'PAN':       'adjust_pan',
-    'SEND':      'adjust_sends',
-    'CUE':       'adjust_preview_volume',
-    'XFADER':    'adjust_crossfader',
-    'IN':        'adjust_input_routing',
-    'INSUB':     'adjust_input_sub_routing',
-    'OUT':       'adjust_output_routing',
-    'OUTSUB':    'adjust_output_sub_routing',
-    'NAME':      'set_name',
-    'RENAMEALL': 'rename_all_clips',
-}
+SCRIPT_VERSION = (2, 7, 0)
 
-CLIP_ACTIONS = {
-    'CENT':      'adjust_detune',
-    'SEMI':      'adjust_transpose',
-    'GAIN':      'adjust_gain',
-    'CUE':       'adjust_cue_point',
-    'END':       'adjust_end',
-    'START':     'adjust_start',
-    'GRID':      'adjust_grid_quantization',
-    'TGRID':     'set_triplet_grid',
-    'ENVINS':    'insert_envelope',
-    'ENVCLR':    'clear_envelope',
-    'ENVCAP':    'capture_to_envelope',
-    'ENVSHOW':   'show_envelope',
-    'ENVHIDE':   'hide_envelopes',
-    'QNTZ':      'quantize',
-    'EXTEND':    'duplicate_clip_content',
-    'DEL':       'delete_clip',
-    'DUPE':      'duplicate_clip',
-    'CHOP':      'chop_clip',
-    'SPLIT':     'split_clip',
-    'WARPMODE':  'adjust_warp_mode',
-    'LOOP':      'do_clip_loop_action',
-    'SIG':       'adjust_time_signature',
-    'WARP':      'set_warp',
-    'NAME':      'set_clip_name'}
+SCRIPT_INFO = '{} v{}'.format(SCRIPT_NAME, '.'.join(map(str, SCRIPT_VERSION)))
 
-DEVICE_ACTIONS = {
-    'CSEL':  'adjust_selected_chain',
-    'CS':    'adjust_chain_selector',
-    'RESET': 'reset_params',
-    'RND':   'randomize_params',
-    'SEL':   'select_device',
-    'SET':   'set_all_params',
-    'P1':    'adjust_best_of_bank_param',
-    'P2':    'adjust_best_of_bank_param',
-    'P3':    'adjust_best_of_bank_param',
-    'P4':    'adjust_best_of_bank_param',
-    'P5':    'adjust_best_of_bank_param',
-    'P6':    'adjust_best_of_bank_param',
-    'P7':    'adjust_best_of_bank_param',
-    'P8':    'adjust_best_of_bank_param',
-    'B1':    'adjust_banked_param',
-    'B2':    'adjust_banked_param',
-    'B3':    'adjust_banked_param',
-    'B4':    'adjust_banked_param',
-    'B5':    'adjust_banked_param',
-    'B6':    'adjust_banked_param',
-    'B7':    'adjust_banked_param',
-    'B8':    'adjust_banked_param',
-}
+KEYWORDS = dict(ON=1, OFF=0)
 
-DR_ACTIONS = {
-    'SCROLL': 'scroll_selector',
-    'UNMUTE': 'unmute_all',
-    'UNSOLO': 'unsolo_all'
-}
+NOTE_NAMES = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
 
-LOOPER_ACTIONS = {
-    'LOOPER': 'set_looper_on_off',
-    'REV':    'set_looper_rev',
-    'OVER':   'set_looper_state',
-    'PLAY':   'set_looper_state',
-    'REC':    'set_looper_state',
-    'STOP':   'set_looper_state',
-}
+OCTAVE_NAMES = ('-2', '-1', '0', '1', '2', '3', '4', '5', '6', '7', '8')
 
-KEYWORDS = {'ON': 1, 'OFF': 0}
-
-NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-OCTAVE_NAMES = ['-2', '-1', '0', '1', '2', '3', '4', '5', '6', '7', '8']
-
-GQ_STATES = {
-    'NONE':   0,
-    '8 BARS': 1,
-    '4 BARS': 2,
-    '2 BARS': 3,
-    '1 BAR':  4,
-    '1/2':    5,
-    '1/2T':   6,
-    '1/4':    7,
-    '1/4T':   8,
-    '1/8':    9,
-    '1/8T':   10,
-    '1/16':   11,
-    '1/16T':  12,
-    '1/32':   13,
-}
-
-RQ_STATES = {
-    'NONE':         0,
-    '1/4':          1,
-    '1/8':          2,
-    '1/8T':         3,
-    '1/8 + 1/8T':   4,
-    '1/16':         5,
-    '1/16T':        6,
-    '1/16 + 1/16T': 7,
-    '1/32':         8,
-}
-
-XFADE_STATES = {
-    'A':   0,
-    'OFF': 1,
-    'B':   2,
-}
-
-MON_STATES = {
-    'IN':   0,
-    'AUTO': 1,
-    'OFF':  2,
-}
-
-LOOPER_STATES = {
-    'STOP': 0.0,
-    'REC':  1.0,
-    'PLAY': 2.0,
-    'OVER': 3.0,
-}
-
-
-R_QNTZ_STATES = {
-    '1/4':          Live.Song.RecordingQuantization.rec_q_quarter,
-    '1/8':          Live.Song.RecordingQuantization.rec_q_eight,
-    '1/8T':         Live.Song.RecordingQuantization.rec_q_eight_triplet,
-    '1/8 + 1/8T':   Live.Song.RecordingQuantization.rec_q_eight_eight_triplet,
-    '1/16':         Live.Song.RecordingQuantization.rec_q_sixtenth,
-    '1/16T':        Live.Song.RecordingQuantization.rec_q_sixtenth_triplet,
-    '1/16 + 1/16T': Live.Song.RecordingQuantization.rec_q_sixtenth_sixtenth_triplet,
-    '1/32':         Live.Song.RecordingQuantization.rec_q_thirtysecond,
-}
-
-CLIP_GRID_STATES = {
-    'OFF':    Live.Clip.GridQuantization.no_grid,
-    '8 BARS': Live.Clip.GridQuantization.g_8_bars,
-    '4 BARS': Live.Clip.GridQuantization.g_4_bars,
-    '2 BARS': Live.Clip.GridQuantization.g_2_bars,
-    '1 BAR':  Live.Clip.GridQuantization.g_bar,
-    '1/2':    Live.Clip.GridQuantization.g_half,
-    '1/4':    Live.Clip.GridQuantization.g_quarter,
-    '1/8':    Live.Clip.GridQuantization.g_eighth,
-    '1/16':   Live.Clip.GridQuantization.g_sixteenth,
-    '1/32':   Live.Clip.GridQuantization.g_thirtysecond,
-}
-
-REPEAT_STATES = {
-    'OFF':   1.0,
-    '1/4':   1.0,
-    '1/4T':  0.666666666667,
-    '1/8':   0.5,
-    '1/8T':  0.333333333333,
-    '1/16':  0.25,
-    '1/16T': 0.166666666667,
-    '1/32':  0.125,
-    '1/32T': 0.0833333333333,
-}
+ENV_TYPES = ('IRAMP', 'DRAMP', 'IPYR', 'DPYR', 'SQR', 'SAW')
 
 # TODO: mode 5?
-WARP_MODES = {
-    'BEATS':       0,
-    'TONES':       1,
-    'TEXTURE':     2,
-    'RE-PITCH':    3,
-    'COMPLEX':     4,
-    'COMPLEX PRO': 6,
-}
+WARP_MODES = dict((
+    ('BEATS',       0),
+    ('TONES',       1),
+    ('TEXTURE',     2),
+    ('RE-PITCH',    3),
+    ('COMPLEX',     4),
+    ('COMPLEX PRO', 6),
+))
 
-AUDIO_DEVS = {
-    'SIMPLE DELAY':          'Simple Delay',
-    'OVERDRIVE':             'Overdrive',
-    'LOOPER':                'Looper',
-    'AUTO FILTER':           'Auto Filter',
-    'EXTERNAL AUDIO EFFECT': 'External Audio Effect',
-    'SATURATOR':             'Saturator',
-    'PHASER':                'Phaser',
-    'VINYL DISTORTION':      'Vinyl Distortion',
-    'DYNAMIC TUBE':          'Dynamic Tube',
-    'BEAT REPEAT':           'Beat Repeat',
-    'MULTIBAND DYNAMICS':    'Multiband Dynamics',
-    'CABINET':               'Cabinet',
-    'AUDIO EFFECT RACK':     'Audio Effect Rack',
-    'FLANGER':               'Flanger',
-    'GATE':                  'Gate',
-    'REVERB':                'Reverb',
-    'GRAIN DELAY':           'Grain Delay',
-    'REDUX':                 'Redux',
-    'PING PONG DELAY':       'Ping Pong Delay',
-    'SPECTRUM':              'Spectrum',
-    'COMPRESSOR':            'Compressor',
-    'VOCODER':               'Vocoder',
-    'AMP':                   'Amp',
-    'GLUE COMPRESSOR':       'Glue Compressor',
-    'EROSION':               'Erosion',
-    'EQ THREE':              'EQ Three',
-    'EQ EIGHT':              'EQ Eight',
-    'RESONATORS':            'Resonators',
-    'FREQUENCY SHIFTER':     'Frequency Shifter',
-    'AUTO PAN':              'Auto Pan',
-    'CHORUS':                'Chorus',
-    'LIMITER':               'Limiter',
-    'CORPUS':                'Corpus',
-    'FILTER DELAY':          'Filter Delay',
-    'UTILITY':               'Utility',
-}
+# region STATES
+GQ_STATES = dict((
+    ('NONE',   0),
+    ('8 BAR',  1),
+    ('4 BAR',  2),
+    ('2 BAR',  3),
+    ('1 BAR',  4),
+    ('1/2',    5),
+    ('1/2T',   6),
+    ('1/4',    7),
+    ('1/4T',   8),
+    ('1/8',    9),
+    ('1/8T',   10),
+    ('1/16',   11),
+    ('1/16T',  12),
+    ('1/32',   13),
+    # alias
+    ('8 BARS', 1),
+    ('4 BARS', 2),
+    ('2 BARS', 3),
+))
 
-INS_DEVS = {
-    'TENSION':             'Tension',
-    'EXTERNAL INSTRUMENT': 'External Instrument',
-    'ELECTRIC':            'Electric',
-    'INSTRUMENT RACK':     'Instrument Rack',
-    'DRUM RACK':           'Drum Rack',
-    'COLLISION':           'Collision',
-    'IMPULSE':             'Impulse',
-    'SAMPLER':             'Sampler',
-    'OPERATOR':            'Operator',
-    'ANALOG':              'Analog',
-    'SIMPLER':             'Simpler',
-}
+RQ_STATES = dict((
+    ('NONE',         0),
+    ('1/4',          1),
+    ('1/8',          2),
+    ('1/8T',         3),
+    ('1/8 + 1/8T',   4),
+    ('1/16',         5),
+    ('1/16T',        6),
+    ('1/16 + 1/16T', 7),
+    ('1/32',         8),
+))
 
-MIDI_DEVS = {
-    'NOTE LENGTH':      'Note Length',
-    'CHORD':            'Chord',
-    'RANDOM':           'Random',
-    'MIDI EFFECT RACK': 'MIDI Effect Rack',
-    'SCALE':            'Scale',
-    'PITCH':            'Pitch',
-    'ARPEGGIATOR':      'Arpeggiator',
-    'VELOCITY':         'Velocity',
-}
+XFADE_STATES = dict(
+    A   = 0,
+    OFF = 1,
+    B   = 2,
+)
+
+MON_STATES = dict(
+    IN   = 0,
+    AUTO = 1,
+    OFF  = 2,
+)
+
+LOOPER_STATES = dict(
+    STOP = 0.0,
+    REC  = 1.0,
+    PLAY = 2.0,
+    OVER = 3.0,
+)
+
+R_QNTZ_STATES = dict((
+    ('1/4',          Live.Song.RecordingQuantization.rec_q_quarter),
+    ('1/8',          Live.Song.RecordingQuantization.rec_q_eight),
+    ('1/8T',         Live.Song.RecordingQuantization.rec_q_eight_triplet),
+    ('1/8 + 1/8T',   Live.Song.RecordingQuantization.rec_q_eight_eight_triplet),
+    ('1/16',         Live.Song.RecordingQuantization.rec_q_sixtenth),
+    ('1/16T',        Live.Song.RecordingQuantization.rec_q_sixtenth_triplet),
+    ('1/16 + 1/16T', Live.Song.RecordingQuantization.rec_q_sixtenth_sixtenth_triplet),
+    ('1/32',         Live.Song.RecordingQuantization.rec_q_thirtysecond),
+))
+
+CLIP_GRID_STATES = dict((
+    ('OFF',    Live.Clip.GridQuantization.no_grid),
+    ('8 BAR',  Live.Clip.GridQuantization.g_8_bars),
+    ('4 BAR',  Live.Clip.GridQuantization.g_4_bars),
+    ('2 BAR',  Live.Clip.GridQuantization.g_2_bars),
+    ('1 BAR',  Live.Clip.GridQuantization.g_bar),
+    ('1/2',    Live.Clip.GridQuantization.g_half),
+    ('1/4',    Live.Clip.GridQuantization.g_quarter),
+    ('1/8',    Live.Clip.GridQuantization.g_eighth),
+    ('1/16',   Live.Clip.GridQuantization.g_sixteenth),
+    ('1/32',   Live.Clip.GridQuantization.g_thirtysecond),
+    # alias
+    ('8 BARS', Live.Clip.GridQuantization.g_8_bars),
+    ('4 BARS', Live.Clip.GridQuantization.g_4_bars),
+    ('2 BARS', Live.Clip.GridQuantization.g_2_bars),
+))
+
+REPEAT_STATES = dict((
+    ('OFF',   1.0),
+    ('1/4',   1.0),
+    ('1/4T',  0.666666666667),
+    ('1/8',   0.5),
+    ('1/8T',  0.333333333333),
+    ('1/16',  0.25),
+    ('1/16T', 0.166666666667),
+    ('1/32',  0.125),
+    ('1/32T', 0.0833333333333),
+))
+# endregion
+
+# region DEVICES
+_AUDIO_DEVS = (
+    'Simple Delay',
+    'Overdrive',
+    'Looper',
+    'Auto Filter',
+    'External Audio Effect',
+    'Saturator',
+    'Phaser',
+    'Vinyl Distortion',
+    'Dynamic Tube',
+    'Beat Repeat',
+    'Multiband Dynamics',
+    'Cabinet',
+    'Audio Effect Rack',
+    'Flanger',
+    'Gate',
+    'Reverb',
+    'Grain Delay',
+    'Redux',
+    'Ping Pong Delay',
+    'Spectrum',
+    'Compressor',
+    'Vocoder',
+    'Amp',
+    'Glue Compressor',
+    'Erosion',
+    'EQ Three',
+    'EQ Eight',
+    'Resonators',
+    'Frequency Shifter',
+    'Auto Pan',
+    'Chorus',
+    'Limiter',
+    'Corpus',
+    'Filter Delay',
+    'Utility',
+)
+
+_INS_DEVS = (
+    'Tension',
+    'External Instrument',
+    'Electric',
+    'Instrument Rack',
+    'Drum Rack',
+    'Collision',
+    'Impulse',
+    'Sampler',
+    'Operator',
+    'Analog',
+    'Simpler',
+)
+
+_MIDI_DEVS = (
+    'Note Length',
+    'Chord',
+    'Random',
+    'MIDI Effect Rack',
+    'Scale',
+    'Pitch',
+    'Arpeggiator',
+    'Velocity',
+)
+
+AUDIO_DEVS = dict((dev.upper(), dev) for dev in _AUDIO_DEVS)
+
+INS_DEVS = dict((dev.upper(), dev) for dev in _INS_DEVS)
+
+MIDI_DEVS = dict((dev.upper(), dev) for dev in _MIDI_DEVS)
+# endregion

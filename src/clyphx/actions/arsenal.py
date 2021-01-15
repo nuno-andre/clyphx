@@ -15,10 +15,11 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super, dict
 
 import logging
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core import ControlSurfaceComponent
 
 try:
     from _NKFW2.Utils import parse_int
@@ -79,23 +80,23 @@ class XArsenalActions(ControlSurfaceComponent):
     '''Actions related to Arsenal control surface scripts.'''
 
     def __init__(self, parent):
-        super(XArsenalActions, self).__init__()
+        super().__init__()
         self._parent = parent
-        self._scripts = {}
+        self._scripts = dict()
 
     def disconnect(self):
-        super(XArsenalActions, self).disconnect()
+        super().disconnect()
         self._parent = None
         self._scripts = None
 
     def set_script(self, script):
         ''' Adds the given script to the dict of scripts to work with.
         '''
-        self._scripts[script.script_name.upper()] = {
-            'top':     script,
-            'scl':     get_component(script, 'Scale_Settings_Control'),
-            'targets': get_component(script, 'Targets_Component'),
-        }
+        self._scripts[script.script_name.upper()] = dict(
+            top     = script,
+            scl     = get_component(script, 'Scale_Settings_Control'),
+            targets = get_component(script, 'Targets_Component'),
+        )
 
     def dispatch_action(self, track, xclip, ident, script_name, action):
         '''Dispatches the action to the appropriate handler.'''

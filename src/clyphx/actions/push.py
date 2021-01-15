@@ -14,40 +14,40 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import, unicode_literals, with_statement
+from builtins import super, dict, range
 
-from __future__ import with_statement
 import Live
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core import ControlSurfaceComponent
 from ..consts import KEYWORDS, NOTE_NAMES
 
 
 UNWRITABLE_INDEXES = (17, 35, 53)
 
-MATRIX_MODES = {
-    'SESSION': 'session',
-    'NOTE':    'note',
-}
+MATRIX_MODES = dict(
+    SESSION = 'session',
+    NOTE    = 'note',
+)
 
-TRACK_MODES = {
-    'STOP': 'stop',
-    'SOLO': 'solo',
-    'MUTE': 'mute',
-}
+TRACK_MODES = dict(
+    STOP = 'stop',
+    SOLO = 'solo',
+    MUTE = 'mute',
+)
 
-MAIN_MODES = {
-    'VOLUME': 'volumes',
-    'PAN':    'pan_sends',
-    'TRACK':  'track',
-    'CLIP':   'clip',
-    'DEVICE': 'device',
-}
+MAIN_MODES = dict(
+    VOLUME = 'volumes',
+    PAN    = 'pan_sends',
+    TRACK  = 'track',
+    CLIP   = 'clip',
+    DEVICE = 'device',
+)
 
-P2_MAIN_MODES = {
-    'DEVICE': 'device',
-    'MIX':    'mix',
-    'CLIP':   'clip',
-}
+P2_MAIN_MODES = dict(
+    DEVICE = 'device',
+    MIX    = 'mix',
+    CLIP   = 'clip',
+)
 
 
 # TODO: on_enabled_change / update
@@ -56,7 +56,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
     '''
 
     def __init__(self, parent):
-        super(ClyphXPushActions, self).__init__()
+        super().__init__()
         self._parent = parent
         self._script = None
         self._ins_component = None
@@ -70,7 +70,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
         self._note_editor = None
         self._scales_component = None
         self._parent = None
-        super(ClyphXPushActions, self).disconnect()
+        super().disconnect()
 
     def set_script(self, push_script, is_push2=False):
         '''Set the Push script to connect to and get necessary
@@ -200,27 +200,28 @@ class ClyphXPushActions(ControlSurfaceComponent):
             self._capture_scale_settings(xclip, ident)
 
     def _handle_in_key(self, arg_array):
-        if len(arg_array) == 2 and arg_array[1] in KEYWORDS:
+        try:
             self._ins_component._note_layout.is_in_key = KEYWORDS[arg_array[1]]
-        else:
+        except (IndexError, KeyError):
             self._ins_component._note_layout.is_in_key =\
                 not self._ins_component._note_layout.is_in_key
 
     def _handle_fixed(self, arg_array):
-        if len(arg_array) == 2 and arg_array[1] in KEYWORDS:
+        try:
             self._ins_component._note_layout.is_fixed = KEYWORDS[arg_array[1]]
-        else:
+        except (IndexError, KeyError):
             self._ins_component._note_layout.is_fixed =\
                 not self._ins_component._note_layout.is_fixed
 
     def _handle_root_note(self, arg_array):
-        if arg_array[1] in NOTE_NAMES:
+        try:
             self._ins_component._note_layout.root_note = NOTE_NAMES.index(arg_array[1])
-        elif arg_array[1] in ('<', '>'):
-            new_root = (self._parent.get_adjustment_factor(arg_array[1])
-                        + self._ins_component._note_layout.root_note)
-            if 0 <= new_root < 12:
-                self._ins_component._note_layout.root_note = new_root
+        except KeyError:
+            if arg_array[1] in ('<', '>'):
+                new_root = (self._parent.get_adjustment_factor(arg_array[1])
+                            + self._ins_component._note_layout.root_note)
+                if 0 <= new_root < 12:
+                    self._ins_component._note_layout.root_note = new_root
 
     def _handle_octave(self, arg_array):
         if arg_array[1] == '<':
@@ -304,6 +305,6 @@ class ClyphXPushActions(ControlSurfaceComponent):
         clip = c if c and c.is_midi_clip else None
         note = self._script._drum_component.selected_note
         if clip and note is not None:
-            self._parent._clip_actions.do_clip_note_action(
+            self._parent.clip_actions.do_clip_note_action(
                 clip, None, None, '', 'NOTES{} {}'.format(note, args)
             )

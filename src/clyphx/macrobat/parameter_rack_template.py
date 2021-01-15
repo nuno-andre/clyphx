@@ -15,7 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
-from raven.utils.six import iteritems
+from builtins import super, dict, range
 
 import Live
 from ..core import XComponent
@@ -27,9 +27,9 @@ class MacrobatParameterRackTemplate(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
-        super(MacrobatParameterRackTemplate, self).__init__(parent)
+        super().__init__(parent)
         self._on_off_param = []
-        self._param_macros = {}
+        self._param_macros = dict()
         self._update_macro = 0
         self._update_param = 0
         self._track = track
@@ -38,9 +38,9 @@ class MacrobatParameterRackTemplate(XComponent):
     def disconnect(self):
         self.remove_macro_listeners()
         self._on_off_param = []
-        self._param_macros = {}
+        self._param_macros = dict()
         self._track = None
-        super(MacrobatParameterRackTemplate, self).disconnect()
+        super().disconnect()
 
     def setup_device(self, rack):
         '''Remove any current listeners and set up listener for on/off
@@ -58,6 +58,11 @@ class MacrobatParameterRackTemplate(XComponent):
                 self._parent.schedule_message(1, self.do_reset)
             self._on_off_param[1] = self._on_off_param[0].value
 
+    def _set_param_macro_listeners(self, macro, param, index):
+        macro.add_value_listener(lambda i=index: self.macro_changed(i))
+        param.add_value_listener(lambda i=index: self.param_changed(i))
+        self._param_macros[index] = (macro, param)
+
     def scale_macro_value_to_param(self, macro, param):
         return (((param.max - param.min) / 127.0) * macro.value) + param.min
 
@@ -68,25 +73,21 @@ class MacrobatParameterRackTemplate(XComponent):
         '''For use with DR racks, get drum rack to operate on as well as
         the params of any simplers/samplers in the rack.
         '''
-        drum_rack = {'devs_by_index': {}, 'devs_by_name': {}}
+        drum_rack = dict(devs_by_index=dict(), devs_by_name=dict())
 
         if self._track and self._track.devices:
             for d in self._track.devices:
                 if d.class_name == 'DrumGroupDevice':
                     drum_rack['rack'] = d
-                    rack_devices_by_index = {}
-                    rack_devices_by_name = {}
-                    for chain_index in range(len(d.chains)):
-                        for device in d.chains[chain_index].devices:
+                    by_index = drum_rack['devs_by_index']
+                    by_name = drum_rack['devs_by_name']
+                    for i, chain in enumerate(d.chains):
+                        for device in chain.devices:
                             if device.class_name in ('OriginalSimpler', 'MultiSampler'):
-                                current_params = {}
-                                for p in device.parameters:
-                                    current_params[str(p.name).upper()] = p
-                                rack_devices_by_index[str(chain_index + 1)] = current_params
-                                rack_devices_by_name[str(device.name)] = current_params
+                                params = dict((str(p.name).upper(), p) for p in device.params)
+                                by_index[str(i + 1)] = params
+                                by_name[str(device.name)] = params
                             break
-                        drum_rack['devs_by_index'] = rack_devices_by_index
-                        drum_rack['devs_by_name'] = rack_devices_by_name
                     break
         return drum_rack
 
@@ -112,14 +113,18 @@ class MacrobatParameterRackTemplate(XComponent):
 
     def remove_macro_listeners(self):
         for i in range(1, 9):
-            if i in self._param_macros:
+            try:
+                macro = self._param_macros[i]
+            except KeyError:
+                pass
+            else:
                 m_listener = lambda index=i: self.macro_changed(index)
                 p_listener = lambda index=i: self.param_changed(index)
-                if self._param_macros[i][0] and self._param_macros[i][0].value_has_listener(m_listener):
-                    self._param_macros[i][0].remove_value_listener(m_listener)
-                if self._param_macros[i][1] and self._param_macros[i][1].value_has_listener(p_listener):
-                    self._param_macros[i][1].remove_value_listener(p_listener)
-        self._param_macros = {}
+                if macro[0] and macro[0].value_has_listener(m_listener):
+                    macro[0].remove_value_listener(m_listener)
+                if macro[1] and macro[1].value_has_listener(p_listener):
+                    macro[1].remove_value_listener(p_listener)
+        self._param_macros = dict()
         if (self._on_off_param and
                 self._on_off_param[0] and
                 self._on_off_param[0].value_has_listener(self.on_off_changed)):
@@ -162,7 +167,7 @@ class MacrobatParameterRackTemplate(XComponent):
         self._update_macro = 0
         self._tasks.kill()
         self._tasks.clear()
-        for k, v in iteritems(self._param_macros):
+        for k, v in self._param_macros.items():
             if v[1] and not v[1].is_quantized and v[1].name != 'Chain Selector':
                 v[1].value = v[1].default_value
                 v[0].value = self.scale_param_value_to_macro(v[1])

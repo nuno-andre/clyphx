@@ -15,19 +15,17 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import with_statement, absolute_import, unicode_literals
-from raven.utils.six import iteritems
+from builtins import super, dict, range
 
-# from builtins import range
 from functools import partial
 
 import Live
 from ableton.v2.control_surface import ControlSurface as CS
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.ControlSurface import ControlSurface
-from _Framework.SessionComponent import SessionComponent
 from _Framework.MixerComponent import MixerComponent
 from _Framework.DeviceComponent import DeviceComponent
-from ..core import XComponent
+
+from ..core import XComponent, SessionComponent
 from ..consts import REPEAT_STATES
 from .push import ClyphXPushActions
 from .pxt_live import XPxtActions
@@ -36,49 +34,50 @@ from .arsenal import XArsenalActions
 
 
 # TODO: update, enable... ??
-class XControlSurfaceActions(XComponent):
+class XCsActions(XComponent):
     '''Actions related to control surfaces.
     '''
     __module__ = __name__
 
     def __init__(self, parent):
-        super(XControlSurfaceActions, self).__init__(parent)
+        super().__init__(parent)
         self._push_actions = ClyphXPushActions(parent)
         self._pxt_actions = XPxtActions(parent)
         self._mxt_actions = XMxtActions(parent)
         self._arsenal_actions = XArsenalActions(parent)
-        self._scripts = {}
+        self._scripts = dict()
 
     def disconnect(self):
-        self._scripts = {}
+        self._scripts = dict()
         self._arsenal_actions = None
         self._push_actions = None
         self._pxt_actions = None
         self._mxt_actions = None
-        super(XControlSurfaceActions, self).disconnect()
+        super().disconnect()
 
     def connect_script_instances(self, instantiated_scripts):
         '''Build dict of connected scripts and their components, doesn't
         work with non-Framework scripts, but does work with User Remote
         Scripts.
         '''
+        # TODO: arg substituted
         instantiated_scripts = self._parent._control_surfaces()
-        self._scripts = {}
+        self._scripts = dict()
         for i in range(len(instantiated_scripts)):
             script = instantiated_scripts[i]
-            self._scripts[i] = {
-                'script':        script,
-                'name':          None,
-                'repeat':        False,
-                'mixer':         None,
-                'device':        None,
-                'last_ring_pos': None,
-                'session':       None,
-                'track_link':    False,
-                'scene_link':    False,
-                'centered_link': False,
-                'color':         False,
-            }
+            self._scripts[i] = dict(
+                script        = script,
+                name          = None,
+                repeat        = False,
+                mixer         = None,
+                device        = None,
+                last_ring_pos = None,
+                session       = None,
+                track_link    = False,
+                scene_link    = False,
+                centered_link = False,
+                color         = False,
+            )
             script_name = script.__class__.__name__
             if isinstance(script, (ControlSurface, CS)):
                 if script_name == 'GenericScript':
@@ -98,27 +97,27 @@ class XControlSurfaceActions(XComponent):
                             if isinstance(c, SessionComponent):
                                 self._scripts[i]['session'] = c
                                 if script_name.startswith('APC'):
-                                    self._scripts[i]['color'] = {
-                                        'GREEN': (1, 2),
-                                        'RED':   (3, 4),
-                                        'AMBER': (5, 6),
-                                    }
-                                    self._scripts[i]['metro'] = {
-                                        'controls':  c._stop_track_clip_buttons,
-                                        'component': None,
-                                        'override':  None,
-                                    }
+                                    self._scripts[i]['color'] = dict(
+                                        GREEN = (1, 2),
+                                        RED   = (3, 4),
+                                        AMBER = (5, 6),
+                                    )
+                                    self._scripts[i]['metro'] = dict(
+                                        controls  = c._stop_track_clip_buttons,
+                                        component = None,
+                                        override  = None,
+                                    )
                                 elif script_name == 'Launchpad':
-                                    self._scripts[i]['color'] = {
-                                        'GREEN': (52, 56),
-                                        'RED':   (7, 11),
-                                        'AMBER': (55, 59),
-                                    }
-                                    self._scripts[i]['metro'] = {
-                                        'controls':  script._selector._side_buttons,
-                                        'component': None,
-                                        'override':  script._selector,
-                                    }
+                                    self._scripts[i]['color'] = dict(
+                                        GREEN = (52, 56),
+                                        RED   = (7, 11),
+                                        AMBER = (55, 59),
+                                    )
+                                    self._scripts[i]['metro'] = dict(
+                                        controls  = script._selector._side_buttons,
+                                        component = None,
+                                        override  = script._selector,
+                                    )
                             if isinstance(c, MixerComponent):
                                 self._scripts[i]['mixer'] = c
                             if isinstance(c, DeviceComponent):
@@ -208,9 +207,11 @@ class XControlSurfaceActions(XComponent):
         try:
             script_spec = None
             if 'SURFACE' in script_info:
-                script_spec = script_info.strip('SURFACE')
+                script_spec = script_info.replace('SURFACE', '').strip()
             elif 'CS' in script_info:
-                script_spec = script_info.strip('CS')
+                script_spec = script_info.replace('CS', '').strip()
+            else:
+                return
 
             if len(script_spec) == 1:
                 script = int(script_spec) - 1
@@ -218,7 +219,7 @@ class XControlSurfaceActions(XComponent):
                     script = None
             else:
                 script_spec = script_spec.strip('"').strip()
-                for k, v in iteritems(self._scripts):
+                for k, v in self._scripts.items():
                     if v['name'] == script_spec:
                         script = k
         except:
@@ -228,17 +229,18 @@ class XControlSurfaceActions(XComponent):
     def handle_note_repeat(self, script, script_index, args):
         '''Set note repeat for the given surface.'''
         args = args.replace('RPT', '').strip()
-        if args in REPEAT_STATES:
-            if args == 'OFF':
-                script._c_instance.note_repeat.enabled = False
-                self._scripts[script_index]['repeat'] = False
-            else:
+        if args == 'OFF':
+            script._c_instance.note_repeat.enabled = False
+            self._scripts[script_index]['repeat'] = False
+        else:
+            try:
                 script._c_instance.note_repeat.repeat_rate = REPEAT_STATES[args]
+            except KeyError:
+                self._scripts[script_index]['repeat'] = not self._scripts[script_index]['repeat']
+                script._c_instance.note_repeat.enabled = self._scripts[script_index]['repeat']
+            else:
                 script._c_instance.note_repeat.enabled = True
                 self._scripts[script_index]['repeat'] = True
-        else:
-            self._scripts[script_index]['repeat'] = not self._scripts[script_index]['repeat']
-            script._c_instance.note_repeat.enabled = self._scripts[script_index]['repeat']
 
     def handle_track_action(self, script_key, mixer, xclip, ident, args):
         '''Get control surface track(s) to operate on and call main
@@ -252,24 +254,22 @@ class XControlSurfaceActions(XComponent):
         new_args = ''
         if len(actions) > 1:
             new_args = ' '.join(actions[1:])
-        if 'ALL' in track_range:
-            track_start = 0
-            track_end = len(mixer._channel_strips)
-        elif '-' in track_range:
-            track_range = track_range.split('-')
-            try:
-                track_start = int(track_range[0]) - 1
-                track_end = int(track_range[1])
-            except:
-                track_start = None
-                track_end = None
-        else:
-            try:
+
+        try:
+            if 'ALL' in track_range:
+                track_start = 0
+                track_end = len(mixer._channel_strips)
+            elif '-' in track_range:
+                start, end = track_range.split('-')
+                track_start = int(start) - 1
+                track_end = int(end)
+            else:
                 track_start = int(track_range) - 1
                 track_end = track_start + 1
-            except:
-                track_start = None
-                track_end = None
+        except:
+            track_start = None
+            track_end = None
+
         if track_start is not None and track_end is not None:
             if (0 <= track_start and
                     track_end < len(mixer._channel_strips) + 1 and
@@ -300,6 +300,7 @@ class XControlSurfaceActions(XComponent):
             t_offset, s_offset = mixer._track_offset, session._scene_offset if session else None
             tracks = mixer.tracks_to_use()
         new_offset = None
+
         if args == 'FIRST':
             new_offset = 0
         elif args == 'LAST':
@@ -311,6 +312,7 @@ class XControlSurfaceActions(XComponent):
                     new_offset = offset + t_offset
             except:
                 new_offset = None
+
         if new_offset >= 0:
             if session:
                 session.set_offsets(new_offset, s_offset)
@@ -425,7 +427,7 @@ class XControlSurfaceActions(XComponent):
         trk = self.song().view.selected_track
         if trk in self.song().tracks:
             trk_id = list(self.song().visible_tracks).index(trk)
-            for k, v in iteritems(self._scripts):
+            for k, v in self._scripts.items():
                 if v['track_link']:
                     new_trk_id = trk_id
                     try:
@@ -437,7 +439,7 @@ class XControlSurfaceActions(XComponent):
                             width = session.width()
                             t_offset, s_offset = session._track_offset, session._scene_offset
                         if self._scripts[k]['centered_link']:
-                            mid_point = (width / 2)
+                            mid_point = width / 2
                             if new_trk_id < mid_point:
                                 if t_offset <= new_trk_id:
                                     return
@@ -456,7 +458,7 @@ class XControlSurfaceActions(XComponent):
         selected scene with centering if specified.
         '''
         scn_id = list(self.song().scenes).index(self.song().view.selected_scene)
-        for k, v in iteritems(self._scripts):
+        for k, v in self._scripts.items():
             if v['scene_link']:
                 new_scn_id = scn_id
                 try:
@@ -469,7 +471,7 @@ class XControlSurfaceActions(XComponent):
                         t_offset, s_offset = session._track_offset, session._scene_offset
 
                     if self._scripts[k]['centered_link']:
-                        mid_point = (height / 2)
+                        mid_point = height / 2
                         if new_scn_id < mid_point:
                             if s_offset <= new_scn_id:
                                 return
@@ -490,7 +492,7 @@ class VisualMetro(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, controls, override):
-        super(VisualMetro, self).__init__(parent)
+        super().__init__(parent)
         self._controls = controls
         self._override = override
         self._last_beat = -1
@@ -504,7 +506,7 @@ class VisualMetro(XComponent):
         self.song().remove_current_song_time_listener(self.on_time_changed)
         self.song().remove_is_playing_listener(self.on_time_changed)
         self._override = None
-        super(VisualMetro, self).disconnect()
+        super().disconnect()
 
     def on_time_changed(self):
         '''Show visual metronome via control LEDs upon beat changes
@@ -520,7 +522,7 @@ class VisualMetro(XComponent):
                 if self._last_beat < len(self._controls):
                     self._controls[self._last_beat].turn_on()
                 else:
-                    self._controls[len(self._controls)-1].turn_on()
+                    self._controls[len(self._controls) - 1].turn_on()
         else:
             self.clear()
 

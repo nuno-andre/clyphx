@@ -15,10 +15,10 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super
 
-from _Framework.SessionComponent import SessionComponent
 from ableton.v2.control_surface.components.session_ring import SessionRingComponent
-from .core import XComponent
+from .core import XComponent, SessionComponent
 
 
 class PushApcCombiner(XComponent):
@@ -28,7 +28,7 @@ class PushApcCombiner(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
-        super(PushApcCombiner, self).__init__(parent)
+        super().__init__(parent)
         self._push = None
         self._push_session = None
         self._apc = None
@@ -40,7 +40,7 @@ class PushApcCombiner(XComponent):
         self._push_session = None
         self._apc = None
         self._apc_session = None
-        super(PushApcCombiner, self).disconnect()
+        super().disconnect()
 
     def set_up_scripts(self, scripts):
         '''Remove current listeners, get Push/APC scripts, set up

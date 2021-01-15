@@ -1,17 +1,19 @@
 {
   "files.associations": {
-    "UserSettings.txt": "properties",
+    "*.txt": "properties",
     "*.pyi": "python"
   },
   "files.encoding": "utf8",
   "files.eol": "\n",
   "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
   "editor.insertSpaces": true,
   "editor.unusualLineTerminators": "auto",
   "python.disableInstallationCheck": true,
   "search.exclude": {
     "**/.bin": true,
-    "**/.git": true
+    "**/.git": true,
+    "**/vendor": true
   },
   "[python]": {
     "editor.rulers": [
@@ -19,8 +21,7 @@
       99
     ],
     "editor.tabSize": 4,
-    "files.insertFinalNewline": true,
-    "files.trimTrailingWhitespace": true
+    "files.insertFinalNewline": true
   },
   "[properties]": {
     "editor.rulers": [
@@ -31,8 +32,8 @@
     "files.encoding": "utf16le",
     "files.eol": "\r\n"
   },
-  "[html]": {
-    "editor.tabSize": 2
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
   },
   "[git-commit]": {
     "editor.rulers": [

@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super
 
 import Live
 from ..core import XComponent
@@ -35,17 +36,17 @@ class Macrobat(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
-        super(Macrobat, self).__init__(parent)
-        self._current_tracks = []
+        super().__init__(parent)
+        self.current_tracks = []
 
     def disconnect(self):
-        self._current_tracks = []
-        super(Macrobat, self).disconnect()
+        self.current_tracks = []
+        super().disconnect()
 
     def setup_tracks(self, track):
         '''Setup component tracks on ini and track list changes.'''
-        if not track in self._current_tracks:
-            self._current_tracks.append(track)
+        if not track in self.current_tracks:
+            self.current_tracks.append(track)
             MacrobatTrackComponent(track, self._parent)
 
 
@@ -55,7 +56,7 @@ class MacrobatTrackComponent(XComponent):
     __module__ = __name__
 
     def __init__(self, track, parent):
-        super(MacrobatTrackComponent, self).__init__(parent)
+        super().__init__(parent)
         self._track = track
         self._track.add_devices_listener(self.setup_devices)
         self._current_devices = []
@@ -71,7 +72,7 @@ class MacrobatTrackComponent(XComponent):
             self.remove_devices(self._track.devices)
         self._track = None
         self._current_devices = []
-        super(MacrobatTrackComponent, self).disconnect()
+        super().disconnect()
 
     def update(self):
         if self._track and self.song().view.selected_track == self._track:

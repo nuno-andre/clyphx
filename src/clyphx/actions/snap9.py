@@ -15,14 +15,14 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
-from raven.utils.six import iteritems
+from builtins import super, dict, range
 
 from functools import partial
 from itertools import chain
 import Live
 import math
 import pickle
-# from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core.compat import iteritems
 from ..core import XComponent
 
 
@@ -55,10 +55,10 @@ class XSnapActions(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
-        super(XSnapActions, self).__init__(parent)
-        self._current_tracks = {}
-        self._parameters_to_smooth = {}
-        self._rack_parameters_to_smooth = {}
+        super().__init__(parent)
+        self.current_tracks = dict()
+        self._parameters_to_smooth = dict()
+        self._rack_parameters_to_smooth = dict()
         self._smoothing_active = False
         self._synced_smoothing_active = False
         self._rack_smoothing_active = False
@@ -82,24 +82,25 @@ class XSnapActions(XComponent):
         self._remove_track_listeners()
         self.song().remove_current_song_time_listener(self._on_time_changed)
         self.song().remove_is_playing_listener(self._on_time_changed)
-        self._current_tracks = {}
-        self._parameters_to_smooth = {}
-        self._rack_parameters_to_smooth = {}
+        self.current_tracks = dict()
+        self._parameters_to_smooth = dict()
+        self._rack_parameters_to_smooth = dict()
         self._control_rack = None
         self._snap_id = None
-        super(XSnapActions, self).disconnect()
+        super().disconnect()
 
     def store_track_snapshot(self, track_list, xclip, ident, action, args, force=False):
         '''Stores snapshot of track params.'''
         param_count = 0
+        # FIXME
         if not force and not isinstance(xclip, Live.Clip.Clip()):
             return ()
-        snap_data = {}
+        snap_data = dict()
         if track_list:
             for track in track_list:
                 track_name = self._parent.get_name(track.name)
                 if not track_name.startswith('CLYPHX SNAP') and track.name not in snap_data:
-                    self._current_track_data = [[], [], None, {}]
+                    self._current_track_data = [[], [], None, dict()]
                     if not args or 'MIX' in args:
                         param_count += self._store_mix_settings(track, args)
                     if 'PLAY' in args and track in self.song().tracks:
@@ -142,16 +143,19 @@ class XSnapActions(XComponent):
         parameters that were stored.
         '''
         param_count = 0
-        dev_range = self._get_snap_device_range(args, track)
-        if dev_range:
-            track_devices = {}
-            for dev_index in range(dev_range[0], dev_range[1]):
+        try:
+            start, end = self._get_snap_device_range(args, track)
+        except ValueError:
+            pass
+        else:
+            track_devices = dict()
+            for dev_index in range(start, end):
                 if dev_index < len(track.devices):
                     current_device = track.devices[dev_index]
                     if current_device.name not in track_devices:
-                        track_devices[current_device.name] = {
-                            'params': [p.value for p in current_device.parameters],
-                        }
+                        track_devices[current_device.name] = dict(
+                            params=[p.value for p in current_device.parameters],
+                        )
                         param_count += len(current_device.parameters)
                         if (self._include_nested_devices and
                             self._parent._can_have_nested_devices and
@@ -162,6 +166,7 @@ class XSnapActions(XComponent):
                             )
             if track_devices:
                 self._current_track_data[DEVICE_SETTINGS_POS] = track_devices
+
         return param_count
 
     def _get_nested_devices(self, rack, nested_devs, parameter_count):
@@ -169,13 +174,13 @@ class XSnapActions(XComponent):
         parameters.
         '''
         if rack.chains:
-            nested_devs['chains'] = {}
+            nested_devs['chains'] = dict()
             for ci, c in enumerate(rack.chains):
-                nested_devs['chains'][ci] = {'devices' : {}}
+                nested_devs['chains'][ci] = dict(devices=dict())
                 for di, d in enumerate(c.devices):
-                    nested_devs['chains'][ci]['devices'][di] = {
-                        'params' : [p.value for p in d.parameters]
-                    }
+                    nested_devs['chains'][ci]['devices'][di] = dict(
+                        params=[p.value for p in d.parameters]
+                    )
                     parameter_count += len(d.parameters)
                     if not rack.class_name.startswith('Midi'):
                         mix_settings = [c.mixer_device.volume.value,
@@ -197,13 +202,14 @@ class XSnapActions(XComponent):
     def recall_track_snapshot(self, name, xclip, disable_smooth=False):
         '''Recalls snapshot of track params.'''
         self._snap_id = xclip.name[xclip.name.index('['):xclip.name.index(']')+1].strip().upper()
+        #FIXME
         snap_data = pickle.loads(str(xclip.name)[len(self._snap_id) + 4:])
-        self._parameters_to_smooth = {}
-        self._rack_parameters_to_smooth = {}
+        self._parameters_to_smooth = dict()
+        self._rack_parameters_to_smooth = dict()
         is_synced = False if disable_smooth else self._init_smoothing(xclip)
         for track, param_data in iteritems(snap_data):
-            if track in self._current_tracks:
-                track = self._current_tracks[track]
+            if track in self.current_tracks:
+                track = self.current_tracks[track]
                 self._recall_mix_settings(track, param_data)
                 if (param_data[PLAY_SETTINGS_POS] is not None and
                         not track.is_foldable and
@@ -218,7 +224,7 @@ class XSnapActions(XComponent):
         if self._is_control_track and self._parameters_to_smooth:
             if (not self._control_rack or
                     (self._control_rack and
-                        not self._control_rack.parameters[0].value == 1.0)):
+                        self._control_rack.parameters[0].value != 1.0)):
                 self._smoothing_active = not is_synced
                 self._synced_smoothing_active = is_synced
             else:
@@ -390,10 +396,10 @@ class XSnapActions(XComponent):
         if (self._rack_smoothing_active and
                 self._parameters_to_smooth and
                 self._control_rack.parameters[0].value == 1.0):
-            self._rack_parameters_to_smooth = {}
+            self._rack_parameters_to_smooth = dict()
             macro_value = self._control_rack.parameters[1].value
-            new_dict = {}
-            for p, v in iteritems(self._parameters_to_smooth):
+            new_dict = dict()
+            for p, v in self._parameters_to_smooth.items():
                 param_value = v[2] + (macro_value * v[0])
                 if p.is_quantized:
                     if macro_value < 63 and p.value != v[2]:
@@ -411,7 +417,7 @@ class XSnapActions(XComponent):
         if self._smoothing_active and self._parameters_to_smooth:
             self._apply_timed_smoothing()
         if self._rack_smoothing_active and self._rack_parameters_to_smooth:
-            for p, v in iteritems(self._rack_parameters_to_smooth):
+            for p, v in self._rack_parameters_to_smooth.items():
                 p.value = v
                 del self._rack_parameters_to_smooth[p]
 
@@ -428,7 +434,7 @@ class XSnapActions(XComponent):
     def _apply_timed_smoothing(self, arg=None):
         '''Applies smoothing for either timer or sync.'''
         self._smoothing_count += 1
-        for p, v in iteritems(self._parameters_to_smooth):
+        for p, v in self._parameters_to_smooth.items():
             param_value = v[2] + (self._smoothing_count * v[0])
             if p.is_quantized:
                 p.value = v[1]
@@ -466,16 +472,15 @@ class XSnapActions(XComponent):
         '''Returns range of devices to snapshot.'''
         dev_args = args.replace('MIX', '').replace('PLAY', '').replace('DEV', '').replace('IO', '')
         start = 0
-        end = start + 1
+        end = 1
+
         if dev_args:
             if 'ALL' in dev_args:
-                start = 0
                 end = len(track.devices)
             elif '-' in dev_args:
                 try:
-                    name_split = dev_args.split('-')
-                    start = int(name_split[0].strip()) - 1
-                    end = int(name_split[1].strip())
+                    start, end = map(int, dev_args.split('-'))
+                    start -= 1
                 except:
                     pass
             else:
@@ -484,13 +489,15 @@ class XSnapActions(XComponent):
                     end = start + 1
                 except:
                     pass
-        if start > len(track.devices) or start < 0 or end > len(track.devices) or end < start:
-            return ()
+
+        if end > len(track.devices) or start < 0 or end < start:
+            raise ValueError("Range of devices not found in '{}'".format(dev_args))
+
         return (start, end)
 
     def setup_tracks(self):
         '''Stores dictionary of tracks by name.'''
-        self._current_tracks = {}
+        self.current_tracks = dict()
         self._remove_track_listeners()
         for track in chain(self.song().tracks,
                            self.song().return_tracks,
@@ -498,8 +505,8 @@ class XSnapActions(XComponent):
             if not track.name_has_listener(self.setup_tracks):
                 track.add_name_listener(self.setup_tracks)
             name = self._parent.get_name(track.name)
-            if track.name not in self._current_tracks and not name.startswith('CLYPHX SNAP'):
-                self._current_tracks[track.name] = track
+            if track.name not in self.current_tracks and not name.startswith('CLYPHX SNAP'):
+                self.current_tracks[track.name] = track
 
     def _refresh_xclip_name(self, xclip_data):
         '''Refreshes xclip's previous name in cases where a snap is

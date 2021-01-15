@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super
 
 import logging
 from functools import partial
@@ -30,7 +31,7 @@ class ExtraPrefs(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, config):
-        super(ExtraPrefs, self).__init__(parent)
+        super().__init__(parent)
         self._show_highlight = config.get('navigation_highlight', True)
         self._exclusive_arm = config.get('exclusive_arm_on_select', False)
         self._exclusive_fold = config.get('exclusive_show_group_on_select', False)
@@ -46,14 +47,14 @@ class ExtraPrefs(XComponent):
         self._last_track = None
         self._clip_record_slot = None
         self._midi_clip_length_slot = None
-        super(ExtraPrefs, self).disconnect()
+        super().disconnect()
 
     def on_selected_track_changed(self):
         '''Handles navigation highlight, triggering exclusive arm/fold
         functions and removes/sets up listeners for clip-related
         functions.
         '''
-        super(ExtraPrefs, self).on_selected_track_changed()
+        super().on_selected_track_changed()
         track = self.song().view.selected_track
         clip_slot = self.song().view.highlighted_clip_slot
         self.remove_listeners()
@@ -167,5 +168,5 @@ class ExtraPrefs(XComponent):
         self._midi_clip_length_slot = None
 
     def on_selected_scene_changed(self):
-        super(ExtraPrefs, self).on_selected_scene_changed()
+        super().on_selected_scene_changed()
         self.on_selected_track_changed()

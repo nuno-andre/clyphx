@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super, range
 
 import Live
 import _Framework.Task
@@ -31,7 +32,7 @@ class XMxtActions(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
-        super(XMxtActions, self).__init__(parent)
+        super().__init__(parent)
         self._script = None
         self._seq_comp = None
         self._encoders = None
@@ -42,7 +43,7 @@ class XMxtActions(XComponent):
         self._seq_comp = None
         self._encoders = None
         self._message_display_line = None
-        super(XMxtActions, self).disconnect()
+        super().disconnect()
 
     def set_script(self, mxt_script):
         '''Set the MXT script to connect to and get necessary components.
@@ -77,7 +78,7 @@ class XMxtActions(XComponent):
             note = comp._note_lane_component._note
             start = comp._position_component._start_position
             end = comp._position_component._end_position
-            self._parent._clip_actions.do_clip_note_action(
+            self._parent.clip_actions.do_clip_note_action(
                 clip, None, None, '', 'NOTES @{}-{} {}'.format(note, start, end, args)
             )
 

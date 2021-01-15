@@ -15,12 +15,12 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super
 
 import logging
 from functools import partial
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.ControlSurface import ControlSurface
-from _Framework.SessionComponent import SessionComponent
+from .core import ControlSurfaceComponent, SessionComponent
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class CsLinker(ControlSurfaceComponent):
     '''
 
     def __init__(self):
-        super(CsLinker, self).__init__()
+        super().__init__()
         self._slave_objects = [None, None]
         self._script_names = None
         self._horizontal_link = False
@@ -40,10 +40,10 @@ class CsLinker(ControlSurfaceComponent):
     def disconnect(self):
         '''Extends standard to disconnect and remove slave objects.'''
         for obj in self._slave_objects:
-            if obj:
+            if obj is not None:
                 obj.disconnect()
         self._slave_objects = None
-        super(CsLinker, self).disconnect()
+        super().disconnect()
 
     def update(self):
         pass
@@ -150,7 +150,7 @@ class CsLinker(ControlSurfaceComponent):
     def _refresh_slave_objects(self):
         '''Refreshes offsets of slave objects.'''
         for obj in self._slave_objects:
-            if obj:
+            if obj is not None:
                 obj._on_offsets_changed()
 
 

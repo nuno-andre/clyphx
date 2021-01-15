@@ -72,6 +72,7 @@ RESTRICTIONS:
   semi-colon(;), comma(,), percent sign(%), equals sign(=)
 '''
 from __future__ import absolute_import, unicode_literals
+from builtins import super
 
 import logging
 import Live
@@ -91,7 +92,7 @@ class XUserActions(XComponent):
 
     def __init__(self, parent):
         # parent ClyphX initialization
-        super(XUserActions, self).__init__(parent)
+        super().__init__(parent)
 
         '''Below is the dictionary of actions that this script provides.
 
@@ -105,10 +106,10 @@ class XUserActions(XComponent):
         You can remove the 2 example entries from the dictionary if you wish.
         '''
         # DO NOT REMOVE THIS
-        self._action_dict = {
-            'EX_ACTION_1': 'example_action_one',
-            'EX_ACTION_2': 'example_action_two',
-        }
+        self._action_dict = dict(
+            EX_ACTION_1 = 'example_action_one',
+            EX_ACTION_2 = 'example_action_two',
+        )
 
     def example_action_one(self, track, args):
         '''Example action that writes to Live's log file and then triggers

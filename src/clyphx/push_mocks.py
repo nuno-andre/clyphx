@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import unicode_literals
+from builtins import super
 
 from Push.handshake_component import HandshakeComponent
 
@@ -38,7 +39,7 @@ class MockHandshake(HandshakeComponent):
     '''
 
     def __init__(self, *a, **k):
-        super(MockHandshake, self).__init__(*a, **k)
+        super().__init__(*a, **k)
         self._on_identity_value.subject = None
         self._on_dongle_value.subject = None
 

@@ -15,8 +15,9 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super, range
 
-from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from ..core import ControlSurfaceComponent
 
 
 class ClyphXClipEnvCapture(ControlSurfaceComponent):
@@ -24,7 +25,7 @@ class ClyphXClipEnvCapture(ControlSurfaceComponent):
 
     def disconnect(self):
         self._parent = None
-        super(ClyphXClipEnvCapture, self).disconnect()
+        super().disconnect()
 
     def update(self):
         pass

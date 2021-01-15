@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super, dict, range
 
 # from builtins import range
 
@@ -23,10 +24,9 @@ import Live
 from ..core import XComponent
 from .clip_env_capture import ClyphXClipEnvCapture
 from ..consts import KEYWORDS
-from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES, WARP_MODES,
+from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES,
+                      WARP_MODES, ENV_TYPES,
                       NOTE_NAMES, OCTAVE_NAMES)
-
-ENV_TYPES = ('IRAMP', 'DRAMP', 'IPYR', 'DPYR', 'SQR', 'SAW')
 
 
 class XClipActions(XComponent):
@@ -35,7 +35,7 @@ class XClipActions(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
-        super(XClipActions, self).__init__(parent)
+        super().__init__(parent)
         self._env_capture = ClyphXClipEnvCapture()
 
     def set_clip_name(self, clip, track, xclip, ident, args):
@@ -339,7 +339,7 @@ class XClipActions(XComponent):
         elif 'PAN' in args:
             param = track.mixer_device.panning
         elif 'SEND' in args:
-            param = self._parent._track_actions.get_send_parameter(
+            param = self._parent.track_actions.get_send_parameter(
                 track, args.replace('SEND', '').strip())
         elif 'DEV' in args:
             arg_array = args.split()
@@ -351,10 +351,10 @@ class XClipActions(XComponent):
                     param_array = dev_array[1].strip().split()
                     param = None
                     if len(param_array) > 1:
-                        param = self._parent._device_actions.get_banked_parameter(
+                        param = self._parent.device_actions.get_banked_parameter(
                             dev_array[0], param_array[0], param_array[1])
                     else:
-                        param = self._parent._device_actions.get_bob_parameter(
+                        param = self._parent.device_actions.get_bob_parameter(
                             dev_array[0], param_array[0])
         return param
 
@@ -824,11 +824,11 @@ class XClipActions(XComponent):
         end = clip.loop_end
         clip.looping = 1
         loop_length = clip.loop_end - clip.loop_start
-        return {
-            'clip_length': length,
-            'real_end':    end,
-            'loop_length': loop_length,
-        }
+        return dict(
+            clip_length = length,
+            real_end    = end,
+            loop_length = loop_length,
+        )
 
     def get_notes_to_operate_on(self, clip, args = None):
         '''Get notes within loop braces to operate on.'''
@@ -853,11 +853,11 @@ class XClipActions(XComponent):
                 notes_to_edit.append(n)
             else:
                 other_notes.append(n)
-        return {
-            'notes_to_edit': notes_to_edit,
-            'other_notes':   other_notes,
-            'args':          new_args,
-        }
+        return dict(
+            notes_to_edit = notes_to_edit,
+            other_notes   = other_notes,
+            args          = new_args,
+        )
 
     def get_pos_range(self, clip, string):
         '''Get note position or range to operate on.'''
@@ -867,84 +867,82 @@ class XClipActions(XComponent):
             start = float(user_range[0].replace('@', ''))
         except:
             start = None
-        if start is not None and start >= 0.0:
-            pos_range = (start, start)
-            if len(user_range) > 1:
-                try:
-                    pos_range = (start, float(user_range[1]))
-                except:
-                    pass
+        else:
+            if start >= 0.0:
+                pos_range = (start, start)
+                if len(user_range) > 1:
+                    try:
+                        pos_range = (start, float(user_range[1]))
+                    except:
+                        pass
         return pos_range
 
     def get_note_range(self, string):
         '''Get note lane or range to operate on.'''
-        note_range = (0,128)
+        note_range = (0, 128)
         string = string.replace('NOTES', '')
         if len(string) > 1:
-            int_range = self.get_note_range_from_string(string)
-            if int_range:
-                note_range = int_range
-            else:
-                start_note_name = self.get_note_name_from_string(string)
-                start_note_num = self.string_to_note(start_note_name)
-                note_range = (start_note_num, start_note_num + 1)
-                string = string.replace(start_note_name, '').strip()
-                if len(string) > 1 and string.startswith('-'):
-                    string = string[1:]
-                    end_note_name = self.get_note_name_from_string(string)
-                    end_note_num = self.string_to_note(end_note_name)
-                    if end_note_num > start_note_num:
-                        note_range = (start_note_num, end_note_num + 1)
+            try:
+                note_range = self.get_note_range_from_string(string)
+            except:
+                try:
+                    start_note_name = self.get_note_name_from_string(string)
+                    start_note_num = self.string_to_note(start_note_name)
+                    note_range = (start_note_num, start_note_num + 1)
+                    string = string.replace(start_note_name, '').strip()
+                    if len(string) > 1 and string.startswith('-'):
+                        string = string[1:]
+                        end_note_name = self.get_note_name_from_string(string)
+                        end_note_num = self.string_to_note(end_note_name)
+                        if end_note_num > start_note_num:
+                            note_range = (start_note_num, end_note_num + 1)
+                except ValueError:
+                    pass
         return note_range
 
     def get_note_range_from_string(self, string):
-        '''Attempt to get note range (specified in ints) from string and
-        return it or None if not specified or invalid.
+        '''Returns a note range (specified in ints) from string.
         '''
-        result = None
         int_split = string.split('-')
+        start = int(int_split[0])
         try:
-            start = int(int_split[0])
+            end = int(int_split[1]) + 1
+        except IndexError:
             end = start + 1
-            if len(int_split) > 1:
-                end = int(int_split[1]) + 1
-            if 0 <= start and end < 129 and start < end:
-                result = (start, end)
-            else:
-                result = None
-        except:
-            result = None
-        return result
+        if 0 <= start and end <= 128 and start < end:
+            return (start, end)
+        raise ValueError("'{}' is not a valid range note.")
 
     def get_note_name_from_string(self, string):
         '''Get the first note name specified in the given string.'''
-        result = None
         if len(string) >= 2:
             result = string[0:2].strip()
             if (result.endswith('#') or result.endswith('-')) and len(string) >= 3:
                 result = string[0:3].strip()
                 if result.endswith('-') and len(string) >= 4:
                     result = string[0:4].strip()
-        return result
+            return result
+        raise ValueError("'{}' does not contain a note".format(string))
 
     def string_to_note(self, string):
         '''Get note value from string.'''
-        converted_note = None
         base_note = None
-        octave = None
+
         for s in string:
             if s in NOTE_NAMES:
                 base_note = NOTE_NAMES.index(s)
             if base_note is not None and s == '#':
                 base_note += 1
+
         if base_note is not None:
             for o in OCTAVE_NAMES:
                 if o in string:
                     base_note = base_note + (OCTAVE_NAMES.index(o) * 12)
                     break
-        if 0 <= base_note < 128:
-            converted_note = base_note
-        return converted_note
+            if 0 <= base_note < 128:
+                return base_note
+
+        raise ValueError("'{}' is not a valid note".format(string))
 
     def write_all_notes(self, clip, edited_notes, other_notes):
         '''Writes new notes to clip.'''

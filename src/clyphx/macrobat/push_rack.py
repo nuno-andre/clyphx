@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import with_statement, absolute_import, unicode_literals
+from builtins import super
 
 from ..core import XComponent
 from ..consts import NOTE_NAMES
@@ -27,7 +28,7 @@ class MacrobatPushRack(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, rack):
-        super(MacrobatPushRack, self).__init__(parent)
+        super().__init__(parent)
         self._rack = rack
         self._script = None
         self._push_ins = self._connect_to_push()
@@ -38,7 +39,7 @@ class MacrobatPushRack(XComponent):
         self._rack = None
         self._script = None
         self._push_ins = None
-        super(MacrobatPushRack, self).disconnect()
+        super().disconnect()
 
     def update(self):
         self._push_ins = self._connect_to_push()

@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super
 
 import Live
 from functools import partial
@@ -27,7 +28,7 @@ class MacrobatRnRRack(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, rack, name, track):
-        super(MacrobatRnRRack, self).__init__(parent)
+        super().__init__(parent)
         self._on_off_param = []
         self._devices_to_operate_on = []
         self._track = track
@@ -38,7 +39,7 @@ class MacrobatRnRRack(XComponent):
         self._on_off_param = []
         self._devices_to_operate_on = []
         self._track = None
-        super(MacrobatRnRRack, self).disconnect()
+        super().disconnect()
 
     def setup_device(self, rack, name):
         '''
@@ -51,7 +52,7 @@ class MacrobatRnRRack(XComponent):
                 if p.name == 'Device On' and p.is_enabled:
                     if not p.value_has_listener(self.on_off_changed):
                         self._on_off_param = [p, name]
-                        #---use this to get around device on/off switches
+                        # use this to get around device on/off switches
                         #   getting turned on upon set load
                         self._parent.schedule_message(
                             5, partial(p.add_value_listener, self.on_off_changed)

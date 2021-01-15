@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super
 
 import Live
 from ..core import XComponent
@@ -28,7 +29,7 @@ class MacrobatMidiRack(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, rack, name):
-        super(MacrobatMidiRack, self).__init__(parent)
+        super().__init__(parent)
         self._macro_to_cc = []
         self._macro_to_pc = []
         self._macro_to_sysex = []
@@ -42,7 +43,7 @@ class MacrobatMidiRack(XComponent):
         self._macro_to_pc = []
         self._macro_to_sysex = []
         self._sysex_list = []
-        super(MacrobatMidiRack, self).disconnect()
+        super().disconnect()
 
     def setup_device(self, rack, name):
         '''

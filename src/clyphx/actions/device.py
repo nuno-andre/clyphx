@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super, dict, range
 
 import Live
 from _Generic.Devices import *
@@ -22,19 +23,18 @@ from _Generic.Devices import DEVICE_DICT, DEVICE_BOB_DICT
 from ..core import XComponent
 from ..consts import KEYWORDS, LOOPER_STATES
 
-
 class XDeviceActions(XComponent):
     '''Device and Looper actions.
     '''
     __module__ = __name__
 
     def __init__(self, parent):
-        super(XDeviceActions, self).__init__(parent)
-        self._looper_data = {}
+        super().__init__(parent)
+        self._looper_data = dict()
 
     def disconnect(self):
-        self._looper_data = {}
-        super(XDeviceActions, self).disconnect()
+        self._looper_data = dict()
+        super().disconnect()
 
     def set_all_params(self, device, track, xclip, ident, args):
         '''Set the value of all macros in a rack in one go. So don't need to
@@ -51,10 +51,10 @@ class XDeviceActions(XComponent):
                                                              param_values[i].strip())
             else:
                 if isinstance(xclip, Live.Clip.Clip):
-                    assign_string = xclip.name + ' '
+                    assign_string = '{} '.format(xclip.name)
                     for param in device.parameters:
                         if 'Macro' in param.original_name:
-                            assign_string += str(int(param.value)) + ' '
+                            assign_string += '{} '.format(int(param.value))
                     xclip.name = assign_string
 
     def adjust_selected_chain(self, device, track, xclip, ident, args):
@@ -243,7 +243,7 @@ class XDeviceActions(XComponent):
 
     def get_looper(self, track):
         '''Get first looper device on track and its params.'''
-        self._looper_data = {}
+        self._looper_data = dict()
         for d in track.devices:
             if d.class_name == 'Looper':
                 self._looper_data['Looper'] = d

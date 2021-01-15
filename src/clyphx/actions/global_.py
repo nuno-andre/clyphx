@@ -15,6 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
+from builtins import super, dict, range
 
 from functools import partial
 from itertools import chain
@@ -30,7 +31,7 @@ class XGlobalActions(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
-        super(XComponent, self).__init__(parent)
+        super().__init__(parent)
         self._last_gqntz = 4
         self._last_rqntz = 5
         self._repeat_enabled = False
@@ -53,7 +54,7 @@ class XGlobalActions(XComponent):
         self.song().remove_is_playing_listener(self.on_time_changed)
         self._tempo_ramp_settings = []
         self._scenes_to_monitor = None
-        super(XComponent, self).disconnect()
+        super().disconnect()
 
     def on_scene_triggered(self, index):
         self._last_scene_index = index
@@ -61,13 +62,15 @@ class XGlobalActions(XComponent):
     def on_scene_list_changed(self):
         self.setup_scene_listeners()
 
-    def make_instant_mapping_docs(self, *a):
-        from ..instant_mapping_make_doc import InstantMappingMakeDoc
+    def make_instant_mapping_docs(self, track, xclip, ident, args):
+        from ..instant_doc import InstantMappingMakeDoc
         InstantMappingMakeDoc()
+        if isinstance(xclip, Live.Clip.Clip):
+            xclip.name = str(xclip.name).upper().replace('MAKE_DEV_DOC', 'Doc saved')
 
     def send_midi_message(self, track, xclip, ident, args):
-        '''Send formatted note/cc/pc message or raw midi message.'''
-        status_values = {'NOTE': 144, 'CC': 176, 'PC': 192}
+        '''Send formatted NOTE/CC/PC message or raw MIDI message.'''
+        status_values = dict(NOTE=144, CC=176, PC=192)
         message = []
         if args:
             byte_array = args.split()
@@ -87,7 +90,7 @@ class XGlobalActions(XComponent):
                 if message:
                     try:
                         self._parent._send_midi(tuple(message))
-                        #---send matching note off for note messages
+                        # send matching note off for note messages
                         if byte_array[0] == 'NOTE':
                             message[-1] = 0
                             self._parent.schedule_message(
@@ -782,7 +785,7 @@ class XGlobalActions(XComponent):
         args = args.strip()
         scene_to_launch = self.get_scene_to_operate_on(xclip, args)
         if args:
-            #--Don't allow randomization unless more than 1 scene
+            # don't allow randomization unless more than 1 scene
             if 'RND' in args and len(self.song().scenes) > 1:
                 num_scenes = len(self.song().scenes)
                 rnd_range = [0, num_scenes]
@@ -803,7 +806,7 @@ class XGlobalActions(XComponent):
                 if scene_to_launch == self._last_scene_index:
                     while scene_to_launch == self._last_scene_index:
                         scene_to_launch = Live.Application.get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
-            #--Don't allow adjustment unless more than 1 scene
+            # don't allow adjustment unless more than 1 scene
             elif args.startswith(('<', '>')) and len(self.song().scenes) > 1:
                 factor = self._parent.get_adjustment_factor(args)
                 if factor < len(self.song().scenes):
