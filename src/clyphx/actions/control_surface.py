@@ -16,21 +16,26 @@
 
 from __future__ import with_statement, absolute_import, unicode_literals
 from builtins import super, dict, range
-
 from functools import partial
+from typing import TYPE_CHECKING
 
-import Live
 from ableton.v2.control_surface import ControlSurface as CS
 from _Framework.ControlSurface import ControlSurface
 from _Framework.MixerComponent import MixerComponent
 from _Framework.DeviceComponent import DeviceComponent
 
-from ..core import XComponent, SessionComponent
+from ..core.xcomponent import XComponent, SessionComponent
+from ..core.live import Clip
 from ..consts import REPEAT_STATES
 from .push import ClyphXPushActions
 from .pxt_live import XPxtActions
 from .mxt_live import XMxtActions
 from .arsenal import XArsenalActions
+
+if TYPE_CHECKING:
+    from typing import Any, Iterable, Sequence, Dict, Optional, Tuple, Text
+    from ..core.legacy import _DispatchCommand, _SingleDispatch
+    from ..core.live import Track
 
 
 # TODO: update, enable... ??
@@ -40,12 +45,13 @@ class XCsActions(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
-        super().__init__(parent)
+        # type: (Any) -> None
+        super().__init__(parent)    # type: ignore
         self._push_actions = ClyphXPushActions(parent)
         self._pxt_actions = XPxtActions(parent)
         self._mxt_actions = XMxtActions(parent)
         self._arsenal_actions = XArsenalActions(parent)
-        self._scripts = dict()
+        self._scripts = dict()  # type: Dict[Any, Any]
 
     def disconnect(self):
         self._scripts = dict()
@@ -60,8 +66,10 @@ class XCsActions(XComponent):
         work with non-Framework scripts, but does work with User Remote
         Scripts.
         '''
-        # TODO: arg substituted
+        # TODO: arg substituted ??
         instantiated_scripts = self._parent._control_surfaces()
+
+        # TODO: replace with enumerate
         self._scripts = dict()
         for i in range(len(instantiated_scripts)):
             script = instantiated_scripts[i]
@@ -124,8 +132,8 @@ class XCsActions(XComponent):
                                 self._scripts[i]['device'] = c
                         if script_name == 'Push':
                             self._scripts[i]['session'] = script._session_ring
-                            self._scripts[i]['mixer'] = script._mixer
-                            self._scripts[i]['device'] = script._device_component
+                            self._scripts[i]['mixer']   = script._mixer
+                            self._scripts[i]['device']  = script._device_component
                         elif script_name == 'Push2':
                             # XXX: hackish way to delay for Push2 init, using
                             # monkey patching doesn't work for some reason
@@ -142,76 +150,104 @@ class XCsActions(XComponent):
         self._scripts[index]['session'] = script._session_ring
         self._scripts[index]['device'] = script._device_component
 
+    @property
+    def dispatchers(self):
+        return dict(
+            SURFACE = self.dispatch_cs_action,
+            CS =      self.dispatch_cs_action,
+            ARSENAL = self.dispatch_arsenal_action,
+            PUSH =    self.dispatch_push_action,
+            PTX =     self.dispatch_pxt_action,
+            MTX =     self.dispatch_mxt_action,
+        )
+
+    # TODO: normalize dispatching
+    def dispatch_action(self, cmd):
+        # type: (_SingleDispatch) -> None
+        '''Dispatch appropriate control surface actions.
+        '''
+        if cmd.action_name.startswith(('SURFACE', 'CS')):
+            script = self._get_script_to_operate_on(cmd.action_name)
+            if script is not None:
+                self.dispatch_cs_action(script, cmd.xclip, cmd.ident, cmd.args)
+        else:
+            disp = [v for k,v in self.dispatchers.items()
+                   if k.startswith(cmd.action_name)][0]
+            disp(cmd.track, cmd.xclip, cmd.ident, cmd.action_name, cmd.args)
+
+    def dispatch_cs_action(self, script, xclip, ident, args):
+        # type: (Any, Clip, Text, Text) -> None
+        '''Dispatch appropriate control surface actions.'''
+        if 'METRO ' in args and 'metro' in self._scripts[script]:
+            self.handle_visual_metro(self._scripts[script], args)
+        elif 'RINGLINK ' in args and self._scripts[script]['session']:
+            self.handle_ring_link(
+                self._scripts[script]['session'], script, args[9:]
+            )
+        elif 'RING ' in args and self._scripts[script]['session']:
+            self.handle_session_offset(script,
+                                        self._scripts[script]['session'],
+                                        args[5:])
+        elif ('COLORS ' in args and
+                self._scripts[script]['session'] and
+                self._scripts[script]['color']):
+            self.handle_session_colors(self._scripts[script]['session'],
+                                        self._scripts[script]['color'],
+                                        args[7:])
+        elif 'DEV LOCK' in args and self._scripts[script]['device']:
+            self._scripts[script]['device'].canonical_parent.toggle_lock()
+        elif 'BANK ' in args and self._scripts[script]['mixer']:
+            self.handle_track_bank(
+                script, xclip, ident, self._scripts[script]['mixer'],
+                self._scripts[script]['session'], args[5:]
+            )
+        elif 'RPT' in args:
+            self.handle_note_repeat(
+                self._scripts[script]['script'], script, args
+            )
+        elif self._scripts[script]['mixer'] and '/' in args[:4]:
+            self.handle_track_action(
+                script, self._scripts[script]['mixer'], xclip, ident, args
+            )
+
     def dispatch_push_action(self, track, xclip, ident, action, args):
+        # type: (Track, Clip, Text, None, Text) -> None
         '''Dispatch Push-related actions to PushActions.'''
         if self._push_actions:
-            self._push_actions.dispatch_action(track, xclip, ident, action, args)
+            self._push_actions.dispatch_action(track, xclip, ident, None, args)
 
     def dispatch_pxt_action(self, track, xclip, ident, action, args):
+        # type: (Track, Clip, Text, Text, Text) -> None
         '''Dispatch PXT-related actions to PXTActions.'''
         if self._pxt_actions:
             self._pxt_actions.dispatch_action(track, xclip, ident, action, args)
 
     def dispatch_mxt_action(self, track, xclip, ident, action, args):
+        # type: (Track, Clip, Text, Text, Text) -> None
         '''Dispatch MXT-related actions to MXTActions.'''
         if self._mxt_actions:
             self._mxt_actions.dispatch_action(track, xclip, ident, action, args)
 
     def dispatch_arsenal_action(self, track, xclip, ident, action, args):
+        # type: (Track, Clip, Text, Text, Text) -> None
         '''Dispatch Arsenal-related actions to ArsenalActions.'''
         if self._arsenal_actions:
             self._arsenal_actions.dispatch_action(track, xclip, ident, action, args)
 
-    def dispatch_cs_action(self, track, xclip, ident, action, args):
-        '''Dispatch appropriate control surface actions.'''
-        script = self._get_script_to_operate_on(action)
-        if script is not None:
-            if 'METRO ' in args and 'metro' in self._scripts[script]:
-                self.handle_visual_metro(self._scripts[script], args)
-            elif 'RINGLINK ' in args and self._scripts[script]['session']:
-                self.handle_ring_link(
-                    self._scripts[script]['session'], script, args[9:]
-                )
-            elif 'RING ' in args and self._scripts[script]['session']:
-                self.handle_session_offset(script,
-                                           self._scripts[script]['session'],
-                                           args[5:])
-            elif ('COLORS ' in args and
-                    self._scripts[script]['session'] and
-                    self._scripts[script]['color']):
-                self.handle_session_colors(self._scripts[script]['session'],
-                                           self._scripts[script]['color'],
-                                           args[7:])
-            elif 'DEV LOCK' in args and self._scripts[script]['device']:
-                self._scripts[script]['device'].canonical_parent.toggle_lock()
-            elif 'BANK ' in args and self._scripts[script]['mixer']:
-                self.handle_track_bank(
-                    script, xclip, ident, self._scripts[script]['mixer'],
-                    self._scripts[script]['session'], args[5:]
-                )
-            elif 'RPT' in args:
-                self.handle_note_repeat(
-                    self._scripts[script]['script'], script, args
-                )
-            elif self._scripts[script]['mixer'] and '/' in args[:4]:
-                self.handle_track_action(
-                    script, self._scripts[script]['mixer'], xclip, ident, args
-                )
-
     def _get_script_to_operate_on(self, script_info):
+        # type: (Text) -> Optional[Any]
         '''Returns the script index to operate on, which can be
         specified in terms of its index or its name. Also, can use
         SURFACE (legacy) or CS (new) to indicate a surface action.
         '''
         script = None
         try:
-            script_spec = None
             if 'SURFACE' in script_info:
                 script_spec = script_info.replace('SURFACE', '').strip()
             elif 'CS' in script_info:
                 script_spec = script_info.replace('CS', '').strip()
             else:
-                return
+                return None
 
             if len(script_spec) == 1:
                 script = int(script_spec) - 1
@@ -222,11 +258,13 @@ class XCsActions(XComponent):
                 for k, v in self._scripts.items():
                     if v['name'] == script_spec:
                         script = k
+                        break
         except:
             script = None
         return script
 
     def handle_note_repeat(self, script, script_index, args):
+        # type: (Any, int, Text) -> None
         '''Set note repeat for the given surface.'''
         args = args.replace('RPT', '').strip()
         if args == 'OFF':
@@ -243,11 +281,10 @@ class XCsActions(XComponent):
                 self._scripts[script_index]['repeat'] = True
 
     def handle_track_action(self, script_key, mixer, xclip, ident, args):
+        # type: (Text, Any, Clip, Text, Text) -> None
         '''Get control surface track(s) to operate on and call main
         action dispatch.
         '''
-        track_start = None
-        track_end = None
         track_range = args.split('/')[0]
         actions = str(args[args.index('/')+1:].strip()).split()
         new_action = actions[0]
@@ -267,27 +304,27 @@ class XCsActions(XComponent):
                 track_start = int(track_range) - 1
                 track_end = track_start + 1
         except:
-            track_start = None
-            track_end = None
+            return
 
-        if track_start is not None and track_end is not None:
-            if (0 <= track_start and
-                    track_end < len(mixer._channel_strips) + 1 and
-                    track_start < track_end):
-                track_list = []
-                if self._scripts[script_key]['name'] == 'PUSH':
-                    offset, _ = self._push_actions.get_session_offsets(self._scripts[script_key]['session'])
-                    tracks_to_use = self._scripts[script_key]['session'].tracks_to_use()
-                else:
-                    offset = mixer._track_offset
-                    tracks_to_use = mixer.tracks_to_use()
-                for i in range(track_start, track_end):
-                    if 0 <= (i + offset) < len(tracks_to_use):
-                        track_list.append(tracks_to_use[i + offset])
-                if track_list:
-                    self._parent.action_dispatch(track_list, xclip, new_action, new_args, ident)
+        if (0 <= track_start and track_start < track_end and
+                track_end < len(mixer._channel_strips) + 1):
+            track_list = []
+            if self._scripts[script_key]['name'] == 'PUSH':
+                offset, _ = self._push_actions.get_session_offsets(self._scripts[script_key]['session'])
+                tracks_to_use = self._scripts[script_key]['session'].tracks_to_use()
+            else:
+                offset = mixer._track_offset
+                tracks_to_use = mixer.tracks_to_use()
+            for i in range(track_start, track_end):
+                if 0 <= (i + offset) < len(tracks_to_use):
+                    track_list.append(tracks_to_use[i + offset])
+            if track_list:
+                command = _DispatchCommand(track_list, xclip, ident, new_action, new_args)
+                self._parent.handle_dispatch_command(command)
+                # self._parent.action_dispatch(track_list, xclip, new_action, new_args, ident)
 
     def handle_track_bank(self, script_key, xclip, ident, mixer, session, args):
+        # type: (Text, Clip, Text, Any, Any, Text) -> None
         '''Move track (or session) bank and select first track in bank.
 
         This works even with controllers without banks like
@@ -299,7 +336,6 @@ class XCsActions(XComponent):
         else:
             t_offset, s_offset = mixer._track_offset, session._scene_offset if session else None
             tracks = mixer.tracks_to_use()
-        new_offset = None
 
         if args == 'FIRST':
             new_offset = 0
@@ -311,7 +347,7 @@ class XCsActions(XComponent):
                 if 0 <= (offset + t_offset) < len(tracks):
                     new_offset = offset + t_offset
             except:
-                new_offset = None
+                return
 
         if new_offset >= 0:
             if session:
@@ -321,6 +357,7 @@ class XCsActions(XComponent):
                 self.handle_track_action(script_key, mixer, xclip, ident, '1/SEL')
 
     def handle_session_offset(self, script_key, session, args):
+        # type: (Text, Any, Text) -> None
         '''Handle moving session offset absolutely or relatively as well
         as storing/recalling its last position.
         '''
@@ -349,6 +386,7 @@ class XCsActions(XComponent):
             pass
 
     def _parse_ring_spec(self, spec_id, arg_string, default_index, list_to_search):
+        # type: (Text, Text, int, Iterable[Any]) -> Tuple[int, Text]
         '''Parses a ring action specification and returns the specified
         track/scene index as well as the arg_string without the
         specification that was parsed.
@@ -366,7 +404,7 @@ class XCsActions(XComponent):
                     arg_string = arg_string.replace(a, '', 1).strip()
                     break
                 elif a[1] == '"':
-                    name_start_pos = arg_string.index(spec_id + '"')
+                    name_start_pos = arg_string.index('{}"'.format(spec_id))
                     name = arg_string[name_start_pos + 2:]
                     name_end_pos = name.index('"')
                     name = name[:name_end_pos]
@@ -379,6 +417,7 @@ class XCsActions(XComponent):
         return (index, arg_string)
 
     def handle_ring_link(self, session, script_index, args):
+        # type: (Any, Text, Text) -> None
         '''Handles linking/unliking session offsets to the selected
         track or scene with centering if specified.
         '''
@@ -387,24 +426,26 @@ class XCsActions(XComponent):
         self._scripts[script_index]['centered_link'] = 'CENTER' in args
 
     def handle_session_colors(self, session, colors, args):
+        # type: (Any, Any, Text) -> None
         '''Handle changing clip launch LED colors.'''
-        args = args.split()
-        if len(args) == 3:
-            for a in args:
+        largs = args.split()
+        if len(largs) == 3:
+            for a in largs:
                 if a not in colors:
                     return
             for scene_index in range(session.height()):
                 scene = session.scene(scene_index)
                 for track_index in range(session.width()):
                     clip_slot = scene.clip_slot(track_index)
-                    clip_slot.set_started_value(colors[args[0]][0])
-                    clip_slot.set_triggered_to_play_value(colors[args[0]][1])
-                    clip_slot.set_recording_value(colors[args[1]][0])
-                    clip_slot.set_triggered_to_record_value(colors[args[1]][1])
-                    clip_slot.set_stopped_value(colors[args[2]][0])
+                    clip_slot.set_started_value(colors[largs[0]][0])
+                    clip_slot.set_triggered_to_play_value(colors[largs[0]][1])
+                    clip_slot.set_recording_value(colors[largs[1]][0])
+                    clip_slot.set_triggered_to_record_value(colors[largs[1]][1])
+                    clip_slot.set_stopped_value(colors[largs[2]][0])
                     clip_slot.update()
 
     def handle_visual_metro(self, script, args):
+        # type: (Any, Text) -> None
         '''Handle visual metro for APCs and Launchpad.
 
         This is a specialized version for L9 that uses component guard
@@ -492,6 +533,7 @@ class VisualMetro(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, controls, override):
+        # type: (Any, Sequence[Any], Any) -> None
         super().__init__(parent)
         self._controls = controls
         self._override = override

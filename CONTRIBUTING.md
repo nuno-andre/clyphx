@@ -1,31 +1,23 @@
 # Contributing to ClyphX
 
+## Vendorized packages
 
-## Installing development environment
+| package           | version | description |
+| ----------------- | ------- | ----------- |
+| [`python-future`] | 0.18.2  | Compability layer between Python 2.7 and Python 3 |
+| [`typing`]        | 3.7.4.3 | Backport of the `typing` built-in module for Python 2.7 |
 
-### Windows
-
-```powershell
-PS> git clone https://github.com/nuno-andre/clyphx.git
-PS> cd clyphx
-PS> . .\tools\win.ps1; install-runtime
-PS> python3 .\tools\vscode.py
-PS> install-dev-script
-```
+[`python-future`]: https://github.com/PythonCharmers/python-future
+[`typing`]: https://github.com/python/typing
 
 
-## Vendorized libs
+## VSCode
 
-| package | version | description |
-| ------- | ------- | ----------- |
-| [`python-future`](https://github.com/PythonCharmers/python-future) | 0.18.2 | Compability layer between Python 2.7 and Python 3 |
-
-
-## VSCode tasks
+### VSCode
 
 <kbd>Shift</kbd>+<kbd>Ctrl</kbd>+<kbd>P</kbd> &rarr; _Tasks: Run tasks_
 
-| task | description |
-| ---- | ----------- |
+| task             | description |
+| ---------------- | ----------- |
 | `(re)start Live` | Restart Live, or start it if closed.
-| `open Log.txt`   | Open `Log.txt` with the default application for txt files.
+| `open Log.txt`   | Open Live's `Log.txt` with the system default application for txt files.

@@ -17,7 +17,12 @@
 from __future__ import with_statement, absolute_import, unicode_literals
 from builtins import super
 
-from ..core import XComponent
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Any
+    from ..core.live import RackDevice
+
+from ..core.xcomponent import XComponent
 from ..consts import NOTE_NAMES
 
 
@@ -28,6 +33,7 @@ class MacrobatPushRack(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, rack):
+        # type: (Any, RackDevice) -> None
         super().__init__(parent)
         self._rack = rack
         self._script = None
@@ -73,6 +79,7 @@ class MacrobatPushRack(XComponent):
         self._tasks.add(self._handle_root_note_change)
 
     def _handle_root_note_change(self, args=None):
+        # type: (None) -> None
         if self._push_ins:
             new_root = self.scale_macro_value_to_param(self._rack.parameters[1], 12)
             if new_root != self._push_ins._note_layout.root_note:
@@ -85,6 +92,7 @@ class MacrobatPushRack(XComponent):
         self._tasks.add(self._handle_scale_type_change)
 
     def _handle_scale_type_change(self, args=None):
+        # type: (None) -> None
         if self._push_ins:
             mode_list = self._script._scales_enabler._mode_map['enabled'].mode._component._scale_list.scrollable_list
             current_type = self._script._scales_enabler._mode_map['enabled'].mode._component._scale_list.scrollable_list.selected_item_index

@@ -16,9 +16,13 @@
 
 from __future__ import absolute_import, unicode_literals
 from builtins import super, dict, range
+from typing import TYPE_CHECKING
 
-import Live
-from ..core import XComponent
+if TYPE_CHECKING:
+    from typing import Callable, Dict, List, Any, Text
+    from ..core.live import DeviceParameter, RackDevice, Track
+
+from ..core.xcomponent import XComponent
 
 
 class MacrobatParameterRackTemplate(XComponent):
@@ -27,9 +31,10 @@ class MacrobatParameterRackTemplate(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
+        # type: (Any, RackDevice, Track) -> None
         super().__init__(parent)
-        self._on_off_param = []
-        self._param_macros = dict()
+        self._on_off_param = []  # type: List[Any]
+        self._param_macros = dict()  # type: Dict[Text, DeviceParameter]
         self._update_macro = 0
         self._update_param = 0
         self._track = track
@@ -43,6 +48,7 @@ class MacrobatParameterRackTemplate(XComponent):
         super().disconnect()
 
     def setup_device(self, rack):
+        # type: (RackDevice) -> None
         '''Remove any current listeners and set up listener for on/off
         (used for resetting assigned params).
         '''
@@ -54,19 +60,17 @@ class MacrobatParameterRackTemplate(XComponent):
     def on_off_changed(self):
         '''On/off changed, schedule param reset.'''
         if self._on_off_param and self._on_off_param[0]:
-            if self._on_off_param[0].value != self._on_off_param[1] and self._on_off_param[0].value == 1.0:
+            if (self._on_off_param[0].value != self._on_off_param[1]
+                    and self._on_off_param[0].value == 1.0):
                 self._parent.schedule_message(1, self.do_reset)
             self._on_off_param[1] = self._on_off_param[0].value
 
-    def _set_param_macro_listeners(self, macro, param, index):
-        macro.add_value_listener(lambda i=index: self.macro_changed(i))
-        param.add_value_listener(lambda i=index: self.param_changed(i))
-        self._param_macros[index] = (macro, param)
-
     def scale_macro_value_to_param(self, macro, param):
+        # type: (DeviceParameter, DeviceParameter) -> float
         return (((param.max - param.min) / 127.0) * macro.value) + param.min
 
     def scale_param_value_to_macro(self, param):
+        # type: (DeviceParameter) -> int
         return int(((param.value - param.min) / (param.max - param.min)) * 127.0)
 
     def get_drum_rack(self):
@@ -92,6 +96,7 @@ class MacrobatParameterRackTemplate(XComponent):
         return drum_rack
 
     def macro_changed(self, index):
+        # type: (int) -> None
         '''Called on macro changes to update param values.'''
         if index in self._param_macros and self._param_macros[index][0] and self._param_macros[index][1]:
             scaled_value = self.scale_param_value_to_macro(self._param_macros[index][1])
@@ -102,6 +107,7 @@ class MacrobatParameterRackTemplate(XComponent):
                 self._tasks.add(self.update_param)
 
     def update_macro(self, arg=None):
+        # type: (None) -> None
         '''Update macro to match value of param.'''
         if self._update_macro in self._param_macros:
             if self._param_macros[self._update_macro][0] and self._param_macros[self._update_macro][1]:
@@ -111,6 +117,12 @@ class MacrobatParameterRackTemplate(XComponent):
         self._tasks.kill()
         self._tasks.clear()
 
+    def set_param_macro_listeners(self, macro, param, index):
+        # type: (DeviceParameter, DeviceParameter, int) -> None
+        macro.add_value_listener(lambda i=index: self.macro_changed(i))
+        param.add_value_listener(lambda i=index: self.param_changed(i))
+        self._param_macros[index] = (macro, param)
+
     def remove_macro_listeners(self):
         for i in range(1, 9):
             try:
@@ -118,8 +130,8 @@ class MacrobatParameterRackTemplate(XComponent):
             except KeyError:
                 pass
             else:
-                m_listener = lambda index=i: self.macro_changed(index)
-                p_listener = lambda index=i: self.param_changed(index)
+                m_listener = lambda index=i: self.macro_changed(index)  # type: Callable[[int], None]
+                p_listener = lambda index=i: self.param_changed(index)  # type: Callable[[int], None]
                 if macro[0] and macro[0].value_has_listener(m_listener):
                     macro[0].remove_value_listener(m_listener)
                 if macro[1] and macro[1].value_has_listener(p_listener):
@@ -132,6 +144,7 @@ class MacrobatParameterRackTemplate(XComponent):
         self._on_off_param = []
 
     def param_changed(self, index):
+        # type: (int) -> None
         '''Called on param changes to update macros.'''
         if index in self._param_macros and self._param_macros[index][0] and self._param_macros[index][1]:
             scaled_value = self.scale_macro_value_to_param(self._param_macros[index][0],
@@ -143,23 +156,32 @@ class MacrobatParameterRackTemplate(XComponent):
                 self._tasks.add(self.update_macro)
 
     def update_param(self, arg=None):
+        # type: (None) -> None
         '''Update param to match value of macro.'''
-        if self._update_param in self._param_macros:
-            if self._param_macros[self._update_param][0] and self._param_macros[self._update_param][1]:
-                self._param_macros[self._update_param][1].value = self.scale_macro_value_to_param(
-                    self._param_macros[self._update_param][0],
-                    self._param_macros[self._update_param][1],
-                )
+        try:
+            param = self._param_macros[self._update_param]
+        except KeyError:
+            pass
+        else:
+            if param[0] and param[1]:
+                param[1].value = self.scale_macro_value_to_param(param[0], param[1])
         self._tasks.kill()
         self._tasks.clear()
 
     def get_initial_value(self, arg=None):
+        # type: (None) -> None
         '''Get initial values to set macros to.'''
         for i in range(1, 9):
-            if i in self._param_macros:
-                if self._param_macros[i][0] and self._param_macros[i][1]:
-                    if self._param_macros[i][0].value != self.scale_param_value_to_macro(self._param_macros[i][1]):
-                        self._param_macros[i][0].value = self.scale_param_value_to_macro(self._param_macros[i][1])
+            try:
+                # TODO: indexed dict?
+                param = self._param_macros[i]
+            except KeyError:
+                pass
+            else:
+                if param[0] and param[1]:
+                    value = self.scale_param_value_to_macro(param[1])
+                    if param[0].value != value:
+                        param[0].value = value
 
     def do_reset(self):
         '''Reset assigned params to default.'''

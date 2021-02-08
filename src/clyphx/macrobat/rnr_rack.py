@@ -13,13 +13,17 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
-
 from __future__ import absolute_import, unicode_literals
 from builtins import super
 
-import Live
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Any, List, Text
+    from ..core.live import RackDevice, Track, DeviceParameter
+
 from functools import partial
-from ..core import XComponent
+from ..core.xcomponent import XComponent
+from ..core.live import Chain, get_random_int
 
 
 class MacrobatRnRRack(XComponent):
@@ -28,9 +32,10 @@ class MacrobatRnRRack(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, rack, name, track):
+        # type: (Any, RackDevice, str, Track) -> None
         super().__init__(parent)
-        self._on_off_param = []
-        self._devices_to_operate_on = []
+        self._on_off_param = []  # type: List[DeviceParameter]
+        self._devices_to_operate_on = []  # type: List[RackDevice]
         self._track = track
         self.setup_device(rack, name)
 
@@ -42,9 +47,12 @@ class MacrobatRnRRack(XComponent):
         super().disconnect()
 
     def setup_device(self, rack, name):
+        # type: (RackDevice, str) -> None
         '''
-        - Will not reset/randomize any other Macrobat racks except for MIDI Rack
-        - Allowable rack names are: ['NK RST', 'NK RST ALL', 'NK RND', 'NK RND ALL']
+        - Will not reset/randomize any other Macrobat racks except for
+          MIDI Rack
+        - Allowable rack names are: ['NK RST', 'NK RST ALL', 'NK RND',
+          'NK RND ALL']
         '''
         self.remove_on_off_listeners()
         if rack:
@@ -62,7 +70,6 @@ class MacrobatRnRRack(XComponent):
     def on_off_changed(self):
         '''On/off changed, perform assigned function.'''
         if self._on_off_param and self._on_off_param[0]:
-            mess_type = None
             is_reset = False
             if self._on_off_param[1].startswith('NK RND ALL'):
                 mess_type = 'all'
@@ -74,9 +81,10 @@ class MacrobatRnRRack(XComponent):
             elif self._on_off_param[1].startswith('NK RST'):
                 mess_type = 'next'
                 is_reset = True
-            if mess_type:
-                action = self.do_device_reset if is_reset else self.do_device_randomize
-                self._parent.schedule_message(1, partial(action, mess_type))
+            else:
+                return
+            action = self.do_device_reset if is_reset else self.do_device_randomize
+            self._parent.schedule_message(1, partial(action, mess_type))
 
     def do_device_randomize(self, params):
         '''Randomize device params.'''
@@ -89,7 +97,7 @@ class MacrobatRnRRack(XComponent):
                 for d in self._devices_to_operate_on:
                     for p in d.parameters:
                         if p.is_enabled and not p.is_quantized and p.name != 'Chain Selector':
-                            p.value = (((p.max - p.min) / 127) * Live.Application.get_random_int(0, 128)) + p.min
+                            p.value = (((p.max - p.min) / 127) * get_random_int(0, 128)) + p.min
 
     def do_device_reset(self, params):
         '''Reset device params.'''
@@ -105,16 +113,17 @@ class MacrobatRnRRack(XComponent):
                             p.value = p.default_value
 
     def get_devices_to_operate_on(self, dev_list, devices_to_get):
+        # type: (List[RackDevice], Text) -> None
         '''Get next device on track, all devices on track or all devices
         on chain.
         '''
         if devices_to_get == 'all':
             if (self._parent._can_have_nested_devices and
-                isinstance(self._on_off_param[0].canonical_parent.canonical_parent, Live.Chain.Chain)
+                isinstance(self._on_off_param[0].canonical_parent.canonical_parent, Chain)
             ):
                 dev_list = self._on_off_param[0].canonical_parent.canonical_parent.devices
             for d in dev_list:
-                name = self._parent.get_name(d.name)
+                name = d.name.upper()
                 if d and not name.startswith(
                     ('NK RND', 'NK RST', 'NK CHAIN MIX', 'NK DR',
                     'NK LEARN', 'NK RECEIVER', 'NK TRACK', 'NK SIDECHAIN')
@@ -126,7 +135,8 @@ class MacrobatRnRRack(XComponent):
         else:
             self.get_next_device(self._on_off_param[0].canonical_parent, dev_list)
 
-    def get_next_device(self, rnr_rack, dev_list, store_next = False):
+    def get_next_device(self, rnr_rack, dev_list, store_next=False):
+        # type: (RackDevice, List[RackDevice], bool) -> None
         '''Get the next non-RnR device on the track or in the chain.'''
         for d in dev_list:
             if d and not store_next:
@@ -135,20 +145,20 @@ class MacrobatRnRRack(XComponent):
             elif d and store_next:
                 if not self._devices_to_operate_on or (
                     self._parent._can_have_nested_devices and
-                    isinstance(d.canonical_parent, Live.Chain.Chain)
+                    isinstance(d.canonical_parent, Chain)
                 ):
-                    name = self._parent.get_name(d.name)
+                    name = d.name.upper()
                     if d and not name.startswith(
                         ('NK RND', 'NK RST', 'NK CHAIN MIX', 'NK DR',
                         'NK LEARN', 'NK RECEIVER', 'NK TRACK', 'NK SIDECHAIN')
                     ):
                         self._devices_to_operate_on.append(d)
-                        if (self._parent._can_have_nested_devices and
-                                isinstance(rnr_rack.canonical_parent, Live.Chain.Chain)):
-                            return
-                        if self._parent._can_have_nested_devices and d.can_have_chains:
-                            for c in d.chains:
-                                self.get_next_device(rnr_rack, c.devices, True)
+                        if self._parent._can_have_nested_devices:
+                            if isinstance(rnr_rack.canonical_parent, Chain):
+                                return
+                            if d.can_have_chains:
+                                for c in d.chains:
+                                    self.get_next_device(rnr_rack, c.devices, True)
                 else:
                     return
 

@@ -1,11 +1,15 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 from builtins import dict
+from typing import TYPE_CHECKING
 
 from .global_ import XGlobalActions
 from .track import XTrackActions
 from .clip import XClipActions
 from .device import XDeviceActions
 from .dr import XDrActions
+
+if TYPE_CHECKING:
+    from typing import Any, Callable, Dict, Text, Optional
 
 # NOTE: Action names and their corresponding values can't contain a '/' or '-'
 #       within the first four chars like this 'EX/ONE', but 'EXMP/ONE' is okay.
@@ -78,7 +82,7 @@ GLOBAL_ACTIONS = dict(
     UNMUTE       = XGlobalActions.set_unmute_all,
     UNSOLO       = XGlobalActions.set_unsolo_all,
     MAKE_DEV_DOC = XGlobalActions.make_instant_mapping_docs,
-)
+)  # type: Dict[Text, Callable]
 
 TRACK_ACTIONS = dict(
     ARM       = XTrackActions.set_arm,
@@ -109,7 +113,7 @@ TRACK_ACTIONS = dict(
     OUTSUB    = XTrackActions.adjust_output_sub_routing,
     NAME      = XTrackActions.set_name,
     RENAMEALL = XTrackActions.rename_all_clips,
-)
+)  # type: Dict[Text, Callable]
 
 CLIP_ACTIONS = dict(
     CENT     = XClipActions.adjust_detune,
@@ -136,7 +140,7 @@ CLIP_ACTIONS = dict(
     SIG      = XClipActions.adjust_time_signature,
     WARP     = XClipActions.set_warp,
     NAME     = XClipActions.set_clip_name,
-)
+)  # type: Dict[Text, Callable]
 
 DEVICE_ACTIONS = dict(
     CSEL  = XDeviceActions.adjust_selected_chain,
@@ -161,7 +165,7 @@ DEVICE_ACTIONS = dict(
     B6    = XDeviceActions.adjust_banked_param,
     B7    = XDeviceActions.adjust_banked_param,
     B8    = XDeviceActions.adjust_banked_param,
-)
+)  # type: Dict[Text, Callable]
 
 LOOPER_ACTIONS = dict(
     LOOPER = XDeviceActions.set_looper_on_off,
@@ -170,10 +174,10 @@ LOOPER_ACTIONS = dict(
     PLAY   = XDeviceActions.set_looper_state,
     REC    = XDeviceActions.set_looper_state,
     STOP   = XDeviceActions.set_looper_state,
-)
+)  # type: Dict[Text, XComponentMethod]
 
 DR_ACTIONS = dict(
     SCROLL = XDrActions.scroll_selector,
     UNMUTE = XDrActions.unmute_all,
     UNSOLO = XDrActions.unsolo_all,
-)
+)  # type: Dict[Text, Callable[[XDrActions, Any, None, None, None, Optional[Text]], None]]

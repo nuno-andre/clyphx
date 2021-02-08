@@ -16,11 +16,15 @@
 
 from __future__ import absolute_import, unicode_literals
 from builtins import super
-
-import logging
 from functools import partial
-import Live
-from .core import XComponent
+from typing import TYPE_CHECKING
+import logging
+
+if TYPE_CHECKING:
+    from typing import Any, Sequence, Text, Dict, List, Optional
+    from .core.live import Track
+
+from .core.xcomponent import XComponent
 
 log = logging.getLogger(__name__)
 
@@ -31,15 +35,17 @@ class ExtraPrefs(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, config):
+        # type: (Any, Dict[Text, Any]) -> None
         super().__init__(parent)
-        self._show_highlight = config.get('navigation_highlight', True)
-        self._exclusive_arm = config.get('exclusive_arm_on_select', False)
-        self._exclusive_fold = config.get('exclusive_show_group_on_select', False)
-        self._clip_record = config.get('clip_record_length_set_by_global_quantization', False)
-        self._clip_record_slot = None
-        self._midi_clip_length = config.get('default_inserted_midi_clip_length', False)
-        self._midi_clip_length_slot = None
-        self._last_track = self.song().view.selected_track
+        log.info('Starting ExtraPrefs with %s', config)
+        self._show_highlight = config.get('navigation_highlight', True)  # type: bool
+        self._exclusive_arm = config.get('exclusive_arm_on_select', False)  # type: bool
+        self._exclusive_fold = config.get('exclusive_show_group_on_select', False)  # type: bool
+        self._clip_record = config.get('clip_record_length_set_by_global_quantization', False)  # type: bool
+        self._clip_record_slot = None  # type: Optional[Any]
+        self._midi_clip_length = config.get('default_inserted_midi_clip_length', False)  # type: bool
+        self._midi_clip_length_slot = None  # type: Optional[Any]
+        self._last_track = self.song().view.selected_track  # type: Track
         self.on_selected_track_changed()
 
     def disconnect(self):
@@ -54,6 +60,7 @@ class ExtraPrefs(XComponent):
         functions and removes/sets up listeners for clip-related
         functions.
         '''
+        log.info('ExtraPrefs.on_selected_track_changed')
         super().on_selected_track_changed()
         track = self.song().view.selected_track
         clip_slot = self.song().view.highlighted_clip_slot
@@ -93,17 +100,20 @@ class ExtraPrefs(XComponent):
                         self.midi_clip_length_slot_changed
                     )
         self._last_track = track
+        log.debug('ExtraPrefs.on_selected_track_changed, last track: %r', track)
 
     def do_exclusive_fold(self, track):
+        # type: (Track) -> None
         '''Called on track change. Collapses all group tracks except for
         the current group track.
         '''
         if track.is_foldable:
             for t in self.song().tracks:
                 if t.is_foldable:
-                    t.fold_state = 0 if t == track else 1
+                    t.fold_state = t != track
 
     def do_exclusive_arm(self, track):
+        # type: (Track) -> None
         '''Called on track change. Disarms all tracks except for the
         current track.
         '''
@@ -112,7 +122,7 @@ class ExtraPrefs(XComponent):
                 t.arm = t == track
 
     def clip_record_slot_changed(self):
-        '''Called on slot has clip changed.  Checks if clip is recording
+        '''Called on slot has clip changed. Checks if clip is recording
         and retriggers it if so.
         '''
         track = self.song().view.selected_track
@@ -122,14 +132,14 @@ class ExtraPrefs(XComponent):
                 clip.fire()
 
     def midi_clip_length_slot_changed(self):
-        '''Called on slot has clip changed to trigger set length function.
-        Checks if clip is not playing/triggered, is 1-bar in length, has
-        no name and no notes.
+        '''Called on slot has clip changed to trigger set length
+        function. Checks if clip is not playing/triggered, is 1-bar in
+        length, has no name and no notes.
         '''
         clip = self._midi_clip_length_slot.clip
         if clip and not clip.is_playing and not clip.is_triggered:
             one_bar = (4.0 / self.song().signature_denominator) * self.song().signature_numerator
-            if clip.length == one_bar and clip.name == '':
+            if clip.length == one_bar and not clip.name:
                 clip.select_all_notes()
                 all_notes = clip.get_selected_notes()
                 clip.deselect_all_notes()
@@ -139,6 +149,7 @@ class ExtraPrefs(XComponent):
                     )
 
     def do_midi_clip_set_length(self, clip_params):
+        # type: (Sequence[Any]) -> None
         '''Sets clip length and loop end to user-defined length.'''
         clip = clip_params[0]
         new_length = clip_params[1] * self._midi_clip_length

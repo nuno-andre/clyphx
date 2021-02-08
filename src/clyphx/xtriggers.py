@@ -13,14 +13,20 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
+
 from __future__ import absolute_import, unicode_literals
 from builtins import super, dict, range
-
+from typing import TYPE_CHECKING
 from functools import partial
 import logging
-import Live
-from .core import XComponent
-from .action_list import ActionList
+
+from .core.xcomponent import XComponent
+from .core.legacy import ActionList
+from .core.live import forward_midi_cc, forward_midi_note
+
+if TYPE_CHECKING:
+    from typing import Any, Iterable, Sequence, Dict, Text, List, Tuple
+    from .core.live import Clip, Track
 
 log = logging.getLogger(__name__)
 
@@ -30,14 +36,15 @@ class XTrigger(XComponent):
 
 
 class XControlComponent(XTrigger):
-    '''Control component for ClyphX.
+    '''A control on a MIDI controller.
     '''
     __module__ = __name__
 
     def __init__(self, parent):
+        # type: (Any) -> None
         super().__init__(parent)
-        self._control_list = dict()
-        self._xt_scripts = []
+        self._control_list = dict()  # type: Dict[Tuple[int, int], Dict[Text, Any]]
+        self._xt_scripts = []  # type: List[Any]
 
     def disconnect(self):
         self._control_list = dict()
@@ -45,8 +52,8 @@ class XControlComponent(XTrigger):
         super().disconnect()
 
     def connect_script_instances(self, instantiated_scripts):
+        # type: (Iterable[Any]) -> None
         '''Try to connect to ClyphX_XT instances.'''
-        ClyphX_XT = None
         for i in range(5):
             try:
                 if i == 0:
@@ -59,6 +66,8 @@ class XControlComponent(XTrigger):
                     from ClyphX_XTD.ClyphX_XT import ClyphX_XT
                 elif i == 4:
                     from ClyphX_XTE.ClyphX_XT import ClyphX_XT
+                else:
+                    continue
             except ImportError:
                 pass
             else:
@@ -69,6 +78,7 @@ class XControlComponent(XTrigger):
                             break
 
     def assign_new_actions(self, string):
+        # type: (Text) -> None
         '''Assign new actions to controls via xclips.'''
         if self._xt_scripts:
             for x in self._xt_scripts:
@@ -91,6 +101,7 @@ class XControlComponent(XTrigger):
                 break
 
     def receive_midi(self, bytes):
+        # type: (Sequence[int]) -> None
         '''Receive user-defined midi messages.'''
         if self._control_list:
             ctrl_data = None
@@ -110,18 +121,30 @@ class XControlComponent(XTrigger):
                 self._parent.handle_action_list_trigger(self.song().view.selected_track,
                                                         ctrl_data['name'])
 
+    def read_user_settings(self, settings, midi_map_handle):
+        # TODO
+        for name, data in settings.items():
+            msg_type, chnl, val, actions = map(str.strip, data.split(',', 3))
+            try:
+                status_byte = {'note': 144, 'cc': 176}[msg_type]
+            except KeyError:
+                log.error("MSG TYPE of user controls has to be 'NOTE' or 'CC'")
+                continue
+
+
     def get_user_control_settings(self, data, midi_map_handle):
+        # type: (Iterable[Text], int) -> None
         '''Receives control data from user settings file and builds
         control dictionary.
         '''
         self._control_list = dict()
-        for d in data:
+        for _d in data:
             status_byte = None
             channel = None
             ctrl_num = None
             on_action = None
             off_action = None
-            d = d.split('=')
+            d = _d.split('=')
             ctrl_name = d[0].strip()
             new_ctrl_data = d[1].split(',')
             try:
@@ -148,23 +171,22 @@ class XControlComponent(XTrigger):
                     off_action = off_action,
                     name       = ActionList(on_action),
                 )
-                if status_byte == 144:
-                    fn = Live.MidiMap.forward_midi_note
-                else:
-                    fn = Live.MidiMap.forward_midi_cc
+                fn = forward_midi_note if status_byte == 144 else forward_midi_cc
                 fn(self._parent._c_instance.handle(), midi_map_handle, channel, ctrl_num)
 
     def rebuild_control_map(self, midi_map_handle):
+        # type: (int) -> None
         '''Called from main when build_midi_map is called.'''
+        log.info('XControlComponent.rebuild_control_map')
         for key in self._control_list.keys():
             if key[0] >= 176:
                 # forwards a CC msg to the receive_midi method
-                Live.MidiMap.forward_midi_cc(
+                forward_midi_cc(
                     self._parent._c_instance.handle(), midi_map_handle, key[0] - 176, key[1]
                 )
             else:
                 # forwards a NOTE msg to the receive_midi method
-                Live.MidiMap.forward_midi_note(
+                forward_midi_note(
                     self._parent._c_instance.handle(), midi_map_handle, key[0] - 144, key[1]
                 )
 
@@ -176,6 +198,7 @@ class XTrackComponent(XTrigger):
     __module__ = __name__
 
     def __init__(self, parent, track):
+        # type: (Any, Track) -> None
         super().__init__(parent)
         self._track = track
         self._clip = None
@@ -183,7 +206,7 @@ class XTrackComponent(XTrigger):
         self._track.add_playing_slot_index_listener(self.play_slot_index_changed)
         self._register_timer_callback(self.on_timer)
         self._last_slot_index = -1
-        self._triggered_clips = []
+        self._triggered_clips = []  # type: List[Clip]
         self._triggered_lseq_clip = None
 
     def disconnect(self):
@@ -219,6 +242,7 @@ class XTrackComponent(XTrigger):
             self._clip.add_loop_jump_listener(self.on_loop_jump)
 
     def get_xclip(self, slot_index):
+        # type: (int) -> Clip
         '''Get the xclip associated with slot_index or None.'''
         clip = None
         if self._track and 0 <= slot_index < len(self._track.clip_slots):
@@ -265,14 +289,15 @@ class XCueComponent(XTrigger):
     __module__ = __name__
 
     def __init__(self, parent):
+        # type: (Any) -> None
         super().__init__(parent)
         self.song().add_current_song_time_listener(self.arrange_time_changed)
         self.song().add_is_playing_listener(self.arrange_time_changed)
         self.song().add_cue_points_listener(self.cue_points_changed)
-        self._x_points = dict()
+        self._x_points = dict()  # type: Dict[Text, Any]
         self._x_point_time_to_watch_for = -1
         self._last_arrange_position = -1
-        self._sorted_times = []
+        self._sorted_times = []  # type: List[Any]
         self.cue_points_changed()
 
     def disconnect(self):
@@ -295,7 +320,7 @@ class XCueComponent(XTrigger):
                 cp.add_time_listener(self.cue_points_changed)
             if not cp.name_has_listener(self.cue_points_changed):
                 cp.add_name_listener(self.cue_points_changed)
-            name = self._parent.get_name(cp.name)
+            name = cp.name.upper()
             if len(name) > 2 and name[0] == '[' and name.count('[') == 1 and name.count(']') == 1:
                 cue_name = name.replace(name[name.index('['):name.index(']')+1].strip(), '')
                 self._x_points[cp.time] = cp

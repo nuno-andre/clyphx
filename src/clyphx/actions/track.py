@@ -16,11 +16,17 @@
 
 from __future__ import absolute_import, unicode_literals
 from builtins import range
+from typing import TYPE_CHECKING
 
-import Live
+if TYPE_CHECKING:
+    from ..core.live import Track
+    from typing import Any, Optional, Text, List
+    from ..core.legacy import _DispatchCommand
+
 from ..consts import KEYWORDS
 from ..consts import GQ_STATES, MON_STATES, XFADE_STATES
-from ..core import XComponent
+from ..core.xcomponent import XComponent
+from ..core.live import Clip, get_random_int
 
 
 class XTrackActions(XComponent):
@@ -28,7 +34,16 @@ class XTrackActions(XComponent):
     '''
     __module__ = __name__
 
+    def dispatch_actions(self, cmd):
+        # type: (_DispatchCommand) -> None
+        from .consts import TRACK_ACTIONS
+
+        action = TRACK_ACTIONS[cmd.action_name]
+        for scmd in cmd:
+            action(self, scmd.track, scmd.xclip, scmd.ident, scmd.args)
+
     def duplicate_track(self, track, xclip, ident, args):
+        # type: (Track, None, None, None) -> None
         '''Duplicates the given track (only regular tracks can be
         duplicated).
         '''
@@ -36,6 +51,7 @@ class XTrackActions(XComponent):
             self.song().duplicate_track(list(self.song().tracks).index(track))
 
     def delete_track(self, track, xclip, ident, args):
+        # type: (Track, None, None, None) -> None
         '''Deletes the given track as long as it's not the last track in
         the set (only regular tracks can be deleted).
         '''
@@ -43,6 +59,7 @@ class XTrackActions(XComponent):
             self.song().delete_track(list(self.song().tracks).index(track))
 
     def delete_device(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Delete the device on the track associated with the given index.
         Only top level devices can be deleted.
         '''
@@ -54,6 +71,7 @@ class XTrackActions(XComponent):
             pass
 
     def create_clip(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Creates a clip in the given slot index (or sel if specified)
         at the given length (in bars). If no args, creates a 1 bar clip
         in the selected slot.
@@ -81,6 +99,7 @@ class XTrackActions(XComponent):
                     track.clip_slots[slot].create_clip(length)
 
     def set_name(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Set track's name.'''
         if track in self.song().tracks or track in self.song().return_tracks:
             args = args.strip()
@@ -88,6 +107,7 @@ class XTrackActions(XComponent):
                 track.name = args
 
     def rename_all_clips(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Renames all clips on the track based on the track's name or
         the name specified in args.
         '''
@@ -98,27 +118,32 @@ class XTrackActions(XComponent):
                     slot.clip.name = '{} {}'.format(name, i + 1)
 
     def set_mute(self, track, xclip, ident, value=None):
+        # type: (Track, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off track mute.
         '''
         if track in self.song().tracks or track in self.song().return_tracks:
             track.mute = KEYWORDS.get(value, not track.mute)
 
     def set_solo(self, track, xclip, ident, value=None):
+        # type: (Track, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off track solo.'''
         if track in self.song().tracks or track in self.song().return_tracks:
             track.solo = KEYWORDS.get(value, not track.solo)
 
     def set_arm(self, track, xclip, ident, value=None):
+        # type: (Track, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off track arm.'''
         if track in self.song().tracks and track.can_be_armed:
             track.arm = KEYWORDS.get(value, not track.arm)
 
     def set_fold(self, track, xclip, ident, value=None):
+        # type: (Track, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off track fold.'''
         if track.is_foldable:
             track.fold_state = KEYWORDS.get(value, not track.fold_state)
 
     def set_monitor(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Toggles or sets monitor state.'''
         if track in self.song().tracks and not track.is_foldable:
             try:
@@ -130,6 +155,7 @@ class XTrackActions(XComponent):
                     track.current_monitoring_state += 1
 
     def set_xfade(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Toggles or sets crossfader assignment.'''
         if track != self.song().master_track:
             try:
@@ -141,6 +167,7 @@ class XTrackActions(XComponent):
                     track.mixer_device.crossfade_assign += 1
 
     def set_selection(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Sets track/slot selection.'''
         self.song().view.selected_track = track
         if track in self.song().tracks:
@@ -154,6 +181,7 @@ class XTrackActions(XComponent):
                     self.song().view.selected_scene = list(self.song().scenes)[track.playing_slot_index]
 
     def set_jump(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Jumps playing clip on track forward/backward.'''
         if track in self.song().tracks:
             try:
@@ -162,12 +190,14 @@ class XTrackActions(XComponent):
                 pass
 
     def set_stop(self, track, xclip, ident, value=None):
+        # type: (Track, None, None, Optional[Text]) -> None
         '''Stops all clips on track w/no quantization option for Live 9.
         '''
         if track in self.song().tracks:
-            track.stop_all_clips(value.strip() != 'NQ')
+            track.stop_all_clips((value or '').strip() != 'NQ')
 
     def set_play(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Plays clips normally. Allow empty slots unless using </> keywords.
         '''
         allow_empty_slots = args != '<' and args != '>'
@@ -176,6 +206,7 @@ class XTrackActions(XComponent):
             track.clip_slots[slot_to_play].fire()
 
     def set_play_w_legato(self, track, xclip, ident, args):
+        # type: (Track, Any, None, Text) -> None
         '''Plays the clip with legato using the current global quantization.
         This will not launch empty slots.
         '''
@@ -187,16 +218,19 @@ class XTrackActions(XComponent):
             )
 
     def set_play_w_force_qntz(self, track, xclip, ident, args):
+        # type: (Track, Any, None, Text) -> None
         '''Plays the clip with a specific quantization regardless of
         launch/global quantization. This will not launch empty slots.
         '''
         self._handle_force_qntz_play(track, xclip, args, False)
 
     def set_play_w_force_qntz_and_legato(self, track, xclip, ident, args):
+        # type: (Track, Any, None, Text) -> None
         '''Combination of play_legato and play_w_force_qntz.'''
         self._handle_force_qntz_play(track, xclip, args, True)
 
     def _handle_force_qntz_play(self, track, xclip, args, w_legato):
+        # type: (Track, Any, Text, bool) -> None
         '''Handles playing clips with a specific quantization with or
         without legato.
         '''
@@ -217,6 +251,7 @@ class XTrackActions(XComponent):
                                                 launch_quantization=qntz_to_use)
 
     def _get_slot_index_to_play(self, track, xclip, args, allow_empty_slots=False):
+        # type: (Track, Any, Text, bool) -> int
         '''Returns the slot index to play based on keywords in the given args.
         '''
         slot_to_play = -1
@@ -224,7 +259,7 @@ class XTrackActions(XComponent):
             play_slot = track.playing_slot_index
             select_slot = list(self.song().scenes).index(self.song().view.selected_scene)
             if not args:
-                if isinstance(xclip, Live.Clip.Clip):
+                if isinstance(xclip, Clip):
                     slot_to_play = xclip.canonical_parent.canonical_parent.playing_slot_index
                 else:
                     slot_to_play = play_slot if play_slot >= 0 else select_slot
@@ -248,10 +283,10 @@ class XTrackActions(XComponent):
                             new_max = num_scenes
                         if 0 <= new_min and new_max < num_scenes + 1 and new_min < new_max - 1:
                             rnd_range = [new_min, new_max]
-                slot_to_play = Live.Application.get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
+                slot_to_play = get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
                 if slot_to_play == play_slot:
                     while slot_to_play == play_slot:
-                        slot_to_play = Live.Application.get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
+                        slot_to_play = get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
             # don't allow adjustment unless more than 1 scene
             elif args.startswith(('<', '>')) and len(self.song().scenes) > 1:
                 if track.is_foldable:
@@ -297,32 +332,38 @@ class XTrackActions(XComponent):
             return -1
 
     def adjust_preview_volume(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Adjust/set master preview volume.'''
         if track == self.song().master_track:
             self._parent.do_parameter_adjustment(self.song().master_track.mixer_device.cue_volume, args.strip())
 
     def adjust_crossfader(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Adjust/set master crossfader.'''
         if track == self.song().master_track:
             self._parent.do_parameter_adjustment(self.song().master_track.mixer_device.crossfader, args.strip())
 
     def adjust_volume(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Adjust/set track volume.'''
         self._parent.do_parameter_adjustment(track.mixer_device.volume, args.strip())
 
     def adjust_pan(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Adjust/set track pan.'''
         self._parent.do_parameter_adjustment(track.mixer_device.panning, args.strip())
 
     def adjust_sends(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Adjust/set track sends.'''
-        args = args.split()
+        largs = args.split()
         if len(args) > 1:
-            param = self.get_send_parameter(track, args[0].strip())
+            param = self.get_send_parameter(track, largs[0].strip())
             if param:
-                self._parent.do_parameter_adjustment(param, args[1].strip())
+                self._parent.do_parameter_adjustment(param, largs[1].strip())
 
     def get_send_parameter(self, track, send_string):
+        # type: (Track, Text) -> Optional[Any]
         '''Gets the send parameter to operate on.'''
         param = None
         if track != self.song().master_track:
@@ -333,6 +374,7 @@ class XTrackActions(XComponent):
         return param
 
     def adjust_input_routing(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Adjust track input routing.'''
         if track in self.song().tracks and not track.is_foldable:
             routings = list(track.input_routings)
@@ -343,6 +385,7 @@ class XTrackActions(XComponent):
             track.current_input_routing = self.handle_track_routing(args, routings, current_routing)
 
     def adjust_input_sub_routing(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Adjust track input sub-routing.'''
         if track in self.song().tracks and not track.is_foldable:
             routings = list(track.input_sub_routings)
@@ -353,6 +396,7 @@ class XTrackActions(XComponent):
             track.current_input_sub_routing = self.handle_track_routing(args, routings, current_routing)
 
     def adjust_output_routing(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Adjust track output routing.'''
         if track != self.song().master_track:
             routings = list(track.output_routings)
@@ -363,6 +407,7 @@ class XTrackActions(XComponent):
             track.current_output_routing = self.handle_track_routing(args, routings, current_routing)
 
     def adjust_output_sub_routing(self, track, xclip, ident, args):
+        # type: (Track, None, None, Text) -> None
         '''Adjust track output sub-routing.'''
         if track != self.song().master_track:
             routings = list(track.output_sub_routings)
@@ -373,6 +418,7 @@ class XTrackActions(XComponent):
             track.current_output_sub_routing = self.handle_track_routing(args, routings, current_routing)
 
     def handle_track_routing(self, args, routings, current_routing):
+        # type: (Text, List[Any], Any) -> Any
         '''Handle track routing adjustment.'''
         new_routing = routings[current_routing]
         args = args.strip()
@@ -382,7 +428,7 @@ class XTrackActions(XComponent):
                 new_routing = routings[current_routing + factor]
         else:
             for i in routings:
-                if self._parent.get_name(i) == args:
+                if i.upper() == args:
                     new_routing = i
                     break
         return new_routing

@@ -10,9 +10,12 @@
   "editor.insertSpaces": true,
   "editor.unusualLineTerminators": "auto",
   "python.disableInstallationCheck": true,
+  "python.analysis.useLibraryCodeForTypes": true,
   "search.exclude": {
     "**/.bin": true,
     "**/.git": true,
+    "**/.mypy_cache": true,
+    "**/.pytest_cache": true,
     "**/vendor": true
   },
   "[python]": {
@@ -33,6 +36,9 @@
     "files.eol": "\r\n"
   },
   "[markdown]": {
+    "editor.rulers": [
+      80
+    ],
     "files.trimTrailingWhitespace": false
   },
   "[git-commit]": {

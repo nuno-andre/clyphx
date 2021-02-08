@@ -1,20 +1,19 @@
 """
 Python 2.7/3 compatibility module.
 """
-from __future__ import unicode_literals
+from __future__ import unicode_literals, absolute_import
 from builtins import super
 
 import sys
 import abc
 from abc import abstractmethod
 
-try:
-    # the raven package is vendorized in Ableton
-    from raven.utils.six import iteritems, with_metaclass
-except ImportError:
-    from six import iteritems
-
 if sys.version_info.major == 3:
-    ABC = abc.ABC
+    ABC = abc.ABC  # type: ignore
 else:
     ABC = abc.ABCMeta(b'ABC', (object,), {b'__slots__': ()})
+
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser

@@ -17,9 +17,9 @@
 from __future__ import absolute_import, unicode_literals
 from builtins import super, range
 
-import Live
 import _Framework.Task
-from ..core import XComponent
+from ..core.xcomponent import XComponent
+from ..core.live import get_random_int
 
 MAX_CHARS = 52
 FULL_SEGMENT = 26
@@ -93,7 +93,7 @@ class XMxtActions(XComponent):
                     p = enc.mapped_parameter()
                     if p and p.is_enabled and not p.is_quantized:
                         if randomize:
-                            p.value = (((p.max - p.min) / 127) * Live.Application.get_random_int(0, 128)) + p.min
+                            p.value = (((p.max - p.min) / 127) * get_random_int(0, 128)) + p.min
                         else:
                             p.value = p.default_value
 

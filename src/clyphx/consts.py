@@ -13,13 +13,24 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
-
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 from builtins import map, dict
+from typing import TYPE_CHECKING
+import logging
 
-import Live
+from . import __version__
+from .core.live import (GridQuantization,
+                        RecordingQuantization,
+                        get_application)
 
-app = Live.Application.get_application()
+if TYPE_CHECKING:
+    from typing import Any, Optional, Sequence, Text, Dict, Mapping
+    from .core.live import Application
+
+log = logging.getLogger(__name__)
+
+app = get_application()  # type: Application
+
 LIVE_VERSION = (app.get_major_version(),
                 app.get_minor_version(),
                 app.get_bugfix_version())
@@ -30,17 +41,25 @@ if LIVE_VERSION < (9, 5, 0):
 
 SCRIPT_NAME = 'ClyphX'
 
-SCRIPT_VERSION = (2, 7, 0)
+SCRIPT_VERSION = __version__
 
 SCRIPT_INFO = '{} v{}'.format(SCRIPT_NAME, '.'.join(map(str, SCRIPT_VERSION)))
 
-KEYWORDS = dict(ON=1, OFF=0)
+KEYWORDS = dict(ON=1, OFF=0)  # type: Mapping[Optional[Text], bool]
+
+ONOFF = dict(ON=True, OFF=False)  # type: Mapping[Text, bool]
 
 NOTE_NAMES = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
 
 OCTAVE_NAMES = ('-2', '-1', '0', '1', '2', '3', '4', '5', '6', '7', '8')
 
 ENV_TYPES = ('IRAMP', 'DRAMP', 'IPYR', 'DPYR', 'SQR', 'SAW')
+
+MIDI_STATUS = dict(
+    NOTE = 144,
+    CC   = 176,
+    PC   = 192,
+)  # type: Mapping[Text, int]
 
 # TODO: mode 5?
 WARP_MODES = dict((
@@ -50,7 +69,7 @@ WARP_MODES = dict((
     ('RE-PITCH',    3),
     ('COMPLEX',     4),
     ('COMPLEX PRO', 6),
-))
+))  # type: Mapping[Text, int]
 
 # region STATES
 GQ_STATES = dict((
@@ -72,7 +91,7 @@ GQ_STATES = dict((
     ('8 BARS', 1),
     ('4 BARS', 2),
     ('2 BARS', 3),
-))
+))  # type: Mapping[Text, int]
 
 RQ_STATES = dict((
     ('NONE',         0),
@@ -84,54 +103,54 @@ RQ_STATES = dict((
     ('1/16T',        6),
     ('1/16 + 1/16T', 7),
     ('1/32',         8),
-))
+))  # type: Mapping[Text, int]
 
 XFADE_STATES = dict(
     A   = 0,
     OFF = 1,
     B   = 2,
-)
+)  # type: Mapping[Text, int]
 
 MON_STATES = dict(
     IN   = 0,
     AUTO = 1,
     OFF  = 2,
-)
+)  # type: Mapping[Text, int]
 
 LOOPER_STATES = dict(
     STOP = 0.0,
     REC  = 1.0,
     PLAY = 2.0,
     OVER = 3.0,
-)
+)  # type: Mapping[Text, float]
 
 R_QNTZ_STATES = dict((
-    ('1/4',          Live.Song.RecordingQuantization.rec_q_quarter),
-    ('1/8',          Live.Song.RecordingQuantization.rec_q_eight),
-    ('1/8T',         Live.Song.RecordingQuantization.rec_q_eight_triplet),
-    ('1/8 + 1/8T',   Live.Song.RecordingQuantization.rec_q_eight_eight_triplet),
-    ('1/16',         Live.Song.RecordingQuantization.rec_q_sixtenth),
-    ('1/16T',        Live.Song.RecordingQuantization.rec_q_sixtenth_triplet),
-    ('1/16 + 1/16T', Live.Song.RecordingQuantization.rec_q_sixtenth_sixtenth_triplet),
-    ('1/32',         Live.Song.RecordingQuantization.rec_q_thirtysecond),
-))
+    ('1/4',          RecordingQuantization.rec_q_quarter),
+    ('1/8',          RecordingQuantization.rec_q_eight),
+    ('1/8T',         RecordingQuantization.rec_q_eight_triplet),
+    ('1/8 + 1/8T',   RecordingQuantization.rec_q_eight_eight_triplet),
+    ('1/16',         RecordingQuantization.rec_q_sixtenth),
+    ('1/16T',        RecordingQuantization.rec_q_sixtenth_triplet),
+    ('1/16 + 1/16T', RecordingQuantization.rec_q_sixtenth_sixtenth_triplet),
+    ('1/32',         RecordingQuantization.rec_q_thirtysecond),
+))  # type: Mapping[Text, int]
 
 CLIP_GRID_STATES = dict((
-    ('OFF',    Live.Clip.GridQuantization.no_grid),
-    ('8 BAR',  Live.Clip.GridQuantization.g_8_bars),
-    ('4 BAR',  Live.Clip.GridQuantization.g_4_bars),
-    ('2 BAR',  Live.Clip.GridQuantization.g_2_bars),
-    ('1 BAR',  Live.Clip.GridQuantization.g_bar),
-    ('1/2',    Live.Clip.GridQuantization.g_half),
-    ('1/4',    Live.Clip.GridQuantization.g_quarter),
-    ('1/8',    Live.Clip.GridQuantization.g_eighth),
-    ('1/16',   Live.Clip.GridQuantization.g_sixteenth),
-    ('1/32',   Live.Clip.GridQuantization.g_thirtysecond),
+    ('OFF',    GridQuantization.no_grid),
+    ('8 BAR',  GridQuantization.g_8_bars),
+    ('4 BAR',  GridQuantization.g_4_bars),
+    ('2 BAR',  GridQuantization.g_2_bars),
+    ('1 BAR',  GridQuantization.g_bar),
+    ('1/2',    GridQuantization.g_half),
+    ('1/4',    GridQuantization.g_quarter),
+    ('1/8',    GridQuantization.g_eighth),
+    ('1/16',   GridQuantization.g_sixteenth),
+    ('1/32',   GridQuantization.g_thirtysecond),
     # alias
-    ('8 BARS', Live.Clip.GridQuantization.g_8_bars),
-    ('4 BARS', Live.Clip.GridQuantization.g_4_bars),
-    ('2 BARS', Live.Clip.GridQuantization.g_2_bars),
-))
+    ('8 BARS', GridQuantization.g_8_bars),
+    ('4 BARS', GridQuantization.g_4_bars),
+    ('2 BARS', GridQuantization.g_2_bars),
+))  # type: Mapping[Text, int]
 
 REPEAT_STATES = dict((
     ('OFF',   1.0),
@@ -143,7 +162,7 @@ REPEAT_STATES = dict((
     ('1/16T', 0.166666666667),
     ('1/32',  0.125),
     ('1/32T', 0.0833333333333),
-))
+))  # type: Mapping[Text, float]
 # endregion
 
 # region DEVICES
@@ -183,7 +202,7 @@ _AUDIO_DEVS = (
     'Corpus',
     'Filter Delay',
     'Utility',
-)
+)  # type: Sequence[Text]
 
 _INS_DEVS = (
     'Tension',
@@ -197,7 +216,7 @@ _INS_DEVS = (
     'Operator',
     'Analog',
     'Simpler',
-)
+)  # type: Sequence[Text]
 
 _MIDI_DEVS = (
     'Note Length',
@@ -208,7 +227,7 @@ _MIDI_DEVS = (
     'Pitch',
     'Arpeggiator',
     'Velocity',
-)
+)  # type: Sequence[Text]
 
 AUDIO_DEVS = dict((dev.upper(), dev) for dev in _AUDIO_DEVS)
 

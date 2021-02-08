@@ -20,13 +20,18 @@ Track Racks.
 from __future__ import absolute_import, unicode_literals
 from builtins import super, dict, range
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Any, Sequence, Dict, Text, Tuple, List
+    from ..core.live import RackDevice, Track, DeviceParameter
+
 from functools import partial
 from itertools import chain
 from _Generic.Devices import *
 from _Framework.SubjectSlot import Subject, SlotManager, subject_slot
 from .parameter_rack_template import MacrobatParameterRackTemplate
 
-LAST_PARAM = dict()
+LAST_PARAM = dict()  # type: Dict[int, Any]
 
 
 class MacrobatLearnRack(MacrobatParameterRackTemplate):
@@ -35,6 +40,7 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
+        # type: (Any, RackDevice, Track) -> None
         self._rack = rack
         # delay adding listener to prevent issue with change on set load
         parent.schedule_message(
@@ -49,6 +55,7 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
         super().disconnect()
 
     def setup_device(self, rack):
+        # type: (RackDevice) -> None
         '''Set up macro 1 and learned param.'''
         super().setup_device(rack)
         self._rack = rack
@@ -60,7 +67,7 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
 
         if self._rack and param:
             if self._rack.parameters[1].is_enabled and param.is_enabled:
-                self._set_param_macro_listeners(self._rack.parameters[1], param, 1)
+                self.set_param_macro_listeners(self._rack.parameters[1], param, 1)
             self._tasks.add(self.get_initial_value)
 
     def on_selected_parameter_changed(self):
@@ -78,7 +85,8 @@ class MacrobatChainMixRack(MacrobatParameterRackTemplate):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
-        self._rack = dict()
+        # type: (Any, RackDevice, Track) -> None
+        self._rack = dict()   # type: Dict[Text, Any]
         super().__init__(parent, rack, track)
 
     def disconnect(self):
@@ -86,6 +94,7 @@ class MacrobatChainMixRack(MacrobatParameterRackTemplate):
         super().disconnect()
 
     def setup_device(self, rack):
+        # type: (RackDevice) -> None
         '''Set up macros and rack chain params.'''
         super().setup_device(rack)
         try:
@@ -93,19 +102,19 @@ class MacrobatChainMixRack(MacrobatParameterRackTemplate):
         except ValueError:
             pass
         else:
-            param_name = self._parent.get_name(rack.name[12:].strip())
+            param_name = rack.name[12:].strip().upper()
 
             for i in range(1, 9):
                 macro = rack.parameters[i]
                 if macro.is_enabled:
-                    chain_name = self._parent.get_name(macro.name)
+                    chain_name = macro.name.upper()
                     try:
                         param = self._rack[chain_name][param_name]
                     except (TypeError, KeyError):
                         pass
                     else:
                         if param.is_enabled:
-                            self._set_param_macro_listeners(macro, param, i)
+                            self.set_param_macro_listeners(macro, param, i)
             self._tasks.add(self.get_initial_value)
 
     def get_rack(self):
@@ -128,7 +137,8 @@ class MacrobatDRMultiRack(MacrobatParameterRackTemplate):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
-        self._drum_rack = dict()
+        # type: (Any, RackDevice, Track) -> None
+        self._drum_rack = dict()  # type: Dict[Text, Any]
         super().__init__(parent, rack, track)
 
     def disconnect(self):
@@ -136,11 +146,12 @@ class MacrobatDRMultiRack(MacrobatParameterRackTemplate):
         super().disconnect()
 
     def setup_device(self, rack):
+        # type: (RackDevice) -> None
         '''Set up macros and drum rack params.'''
         super().setup_device(rack)
         self._drum_rack = self.get_drum_rack()
         if self._drum_rack:
-            param_name = self._parent.get_name(rack.name[11:].strip())
+            param_name = rack.name[11:].strip().upper()
             for i in range(1, 9):
                 drum_to_edit = dict()
                 macro = rack.parameters[i]
@@ -154,7 +165,7 @@ class MacrobatDRMultiRack(MacrobatParameterRackTemplate):
                     if param_name in drum_to_edit:
                         param = drum_to_edit[param_name]
                     if param and param.is_enabled:
-                        self._set_param_macro_listeners(macro, param, i)
+                        self.set_param_macro_listeners(macro, param, i)
             self._tasks.add(self.get_initial_value)
 
 
@@ -164,7 +175,8 @@ class MacrobatDRRack(MacrobatParameterRackTemplate):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
-        self._drum_rack = dict()
+        # type: (Any, RackDevice, Track) -> None
+        self._drum_rack = dict()  # type: Dict[Text, Any]
         super().__init__(parent, rack, track)
 
     def disconnect(self):
@@ -172,6 +184,7 @@ class MacrobatDRRack(MacrobatParameterRackTemplate):
         super().disconnect()
 
     def setup_device(self, rack):
+        # type: (RackDevice) -> None
         '''Set up macros and drum rack params.'''
         super().setup_device(rack)
         self._drum_rack = self.get_drum_rack()
@@ -186,11 +199,11 @@ class MacrobatDRRack(MacrobatParameterRackTemplate):
                 macro = rack.parameters[i]
                 param = None
                 if macro.is_enabled:
-                    name = self._parent.get_name(macro.name)
+                    name = macro.name.upper()
                     if name in drum_to_edit:
                         param = drum_to_edit[name]
                     if param and param.is_enabled:
-                        self._set_param_macro_listeners(macro, param, i)
+                        self.set_param_macro_listeners(macro, param, i)
             self._tasks.add(self.get_initial_value)
 
 
@@ -200,14 +213,16 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
+        # type: (Any, RackDevice, Track) -> None
         super().__init__(parent, rack, track)
 
     def setup_device(self, rack):
+        # type: (RackDevice) -> None
         '''Set up receiver and send macros.'''
         super().setup_device(rack)
         receiver_macros = self.get_ident_macros(rack)
         if receiver_macros:
-            self._sender_macros = []
+            self._sender_macros = []  # type: List[DeviceParameter]
             for t in chain(self.song().tracks,
                            self.song().return_tracks,
                            (self.song().master_track,)):
@@ -216,15 +231,16 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
                 for r in receiver_macros:
                     for i, s in enumerate(self._sender_macros):
                         if r[0] == s[0] and r[1].is_enabled and s[1].is_enabled:
-                            self._set_param_macro_listeners(r[1], s[1], i + 1)
+                            self.set_param_macro_listeners(r[1], s[1], i + 1)
             self._tasks.add(self.get_initial_value)
 
     def get_sender_macros(self, dev_list):
+        # type: (List[RackDevice]) -> None
         '''Look through all devices/chains on all tracks for sender
         macros.
         '''
         for d in dev_list:
-            name = self._parent.get_name(d.name)
+            name = d.name.upper()
             if d and d.class_name.endswith('GroupDevice') and not name.startswith('NK RECEIVER'):
                 self._sender_macros.extend(self.get_ident_macros(d))
             if self._parent._can_have_nested_devices and d.can_have_chains:
@@ -232,18 +248,19 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
                     self.get_sender_macros(c.devices)
 
     def get_ident_macros(self, rack):
+        # type: (RackDevice) -> Sequence[Tuple[Text, DeviceParameter]]
         '''Get send and receiver macros.'''
-        ident_macros = []
-        ident_names = []
+        macros = []
+        names = []
         for macro in rack.parameters:
-            name = self._parent.get_name(macro.name)
+            name = macro.name.upper()
             if macro.original_name.startswith('Macro') and '(*' in name and '*)' in name and len(name) > 4:
                 if not name.count('(') > 1 and not name.count(')') > 1:
                     ident = name[name.index('(') + 2:name.index(')') - 1]
-                    if ident not in ident_names:
-                        ident_macros.append((ident, macro))
-                    ident_names.append(ident)
-        return ident_macros
+                    if ident not in names:
+                        macros.append((ident, macro))
+                    names.append(ident)
+        return macros
 
     def on_off_changed(self):
         '''Receiver rack doesn't do reset.'''
@@ -256,6 +273,7 @@ class MacrobatTrackRack(MacrobatParameterRackTemplate):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
+        # type: (Any, RackDevice, Track) -> None
         self._rack = rack
         super().__init__(parent, rack, track)
 
@@ -264,13 +282,14 @@ class MacrobatTrackRack(MacrobatParameterRackTemplate):
         super().disconnect()
 
     def setup_device(self, rack):
+        # type: (RackDevice) -> None
         '''Setup macros and track mixer params.'''
         super().setup_device(rack)
         for i in range(1, 9):
             macro = rack.parameters[i]
             param = None
             if macro.is_enabled:
-                name = self._parent.get_name(macro.name)
+                name = macro.name.upper()
                 if name.startswith('SEND') and self._track != self.song().master_track:
                     try:
                         param = self._track.mixer_device.sends[ord(name[5]) - 65]
@@ -281,7 +300,7 @@ class MacrobatTrackRack(MacrobatParameterRackTemplate):
                 elif name.startswith('PAN'):
                     param = self._track.mixer_device.panning
             if param and param.is_enabled:
-                self._set_param_macro_listeners(macro, param, i)
+                self.set_param_macro_listeners(macro, param, i)
         self._tasks.add(self.get_initial_value)
 
 
@@ -291,7 +310,8 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
-        self._drum_rack = dict()
+        # type: (Any, RackDevice, Track) -> None
+        self._drum_rack = dict()  # type: Dict[Text, Any]
         self._rack = None
         self._selected_chain = None
         super().__init__(parent, rack, track)
@@ -303,6 +323,7 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
         super().disconnect()
 
     def setup_device(self, rack):
+        # type: (RackDevice) -> None
         '''Set up macros and drum rack params.'''
         super().setup_device(rack)
         self._rack = rack
@@ -327,7 +348,7 @@ class MacrobatDRPadMixRack(MacrobatParameterRackTemplate):
                             if s_index < num_sends:
                                 param = self._selected_chain.mixer_device.sends[s_index]
                         if param and param.is_enabled:
-                            self._set_param_macro_listeners(rack.parameters[i], param, i)
+                            self.set_param_macro_listeners(rack.parameters[i], param, i)
                 self._tasks.add(self.get_initial_value)
 
     @subject_slot('selected_drum_pad')
@@ -366,23 +387,28 @@ class CsWrapper(Subject, SlotManager):
 
     @property
     def value(self):
+        # type: () -> int
         return min(self._cs.value, self._max)
 
     @value.setter
     def value(self, value):
+        # type: (int) -> None
         if value <= self._max:
             self._cs.value = value
 
     @property
     def min(self):
+        # type: () -> int
         return self._cs.min
 
     @property
     def max(self):
+        # type: () -> int
         return self._max
 
     @max.setter
     def max(self, value):
+        # type: (int) -> None
         self._max = value
 
     @subject_slot('value')
@@ -397,8 +423,9 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
+        # type: (Any, RackDevice, Track) -> None
         self._rack = rack
-        self._wrapper = None
+        self._wrapper = None  # type: CsWrapper
         super().__init__(parent, rack, track)
 
     def disconnect(self):
@@ -410,6 +437,7 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
         return (((param.max - param.min) / 126.0) * macro.value) + param.min
 
     def setup_device(self, rack):
+        # type: (RackDevice) -> None
         '''Set up macro 1 and chain selector.
         '''
         super().setup_device(rack)
@@ -422,7 +450,7 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
                 self._wrapper.max = len(self._rack.chains)
                 if self._wrapper.max > 1:
                     self._on_chains_changed.subject = self._rack
-                    self._set_param_macro_listeners(macro, self._wrapper, 1)
+                    self.set_param_macro_listeners(macro, self._wrapper, 1)
                 self._tasks.add(self.get_initial_value)
 
     @subject_slot('chains')

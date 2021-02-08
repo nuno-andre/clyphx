@@ -18,12 +18,15 @@ from __future__ import absolute_import, unicode_literals
 from builtins import super
 
 from ableton.v2.control_surface.components.session_ring import SessionRingComponent
-from .core import XComponent, SessionComponent
+from .core.xcomponent import XComponent, SessionComponent
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Any, Iterable, Optional, Text, Dict, List
 
 
 class PushApcCombiner(XComponent):
-    '''Syncs Push and APC40 session grids for proper
-    emulation.
+    '''Syncs Push and APC40 session grids for proper emulation.
     '''
     __module__ = __name__
 
@@ -43,6 +46,7 @@ class PushApcCombiner(XComponent):
         super().disconnect()
 
     def set_up_scripts(self, scripts):
+        # type: (Iterable[Any]) -> None
         '''Remove current listeners, get Push/APC scripts, set up
         listeners and also set feedback delay on APC+Push encoders.
         '''
@@ -67,6 +71,7 @@ class PushApcCombiner(XComponent):
                     self._on_apc_offset_changed()
 
     def _get_session_component(self, script):
+        # type: (Any) -> Optional[Any]
         '''Get the session component for the given script.
         '''
         if script and script._components:
@@ -76,7 +81,7 @@ class PushApcCombiner(XComponent):
         try:
             return script._session_ring
         except AttributeError:
-            pass
+            return None
 
     def _on_apc_offset_changed(self):
         '''Update Push offset on APC offset changed and suppress its

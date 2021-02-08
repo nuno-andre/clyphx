@@ -17,8 +17,12 @@
 from __future__ import absolute_import, unicode_literals
 from builtins import super
 
-import Live
-from ..core import XComponent
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Any, Iterable, Sequence, List
+    from ..core.live import Device, RackDevice, Track
+
+from ..core.xcomponent import XComponent
 from .midi_rack import MacrobatMidiRack
 from .rnr_rack import MacrobatRnRRack
 from .sidechain_rack import MacrobatSidechainRack
@@ -36,16 +40,18 @@ class Macrobat(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
+        # type: (Any) -> None
         super().__init__(parent)
-        self.current_tracks = []
+        self.current_tracks = []  # type: List[Any]
 
     def disconnect(self):
         self.current_tracks = []
         super().disconnect()
 
     def setup_tracks(self, track):
+        # type: (Track) -> None
         '''Setup component tracks on ini and track list changes.'''
-        if not track in self.current_tracks:
+        if track not in self.current_tracks:
             self.current_tracks.append(track)
             MacrobatTrackComponent(track, self._parent)
 
@@ -56,10 +62,11 @@ class MacrobatTrackComponent(XComponent):
     __module__ = __name__
 
     def __init__(self, track, parent):
+        # type: (Track, Any) -> None
         super().__init__(parent)
         self._track = track
         self._track.add_devices_listener(self.setup_devices)
-        self._current_devices = []
+        self._current_devices = []  # type: List[Any]
         self._update_in_progress = False
         self._has_learn_rack = False
         self.setup_devices()
@@ -85,6 +92,7 @@ class MacrobatTrackComponent(XComponent):
         self._update_in_progress = False
 
     def setup_devices(self):
+        # type: () -> None
         '''Get devices on device/chain list and device name changes.'''
         if self._track and not self._update_in_progress:
             self._update_in_progress = True
@@ -100,6 +108,7 @@ class MacrobatTrackComponent(XComponent):
         self._current_devices = []
 
     def get_devices(self, dev_list):
+        # type: (Iterable[RackDevice]) -> None
         '''Go through device and chain lists and setup Macrobat racks.
         '''
         for d in dev_list:
@@ -115,9 +124,10 @@ class MacrobatTrackComponent(XComponent):
                     self.get_devices(c.devices)
 
     def setup_macrobat_rack(self, rack):
+        # type: (RackDevice) -> None
         '''Setup Macrobat rack if meets criteria.'''
         if rack.class_name.endswith('GroupDevice'):
-            name = self._parent.get_name(rack.name)
+            name = rack.name.upper()
             m = None
             if name.startswith('NK RECEIVER'):
                 m = MacrobatReceiverRack(self._parent, rack, self._track)
@@ -151,6 +161,7 @@ class MacrobatTrackComponent(XComponent):
                 self._current_devices.append((m, rack))
 
     def remove_devices(self, dev_list):
+        # type: (Iterable[RackDevice]) -> None
         '''Remove all device listeners.'''
         for d in dev_list:
             if d.name_has_listener(self.setup_devices):

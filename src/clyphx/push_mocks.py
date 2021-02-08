@@ -16,8 +16,12 @@
 
 from __future__ import unicode_literals
 from builtins import super
+from typing import TYPE_CHECKING
 
 from Push.handshake_component import HandshakeComponent
+
+if TYPE_CHECKING:
+    from ableton.v2.base.task import Task, TaskGroup
 
 
 class MockHandshakeTask(object):
@@ -29,6 +33,8 @@ class MockHandshakeTask(object):
     def restart(self):
         pass
 
+    # TODO
+    # @property
     def is_running(self):
         return False
 
@@ -38,8 +44,8 @@ class MockHandshake(HandshakeComponent):
     emulation.
     '''
 
-    def __init__(self, *a, **k):
-        super().__init__(*a, **k)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._on_identity_value.subject = None
         self._on_dongle_value.subject = None
 

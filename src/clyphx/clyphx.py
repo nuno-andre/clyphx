@@ -13,26 +13,25 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
-
 from __future__ import with_statement, absolute_import, unicode_literals
 from builtins import super, dict, range, map
 
 import logging
 from functools import partial
 from itertools import chain
-import Live
-from _Framework.ControlSurface import ControlSurface
+from typing import TYPE_CHECKING
 
-from .core import UserSettings
+from .core.live import Clip, get_random_int
+from _Framework.ControlSurface import ControlSurface
 from .macrobat import Macrobat
 from .extra_prefs import ExtraPrefs
 from .cs_linker import CsLinker
 from .actions import (
     XGlobalActions, GLOBAL_ACTIONS,
-    XTrackActions,  TRACK_ACTIONS,
-    XClipActions,   CLIP_ACTIONS,
-    XDeviceActions, DEVICE_ACTIONS, LOOPER_ACTIONS,
-    XDrActions,     DR_ACTIONS,
+    XTrackActions, TRACK_ACTIONS,
+    XClipActions,
+    XDeviceActions,
+    XDrActions,
     XSnapActions,
     XCsActions,
 )
@@ -40,12 +39,26 @@ from .xtriggers import (
     XTrackComponent, XControlComponent, XCueComponent
 )
 from .user_actions import XUserActions
+from .user_config import get_user_settings
 from .m4l_browser import XM4LBrowserInterface
-from .action_list import ActionList
 from .push_apc_combiner import PushApcCombiner
-from .consts import LIVE_VERSION, SCRIPT_NAME, SCRIPT_INFO
+from .consts import LIVE_VERSION, SCRIPT_INFO
 from .push_mocks import MockHandshakeTask, MockHandshake
-from .core.utils import show_python_info, get_base_path
+from .core.utils import get_base_path
+from .core.live import Live, Track, DeviceIO
+from .core.parsing import get_xclip_action_list, track_list_to_string
+from .core.legacy import _DispatchCommand, _SingleDispatch, ActionList
+import os
+
+# FIXME
+if TYPE_CHECKING:
+    from typing import (
+        Any, Text, Union, Optional, Dict,
+        Iterable, Sequence, List, Tuple,
+    )
+    from .core.live import (
+        Clip, Device, DeviceParameter, Track, MidiRemoteScript,
+    )
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -57,14 +70,14 @@ class ClyphX(ControlSurface):
     __module__ = __name__
 
     def __init__(self, c_instance):
+        # type: (MidiRemoteScript) -> None
         super().__init__(c_instance)
         self._user_settings_logged = False
         self._is_debugging = False
         self._push_emulation = False
         self._PushApcCombiner = None
         self._process_xclips_if_track_muted = True
-        self._user_settings = UserSettings()
-        # show_python_info()
+        self._user_settings = get_user_settings()
         with self.component_guard():
             self.macrobat = Macrobat(self)
             self._extra_prefs = ExtraPrefs(self, self._user_settings.prefs)
@@ -81,121 +94,114 @@ class ClyphX(ControlSurface):
             XM4LBrowserInterface(self)
             XCueComponent(self)
             self._startup_actions_complete = False
-            self._user_variables = dict()
-            self._play_seq_clips = dict()
-            self._loop_seq_clips = dict()
-            self.current_tracks = []
+            self._user_variables = dict()   # type: Dict[Text, Any]
+            self._play_seq_clips = dict()   # type: Dict[Text, Any]
+            self._loop_seq_clips = dict()   # type: Dict[Text, Any]
+            self.current_tracks = []  # type: List[Any]
             self._can_have_nested_devices = True
             self.setup_tracks()
         msg = '--- %s --- Live Version: %s ---'
         log.info(msg, SCRIPT_INFO, '.'.join(map(str, LIVE_VERSION)))
         self.show_message(SCRIPT_INFO)
 
+    # TODO: this teardown makes the baby mypy cry
     def disconnect(self):
-        self._PushApcCombiner = None
-        self.macrobat = None
-        self._extra_prefs = None
-        self.cs_linker = None
-        self.track_actions = None
-        self.snap_actions = None
-        self.global_actions = None
-        self.device_actions = None
-        self.dr_actions = None
-        self.clip_actions = None
-        self.cs_actions = None
-        self.user_actions = None
-        self.control_component = None
-        self._user_variables = dict()
-        self._play_seq_clips = dict()
-        self._loop_seq_clips = dict()
-        self.current_tracks = []
+        self._PushApcCombiner  = None
+        self.macrobat          = None  # type: ignore
+        self._extra_prefs      = None  # type: ignore
+        self.cs_linker         = None  # type: ignore
+        self.track_actions     = None  # type: ignore
+        self.snap_actions      = None  # type: ignore
+        self.global_actions    = None  # type: ignore
+        self.device_actions    = None  # type: ignore
+        self.dr_actions        = None  # type: ignore
+        self.clip_actions      = None  # type: ignore
+        self.cs_actions        = None  # type: ignore
+        self.user_actions      = None  # type: ignore
+        self.control_component = None  # type: ignore
+        self._user_variables   = dict()
+        self._play_seq_clips   = dict()
+        self._loop_seq_clips   = dict()
+        self.current_tracks    = []
         super().disconnect()
 
     @property
     def _is_debugging(self):
+        # type: () -> bool
         return log.getEffectiveLevel() <= 10
 
     @_is_debugging.setter
-    def _is_debugging(self, value):
+    def _is_debugging(self, value):  # type: ignore
         log.setLevel(logging.DEBUG if value else logging.INFO)
 
-    def action_dispatch(self, tracks, xclip, action_name, args, ident):
+    def start_debugging(self):
+        '''Turn on debugging and write all user vars/controls/actions to
+        Live's log file to assist in troubleshooting.
+        '''
+        self._is_debugging = True
+        log.info('------- Logging User Variables -------')
+        for key, value in self._user_variables.items():
+            log.info('%s=%s', key, value)
+
+        log.info('------- Logging User Controls -------')
+        for key, value in self.control_component._control_list.items():
+            log.info('%s on_action=%s and off_action=%s',
+                        key, value['on_action'], value['off_action'])
+
+        log.info('------- Logging User Actions -------')
+        for key, value in self.user_actions._action_dict.items():
+            log.info('%s=%s', key, value)
+        log.info('------- Debugging Started -------')
+
+    def handle_dispatch_command(self, cmd):
+        # type: (_DispatchCommand) -> None
         '''Command handler.
 
         Main dispatch for calling appropriate class of actions, passes
         all necessary arguments to class method.
         '''
-        if tracks:
-            if action_name.startswith('SNAP'):
-                self.snap_actions.store_track_snapshot(tracks, xclip, ident, action_name, args)
-            elif action_name.startswith(('SURFACE', 'CS')):
-                self.cs_actions.dispatch_cs_action(tracks[0], xclip, ident, action_name, args)
-            elif action_name.startswith('ARSENAL'):
-                self.cs_actions.dispatch_arsenal_action(tracks[0], xclip, ident, action_name, args)
-            elif action_name.startswith('PUSH'):
-                self.cs_actions.dispatch_push_action(tracks[0], xclip, ident, action_name, args)
-            elif action_name.startswith('PXT'):
-                self.cs_actions.dispatch_pxt_action(tracks[0], xclip, ident, action_name, args)
-            elif action_name.startswith('MXT'):
-                self.cs_actions.dispatch_mxt_action(tracks[0], xclip, ident, action_name, args)
-            elif action_name in GLOBAL_ACTIONS:
-                GLOBAL_ACTIONS[action_name](self.global_actions, tracks[0], xclip, ident, args)
-            elif action_name == 'PSEQ' and args== 'RESET':
-                for v in self._play_seq_clips.values():
-                    v[1] = -1
-            elif action_name == 'DEBUG':
-                if isinstance(xclip, Live.Clip.Clip):
-                    xclip.name = str(xclip.name).upper().replace('DEBUG', 'Debugging Activated')
-                self.start_debugging()
-            else:
-                for t in tracks:
-                    if action_name in TRACK_ACTIONS:
-                        TRACK_ACTIONS[action_name](self.track_actions, t, xclip, ident, args)
-                    elif action_name == 'LOOPER':
-                        if args and args.split()[0] in LOOPER_ACTIONS:
-                            LOOPER_ACTIONS[args.split()[0]](self.device_actions, t, xclip, ident, args)
-                        elif action_name in LOOPER_ACTIONS:
-                            LOOPER_ACTIONS[action_name](self.device_actions, t, xclip, ident, args)
-                    elif action_name.startswith('DEV'):
-                        device_action = self.get_device_to_operate_on(t, action_name, args)
-                        device_args = None
-                        if device_action[0]:
-                            if len(device_action) > 1:
-                                device_args = device_action[1]
-                            if device_args and device_args.split()[0] in DEVICE_ACTIONS:
-                                fn = DEVICE_ACTIONS[device_args.split()[0]]
-                                fn(self.device_actions, device_action[0], t, xclip, ident, device_args)
-                            elif device_args and 'CHAIN' in device_args:
-                                self.device_actions.dispatch_chain_action(device_action[0], t, xclip, ident, device_args)
-                            elif action_name.startswith('DEV'):
-                                self.device_actions.set_device_on_off(device_action[0], t, xclip, ident, device_args)
-                    elif action_name.startswith('CLIP') and t in self.song().tracks:
-                        clip_action = self.get_clip_to_operate_on(t, action_name, args)
-                        clip_args = None
-                        if clip_action[0]:
-                            if len(clip_action) > 1:
-                                clip_args = clip_action[1]
-                            if clip_args and clip_args.split()[0] in CLIP_ACTIONS:
-                                # fn = getattr(self.clip_actions, CLIP_ACTIONS[clip_args.split()[0]])
-                                fn = CLIP_ACTIONS[clip_args.split()[0]]
-                                fn(self.clip_actions, clip_action[0], t, xclip, ident, clip_args.replace(clip_args.split()[0], ''))
-                            elif clip_args and clip_args.split()[0].startswith('NOTES'):
-                                self.clip_actions.do_clip_note_action(clip_action[0], t, xclip, ident, args)
-                            elif action_name.startswith('CLIP'):
-                                self.clip_actions.set_clip_on_off(clip_action[0], t, xclip, ident, args)
-                    elif action_name.startswith('DR'):
-                        dr = self.get_drum_rack_to_operate_on(t)
-                        arg = args.split()[0]
-                        if dr and args:
-                            if arg in DR_ACTIONS:
-                                DR_ACTIONS[arg](self.dr_actions, dr, t, xclip, ident, args.strip())
-                            elif 'PAD' in args:
-                                self.dr_actions.dispatch_pad_action(dr, t, xclip, ident, args.strip())
-                    elif action_name in self.user_actions._action_dict:
-                        user_action = self.user_actions._action_dict[action_name]
-                        getattr(self.user_actions, user_action)(t, args)
-        log.debug('action_dispatch triggered, ident=%s and track(s)=%s and action=%s and args=%s',
-                  ident, self.track_list_to_string(tracks), action_name, args)
+        log.debug('handle action dispatch: %r', cmd)
+        name = cmd.action_name
+
+        if not cmd.tracks:
+            return  # how?
+
+        if name.startswith('SNAP'):
+            self.snap_actions.dispatch_actions(cmd)
+        elif name.startswith('DEV'):
+            self.device_actions.dispatch_device_actions(cmd)
+        elif name.startswith('CLIP'):
+            self.clip_actions.dispatch_actions(cmd)
+        elif name == 'LOOPER':
+            self.device_actions.dispatch_looper_actions(cmd)
+        elif name in TRACK_ACTIONS:
+            self.track_actions.dispatch_actions(cmd)
+        elif name in GLOBAL_ACTIONS:
+            self.global_actions.dispatch_action(cmd.to_single())
+        elif name.startswith('DR'):
+            self.dr_actions.dispatch_dr_actions(cmd)
+        elif name.startswith(('SURFACE', 'CS', 'ARSENAL', 'PUSH', 'PXT', 'MXT')):
+            self.cs_actions.dispatch_action(cmd.to_single())
+        elif name in self.user_actions._action_dict:
+            self.dispatch_user_actions(cmd)
+        elif name == 'PSEQ' and cmd.args== 'RESET':
+            for v in self._play_seq_clips.values():
+                v[1] = -1
+        elif name == 'DEBUG':
+            if isinstance(cmd.xclip, Clip):
+                cmd.xclip.name = str(cmd.xclip.name).upper().replace('DEBUG', 'Debugging Activated')
+            self.start_debugging()
+        else:
+            log.error('Not found dispatcher for %r', cmd)
+            return
+        log.debug('action dispatch triggered: %r', cmd)
+
+    def dispatch_user_actions(self, cmd):
+        # type: (_DispatchCommand) -> None
+        action_name = self.user_actions._action_dict[cmd.action_name]
+        action = getattr(self.user_actions, action_name)
+        for t in cmd.tracks:
+            action(t, cmd.args)
 
     def handle_external_trigger(self, xtrigger):
         '''This replaces the below method for compatibility with scripts
@@ -204,13 +210,16 @@ class ClyphX(ControlSurface):
         xtrigger.name = '[] {}'.format(xtrigger.name)
         self.handle_action_list_trigger(self.song().view.selected_track, xtrigger)
 
+    # deprecated
     def handle_xclip_name(self, track, xclip):
+        # type: (Track, Clip) -> None
         '''Only for backwards compatibility (primarily with MapEase
         ClyphX Strip and ClyphX XT). It shouldn't be used if possible.
         '''
         self.handle_action_list_trigger(track, xclip)
 
     def handle_m4l_trigger(self, name):
+        # type: (Text) -> None
         '''Convenience method for triggering actions from M4L by simply
         supplying an action name.
         '''
@@ -218,19 +227,27 @@ class ClyphX(ControlSurface):
                                         ActionList('[] {}'.format(name)))
 
     def handle_action_list_trigger(self, track, xtrigger):
+        # type: (Track, Any) -> None
         '''Directly dispatches snapshot recall, X-Control overrides and
         Seq X-Clips. Otherwise, separates ident from action names,
         splits up lists of action names and calls action dispatch.
         '''
-        # TODO: use case?
-        if xtrigger is None:
+        log.debug('ClyphX.handle_action_list_trigger'
+                  '(track=%r, xtrigger=%r)', track, xtrigger)
+        # XXX: True both if obj represents a lost weakref or is None.
+        #      Live API objects must not be checked using "is None",
+        #      since this would treat lost weakrefs as valid.
+        if xtrigger == None:
+            # TODO: use case?
             return
 
-        name = self.get_name(xtrigger.name).strip()
+        name = xtrigger.name.strip().upper()
+        log.info("handle action list trigger name '%s'", name)
         if name and name[0] == '[' and ']' in name:
             # snap action, so pass directly to snap component
-            if ' || (' in name and isinstance(xtrigger, Live.Clip.Clip) and xtrigger.is_playing:
-                self.snap_actions.recall_track_snapshot(name, xtrigger)
+            if ' || (' in name and isinstance(xtrigger, Clip) and xtrigger.is_playing:
+                # self.snap_actions.recall_track_snapshot(name, xtrigger)
+                self.snap_actions.recall_track_snapshot(None, xtrigger)
             # control reassignment, so pass directly to control component
             elif '[[' in name and ']]' in name:
                 self.control_component.assign_new_actions(name)
@@ -244,8 +261,8 @@ class ClyphX(ControlSurface):
                 is_loop_seq = False
 
                 # X-Clips can have on and off action lists
-                if isinstance(xtrigger, Live.Clip.Clip):
-                    raw_action_list = self.get_xclip_action_list(xtrigger, raw_action_list)
+                if isinstance(xtrigger, Clip):
+                    raw_action_list = get_xclip_action_list(xtrigger, raw_action_list)
                     if not raw_action_list:
                         return
 
@@ -255,16 +272,16 @@ class ClyphX(ControlSurface):
                     raw_action_list = raw_action_list.replace('(PSEQ)', '').strip()
 
                 # check if the trigger is a LSEQ (accessible only to X-Clips)
-                elif (isinstance(xtrigger, Live.Clip.Clip) and
+                elif (isinstance(xtrigger, Clip) and
                         raw_action_list[0] == '(' and
                         '(LSEQ)' in raw_action_list):
                     is_loop_seq = True
                     raw_action_list = raw_action_list.replace('(LSEQ)', '').strip()
 
                 # build formatted action list
-                formatted_action_list = []
-                for action in raw_action_list.split(';'):
-                    action_data = self.format_action_name(track, action.strip())
+                formatted_action_list = []  # List[Dict[Text, Any]]
+                for action_ in raw_action_list.split(';'):
+                    action_data = self.format_action_name(track, action_.strip())
                     if action_data:
                         formatted_action_list.append(action_data)
 
@@ -278,90 +295,20 @@ class ClyphX(ControlSurface):
                         self.handle_loop_seq_action_list(xtrigger, 0)
                     else:
                         for action in formatted_action_list:
-                            self.action_dispatch(
-                                action['track'], xtrigger, action['action'], action['args'], ident
-                            )
-                            log.debug('handle_action_list_trigger triggered, ident=%s and track(s)=%s and action=%s and args=%s',
-                                      ident, self.track_list_to_string(action['track']), action['action'], action['args'])
-
-    def get_xclip_action_list(self, xclip, full_action_list):
-        '''Get the action list to perform.
-
-        X-Clips can have an on and off action list separated by a comma.
-        This will return which action list to perform based on whether
-        the clip is playing. If the clip is not playing and there is no
-        off action, this returns None.
-        '''
-        result = None
-        split_list = full_action_list.split(',')
-        if xclip.is_playing:
-            result = split_list[0]
-        elif len(split_list) == 2:
-            if split_list[1].strip() == '*':
-                result = split_list[0]
-            else:
-                result = split_list[1]
-        log.debug('get_xclip_action_list returning %s', result)
-        return result
-
-    def replace_user_variables(self, string):
-        '''Replace any user variables in the given string with the value
-        the variable represents.
-        '''
-        while '%' in string:
-            var = string[string.index('%')+1:]
-            if '%' in var:
-                var = var[0:var.index('%')]
-                string = string.replace(
-                    '%{}%'.format(var), self.get_user_variable_value(var), 1
-                )
-            else:
-                string = string.replace('%', '', 1)
-        if '$' in string:
-            # for compat with old-style variables
-            for s in string.split():
-                if '$' in s and not '=' in s:
-                    var = s.replace('$', '')
-                    string = string.replace(
-                        '${}'.format(var), self.get_user_variable_value(var), 1
-                    )
-        log.debug('replace_user_variables returning %s', string)
-        return string
-
-    def get_user_variable_value(self, var):
-        '''Get the value of the given variable name or 0 if var name not
-        found.
-        '''
-        result = self._user_variables.get(var, '0')
-        log.debug('get_user_variable_value returning %s=%s', var, result)
-        return result
-
-    def handle_user_variable_assignment(self, string_with_assign):
-        '''Handle assigning new value to variable with either assignment
-        or expression enclosed in parens.
-        '''
-        # for compat with old-style variables
-        string_with_assign = string_with_assign.replace('$', '')
-        var_data = string_with_assign.split('=')
-        if len(var_data) >= 2 and not ';' in var_data[1] and not '%' in var_data[1] and not '=' in var_data[1]:
-            if '(' in var_data[1] and ')' in var_data[1]:
-                try:
-                    self._user_variables[var_data[0].strip()] = str(eval(var_data[1].strip()))
-                except:
-                    pass
-            else:
-                self._user_variables[var_data[0].strip()] = var_data[1].strip()
-            log.debug('handle_user_variable_assignment, %s=%s',
-                      var_data[0].strip(), var_data[1].strip())
+                            command = _SingleDispatch(action['track'], xtrigger, ident, action['action'], action['args'])
+                            self.handle_dispatch_command(command)
+                            log.debug('handle_action_list_trigger triggered: %r', command)
 
     def format_action_name(self, origin_track, origin_name):
+        # type: (Any, Text) -> Optional[Dict[Text, Any]]
         '''Replaces vars (if any) then splits up track, action name and
         arguments (if any) and returns dict.
         '''
+        log.info('format action name')
         result_name = self.replace_user_variables(origin_name)
         if '=' in result_name:
             self.handle_user_variable_assignment(result_name)
-            return
+            return None
         result_track = [origin_track]
         if len(result_name) >= 4 and (
             ('/' in result_name[:4]) or
@@ -374,48 +321,109 @@ class ClyphX(ControlSurface):
         if len(name) > 1:
             args = result_name.replace(name[0], '', 1)
             result_name = result_name.replace(args, '')
-        log.debug('format_action_name returning, track(s)=%s and action=%s and args=%s',
-                  self.track_list_to_string(result_track), result_name.strip(), args.strip())
+        log.debug('format_action_name -> track(s)=%s, action=%s, args=%s',
+                  track_list_to_string(result_track), result_name.strip(), args.strip())
         return dict(track=result_track, action=result_name.strip(), args=args.strip())
 
+    def replace_user_variables(self, string):
+        # type: (Text) -> Text
+        '''Replace any user variables in the given string with the value
+        the variable represents.
+        '''
+        log.info('replace user variables')
+        while '%' in string:
+            var = string[string.index('%')+1:]
+            if '%' in var:
+                var = var[0:var.index('%')]
+                string = string.replace(
+                    '%{}%'.format(var), self._user_variables.get(var, '0'), 1
+                )
+            else:
+                string = string.replace('%', '', 1)
+        if '$' in string:
+            # for compat with old-style variables
+            for s in string.split():
+                if '$' in s and not '=' in s:
+                    var = s.replace('$', '')
+                    string = string.replace(
+                        '${}'.format(var), self._user_variables.get(var, '0'), 1
+                    )
+        log.debug('replace_user_variables returning %s', string)
+        return string
+
+    def handle_user_variable_assignment(self, string_with_assign):
+        # type: (Text) -> None
+        '''Handle assigning new value to variable with either assignment
+        or expression enclosed in parens.
+        '''
+        log.info('handle user variable assignment: %s', string_with_assign)
+        # for compat with old-style variables
+        string_with_assign = string_with_assign.replace('$', '')
+        try:
+            var0, var1 = [x.strip() for x in string_with_assign.split('=')][0:2]
+            if not any(x in var1 for x in (';', '%', '=')):
+                if '(' in var1 and ')' in var1:
+                    try:
+                        self._user_variables[var0] = str(eval(var1))
+                    except Exception as e:
+                        raise Exception(e)
+                        #pass
+                else:
+                    self._user_variables[var0] = var1
+                log.debug('handle_user_variable_assignment, %s=%s', var0, var1)
+        except ValueError:
+            log.error('in handle_user_variable_assignment(string_with_assign=%s)', string_with_assign)
+
     def handle_loop_seq_action_list(self, xclip, count):
+        # type: (Clip, int) -> None
         '''Handles sequenced action lists, triggered by xclip looping.
         '''
         if xclip.name in self._loop_seq_clips:
             if count >= len(self._loop_seq_clips[xclip.name][1]):
-                count -= ((count / len(self._loop_seq_clips[xclip.name][1])) * len(self._loop_seq_clips[xclip.name][1]))
+                count -= (
+                    (count // len(self._loop_seq_clips[xclip.name][1]))
+                    * len(self._loop_seq_clips[xclip.name][1])
+                )
             action = self._loop_seq_clips[xclip.name][1][count]
-            self.action_dispatch(action['track'],
-                                 xclip,
-                                 action['action'],
-                                 action['args'],
-                                 self._loop_seq_clips[xclip.name][0])
-            log.debug('handle_loop_seq_action_list triggered, xclip.name=%s and track(s)=%s and action=%s and args=%s',
-                      xclip.name, self.track_list_to_string(action['track']), action['action'], action['args'])
+            # TODO: _SingleDispatch?
+            command = _DispatchCommand(action['track'],
+                                       xclip,
+                                       self._loop_seq_clips[xclip.name][0],
+                                       action['action'],
+                                       action['args'])
+            self.handle_dispatch_command(command)
+            log.debug('handle_loop_seq_action_list triggered: %r', command)
 
     def handle_play_seq_action_list(self, action_list, xclip, ident):
+        # type: (Any, Clip, Text) -> None
         '''Handles sequenced action lists, triggered by replaying/
         retriggering the xtrigger.
         '''
-        if xclip.name in self._play_seq_clips:
+        if xclip.name not in self._play_seq_clips:
+            count = 0
+        else:
             count = self._play_seq_clips[xclip.name][1] + 1
             if count > len(self._play_seq_clips[xclip.name][2]) - 1:
                 count = 0
-            self._play_seq_clips[xclip.name] = [ident, count, action_list]
-        else:
-            self._play_seq_clips[xclip.name] = [ident, 0, action_list]
+        self._play_seq_clips[xclip.name] = [ident, count, action_list]
         action = self._play_seq_clips[xclip.name][2][self._play_seq_clips[xclip.name][1]]
-        self.action_dispatch(action['track'], xclip, action['action'], action['args'], ident)
-        log.debug('handle_play_seq_action_list triggered, ident=%s and track(s)=%s and action=%s and args=%s',
-                  ident, self.track_list_to_string(action['track']), action['action'], action['args'])
+        # TODO: _SingleDispatch?
+        command = _DispatchCommand(action['track'],
+                                    xclip,
+                                    self._loop_seq_clips[xclip.name][0],
+                                    action['action'],
+                                    action['args'])
+        self.handle_dispatch_command(command)
+        log.debug('handle_play_seq_action_list triggered: %r', command)
 
     def do_parameter_adjustment(self, param, value):
+        # type: (DeviceParameter, Text) -> None
         '''Adjust (</>, reset, random, set val) continuous params, also
         handles quantized param adjustment (should just use +1/-1 for
         those).
         '''
         if not param.is_enabled:
-            return ()
+            return
         step = (param.max - param.min) / 127
         new_value = param.value
         if value.startswith(('<', '>')):
@@ -440,7 +448,7 @@ class ClyphX(ControlSurface):
                     if 0 <= new_min and new_max <= 128 and new_min < new_max:
                         rnd_min = new_min
                         rnd_max = new_max
-            rnd_value = (Live.Application.get_random_int(0, 128) * (rnd_max - rnd_min) / 127) + rnd_min
+            rnd_value = (get_random_int(0, 128) * (rnd_max - rnd_min) / 127) + rnd_min
             new_value = (rnd_value * step) + param.min
 
         else:
@@ -458,6 +466,7 @@ class ClyphX(ControlSurface):
                       param.name, new_value)
 
     def get_adjustment_factor(self, string, as_float=False):
+        # type: (Text, bool) -> Optional[int]
         '''Get factor for use with < > actions.'''
         factor = 1
 
@@ -473,11 +482,13 @@ class ClyphX(ControlSurface):
         return factor
 
     def get_track_to_operate_on(self, origin_name):
+        # type: (Text) -> Tuple[List[Any], Text]
         '''Gets track or tracks to operate on.'''
+        log.info('get track to operate on')
         result_tracks = []
         result_name = origin_name
         if '/' in origin_name:
-            tracks = list(tuple(self.song().tracks) + tuple(self.song().return_tracks) + (self.song().master_track,))
+            tracks = self.song().tracks + self.song().return_tracks + [self.song().master_track]  # type: List[Track]
             sel_track_index = tracks.index(self.song().view.selected_track)
             if origin_name.index('/') > 0:
                 track_spec = origin_name.split('/')[0].strip()
@@ -498,14 +509,16 @@ class ClyphX(ControlSurface):
                                 track_index = -1
                                 if spec.startswith(('<', '>')):
                                     try:
-                                        track_index = self.get_adjustment_factor(spec) + sel_track_index
+                                        track_index = (self.get_adjustment_factor(spec)
+                                                       + sel_track_index)
                                     except:
                                         pass
                                 else:
                                     try:
                                         track_index = int(spec) - 1
                                     except:
-                                        track_index = (ord(spec) - 65) + len(self.song().tracks)
+                                        track_index = ((ord(spec) - 65)
+                                                       + len(self.song().tracks))
                                 if 0 <= track_index < len(tracks):
                                     track_range.append(track_index)
                         except:
@@ -518,15 +531,17 @@ class ClyphX(ControlSurface):
                                         result_tracks.append(tracks[i])
                             else:
                                 result_tracks = [tracks[track_range[0]]]
-            result_name = origin_name[origin_name.index('/')+1:].strip()
-        log.debug('get_track_to_operate_on returning result_tracks=%s and result_name=%s',
-                  self.track_list_to_string(result_tracks), result_name)
+            result_name = origin_name[origin_name.index('/') + 1:].strip()
+        log.debug('get_track_to_operate_on -> result_tracks=%s, result_name=%s',
+                  track_list_to_string(result_tracks), result_name)
         return (result_tracks, result_name)
 
     def get_track_index_by_name(self, name, tracks):
+        # type: (Text, Sequence[Any]) -> Text
         '''Gets the index(es) associated with the track name(s)
         specified in name.
         '''
+        log.info('get track index by name')
         while '"' in name:
             track_name = name[name.index('"')+1:]
             if '"' in track_name:
@@ -538,7 +553,7 @@ class ClyphX(ControlSurface):
                     #   'n MIDI', in API it's 'n-Audio' or 'n-MIDI'
                     def_name = track_name.replace(' ', '-')
                 for track in tracks:
-                    current_track_name = self.get_name(track.name)
+                    current_track_name = track.name.upper()
                     if current_track_name in {track_name, def_name}:
                         track_index = str(tracks.index(track) + 1)
                         break
@@ -549,8 +564,10 @@ class ClyphX(ControlSurface):
         return name
 
     def get_device_to_operate_on(self, track, action_name, args):
+        # type: (Track, Text, Text) -> Tuple[Optional[Device], Text]
         '''Get device to operate on and action to perform with args.
         '''
+        log.info('get device to operate on')
         device = None
         device_args = args
         if 'DEV"' in action_name:
@@ -566,7 +583,7 @@ class ClyphX(ControlSurface):
                     break
         elif action_name == 'DEV':
             device = track.view.selected_device
-            if device is None:
+            if device != None:
                 if track.devices:
                     device = track.devices[0]
         else:
@@ -581,126 +598,98 @@ class ClyphX(ControlSurface):
                             device = top_level.chains[int(dev_split[1]) - 1].devices[int(dev_split[2]) - 1]
                 else:
                     device = track.devices[int(dev_num) - 1]
-            except:
-                pass
+            except Exception as e:
+                raise Exception(e)
+                # pass
         log.debug('get_device_to_operate_on returning device=%s and device args=%s',
                   device.name if device else 'None', device_args)
         return (device, device_args)
 
-    def get_clip_to_operate_on(self, track, action_name, args):
-        '''Get clip to operate on and action to perform with args.'''
-        clip = None
-        clip_args = args
-        if 'CLIP"' in action_name:
-            clip_name = action_name[action_name.index('"')+1:]
-            if '"' in args:
-                clip_name = '{} {}'.format(action_name[action_name.index('"')+1:], args)
-                clip_args = args[args.index('"')+1:].strip()
-            if '"' in clip_name:
-                clip_name = clip_name[0:clip_name.index('"')]
-            for slot in track.clip_slots:
-                if slot.has_clip and slot.clip.name.upper() == clip_name:
-                    clip = slot.clip
-                    break
-        else:
-            sel_slot_idx = list(self.song().scenes).index(self.song().view.selected_scene)
-            slot_idx = sel_slot_idx
-            if action_name == 'CLIP':
-                if track.playing_slot_index >= 0:
-                    slot_idx = track.playing_slot_index
-            elif action_name == 'CLIPSEL':
-                if self.application().view.is_view_visible('Arranger'):
-                    clip = self.song().view.detail_clip
-            else:
-                try:
-                    slot_idx = int(action_name.replace('CLIP', ''))-1
-                except:
-                    slot_idx = sel_slot_idx
-            if clip is None and track.clip_slots[slot_idx].has_clip:
-                clip = track.clip_slots[slot_idx].clip
-        log.debug('get_clip_to_operate_on returning clip=%s and clip args=%s',
-                  clip.name if clip else 'None', clip_args)
-        return (clip, clip_args)
+    def _get_snapshot_settings(self, settings):
+        try:
+            include_nested = settings['include_nested_devices_in_snapshots']
+            self.snap_actions._include_nested_devices = include_nested
+        except KeyError:
+            pass
+        try:
+            param_limit = settings['snapshot_parameter_limit']
+            self.snap_actions._parameter_limit = param_limit
+        except KeyError:
+            # TODO: set only if defined in usersettings.txt?
+            self.snap_actions._parameter_limit = 500
 
-    def get_drum_rack_to_operate_on(self, track):
-        '''Get drum rack to operate on.
-        '''
-        dr = None
-        for device in track.devices:
-            if device.can_have_drum_pads:
-                dr = device
-                break
-        log.debug('get_drum_rack_to_operate_on returning dr=%s',
-                  dr.name if dr else None)
-        return dr
+    # compare with ExtraPrefs
+    def _get_some_extra_prefs(self, settings):
+        if not self._startup_actions_complete:
+            actions = settings.get('startup_actions', False)
+            if actions:
+                msg = partial(self.perform_startup_actions, '[]{}'.format(actions))
+                self.schedule_message(2, msg)
+                self._startup_actions_complete = True
+
+        try:
+            process_in_mute = settings['process_xclips_if_track_muted']
+            self._process_xclips_if_track_muted = process_in_mute
+        except KeyError:
+            # TODO: set only if in usersettings?
+            pass
 
     def get_user_settings(self, midi_map_handle):
         '''Get user settings (variables, prefs and control settings)
         from text file and perform startup actions if any.
         '''
-        import sys
-        import os
+        from collections import defaultdict
+
+        self._get_snapshot_settings(self._user_settings.snapshot_settings)
+        self._get_some_extra_prefs(self._user_settings.extra_prefs)
+        self.cs_linker.read_settings(self._user_settings.cslinker)
+        # TODO
+        # self.control_component.read_user_settings(self._user_controls, midi_map_handle)
 
         list_to_build = None
-        ctrl_data = []
-        try:
-            filepath = get_base_path('UserSettings.txt')
-            if not self._user_settings_logged:
-                log.info('Attempting to read UserSettings file: %s', filepath)
-            for line in open(filepath):
-                line = self.get_name(line.rstrip('\n')).strip()
-                if not line:
-                    continue
-                if line[0] not in {'#', '"', '*'} and not self._user_settings_logged:
-                    log.info(str(line))
-                if not line.startswith(
-                    ('#', '"', 'STARTUP_', 'INCLUDE_NESTED_', 'SNAPSHOT_',
-                     'PROCESS_XCLIPS_', 'PUSH_EMU', 'APC_PUSH_EMU', 'CSLINKER')
-                ):
-                    if '[USER CONTROLS]' in line:
-                        list_to_build = 'controls'
-                    elif '[USER VARIABLES]' in line:
-                        list_to_build = 'vars'
-                    elif '[EXTRA PREFS]' in line:
-                        list_to_build = 'prefs'
-                    elif '=' in line:
-                        if list_to_build == 'vars':
-                            line = self.replace_user_variables(line)
-                            self.handle_user_variable_assignment(line)
-                        elif list_to_build == 'controls':
-                            ctrl_data.append(line)
-                elif 'PUSH_EMULATION' in line:
-                    self._push_emulation = line.split('=')[1].strip() == 'ON'
-                    if self._push_emulation:
-                        if 'APC' in line:
-                            with self.component_guard():
-                                self._PushApcCombiner = PushApcCombiner(self)
-                        self.enable_push_emulation(self._control_surfaces())
-                elif line.startswith('INCLUDE_NESTED_DEVICES_IN_SNAPSHOTS ='):
-                    include_nested = self.get_name(line[37:].strip())
-                    self.snap_actions._include_nested_devices = include_nested.startswith('ON')
-                elif line.startswith('SNAPSHOT_PARAMETER_LIMIT ='):
-                    try:
-                        limit = int(line[26:].strip())
-                    except:
-                        limit = 500
-                    self.snap_actions._parameter_limit = limit
-                elif line.startswith('PROCESS_XCLIPS_IF_TRACK_MUTED ='):
-                    self._process_xclips_if_track_muted = line.split('=')[1].strip() == 'TRUE'
-                elif line.startswith('STARTUP_ACTIONS =') and not self._startup_actions_complete:
-                    actions = line[17:].strip()
-                    if actions != 'OFF':
-                        action_list = '[]{}'.format(actions)
-                        self.schedule_message(2, partial(self.perform_startup_actions, action_list))
-                        self._startup_actions_complete = True
-                elif line.startswith('CSLINKER'):
-                    self.cs_linker.parse_settings(line)
-            if ctrl_data:
-                self.control_component.get_user_control_settings(ctrl_data, midi_map_handle)
-        except:
-            pass
+        lists_to_build = defaultdict(list)
+
+        filepath = get_base_path('UserSettings.txt')
+        if not self._user_settings_logged:
+            log.info('Attempting to read UserSettings file: %s', filepath)
+
+        for line in open(filepath):
+            line = line.strip().upper()
+            if not line or line.startswith(('#', '"')):
+                continue
+            if line[0] != '*' and not self._user_settings_logged:
+                log.info(str(line))
+            if not line.startswith(
+                ('STARTUP_', 'INCLUDE_NESTED_', 'SNAPSHOT_',
+                 'PROCESS_XCLIPS_', 'PUSH_EMU', 'APC_PUSH_EMU', 'CSLINKER')
+            ):
+                if '[USER CONTROLS]' in line:
+                    list_to_build = 'controls'
+                elif '[USER VARIABLES]' in line:
+                    list_to_build = 'vars'
+                elif '[EXTRA PREFS]' in line:
+                    list_to_build = 'prefs'
+                elif '=' in line:
+                    if list_to_build in {'vars', 'controls'}:
+                        lists_to_build[list_to_build].append(line)
+            elif 'PUSH_EMULATION' in line:
+                self._push_emulation = line.split('=')[1].strip() == 'ON'
+                if self._push_emulation:
+                    if 'APC' in line:
+                        with self.component_guard():
+                            self._PushApcCombiner = PushApcCombiner(self)
+                    self.enable_push_emulation(self._control_surfaces())
+
+        for line in lists_to_build['vars']:
+            line = self.replace_user_variables(line)
+            self.handle_user_variable_assignment(line)
+
+        if lists_to_build['controls']:
+            self.control_component.get_user_control_settings(
+                lists_to_build['controls'], midi_map_handle)
 
     def enable_push_emulation(self, scripts):
+        # type: (Iterable[Any]) -> None
         '''Try to disable Push's handshake to allow for emulation.
 
         If emulating for APC, set scripts on combiner component.
@@ -715,39 +704,8 @@ class ClyphX(ControlSurface):
                     self._PushApcCombiner.set_up_scripts(self._control_surfaces())
                 break
 
-    def start_debugging(self):
-        '''Turn on debugging and write all user vars/controls/actions to
-        Live's log file to assist in troubleshooting.
-        '''
-        self._is_debugging = True
-        log.info('------- Logging User Variables -------')
-        for key, value in self._user_variables.items():
-            log.info('%s=%s', key, value)
-
-        log.info('------- Logging User Controls -------')
-        for key, value in self.control_component._control_list.items():
-            log.info('%s on_action=%s and off_action=%s',
-                        key, value['on_action'], value['off_action'])
-
-        log.info('------- Logging User Actions -------')
-        for key, value in self.user_actions._action_dict.items():
-            log.info('%s=%s', key, value)
-        log.info('------- Debugging Started -------')
-
-    def track_list_to_string(self, track_list):
-        '''Convert list of tracks to a string of track names or None if
-        no tracks. This is used for debugging.
-        '''
-        # TODO: if no track_list result is 'None]'
-        result = 'None'
-        if track_list:
-            result = '['
-            for track in track_list:
-                result += '{}, '.format(track.name)
-            result = result[:len(result)-2]
-        return result + ']'
-
     def perform_startup_actions(self, action_list):
+        # type: (Text) -> None
         '''Delay startup action so it can perform actions on values that
         are changed upon set load (like overdub).
         '''
@@ -766,16 +724,6 @@ class ClyphX(ControlSurface):
         for r in chain(self.song().return_tracks, (self.song().master_track,)):
             self.macrobat.setup_tracks(r)
         self.snap_actions.setup_tracks()
-
-    def get_name(self, name):
-        '''Convert name to upper-case string or return blank string if
-        couldn't be converted.
-        '''
-        try:
-            name = str(name).upper()
-        except:
-            name = ''
-        return name
 
     def _on_track_list_changed(self):
         super()._on_track_list_changed()
@@ -800,6 +748,7 @@ class ClyphX(ControlSurface):
             self._user_settings_logged = True
         if self._push_emulation:
             self.enable_push_emulation(self._control_surfaces())
+        log.info('MIDI map built')
 
     def receive_midi(self, midi_bytes):
         '''Receive user-specified messages and send to control script.
@@ -808,11 +757,11 @@ class ClyphX(ControlSurface):
         self.control_component.receive_midi(midi_bytes)
 
     def handle_sysex(self, midi_bytes):
+        # type: (Any) -> None
         '''Handle sysex received from controller.'''
-        pass
 
     def handle_nonsysex(self, midi_bytes):
+        # type: (Any) -> None
         '''Override so that ControlSurface doesn't report this to
         Log.txt.
         '''
-        pass

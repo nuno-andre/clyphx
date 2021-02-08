@@ -14,13 +14,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-# from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import, unicode_literals
+__version__ = 2, 7, 2
+
 import sys
 import os
 
 base = os.path.dirname(os.path.realpath(__file__))
-vendor = os.path.join(base, 'vendor', 'future')
-sys.path.insert(0, vendor)
+sys.path.insert(0, os.path.join(base, 'vendor'))  # type: ignore
+sys.path.insert(0, os.path.join(base, 'vendor', 'future'))  # type: ignore
 
 from future import standard_library
 standard_library.install_aliases()
@@ -28,6 +30,15 @@ standard_library.install_aliases()
 import Live
 from .clyphx import ClyphX
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Any
+
 
 def create_instance(c_instance):
+    # type: (Any) -> ClyphX
+    '''
+    :param c_instance: A MidiRemoteScript object that is used to
+    communicate with the C++ core of Ableton Live.
+    '''
     return ClyphX(c_instance)

@@ -16,10 +16,16 @@
 
 from __future__ import absolute_import, unicode_literals, with_statement
 from builtins import super, dict, range
+from typing import TYPE_CHECKING
 
-import Live
-from ..core import ControlSurfaceComponent
+from ..core.xcomponent import ControlSurfaceComponent
+from ..core.live import Clip
 from ..consts import KEYWORDS, NOTE_NAMES
+
+if TYPE_CHECKING:
+    from typing import Any, Sequence, Text, List, Dict, Optional
+
+
 
 
 UNWRITABLE_INDEXES = (17, 35, 53)
@@ -56,6 +62,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
     '''
 
     def __init__(self, parent):
+        # type: (Any) -> None
         super().__init__()
         self._parent = parent
         self._script = None
@@ -73,6 +80,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
         super().disconnect()
 
     def set_script(self, push_script, is_push2=False):
+        # type: (Any, bool) -> None
         '''Set the Push script to connect to and get necessary
         components.
         '''
@@ -117,6 +125,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
         return session.num_tracks, session.num_scenes
 
     def dispatch_action(self, track, xclip, ident, action, args):
+        # type: (None, Clip, Text, None, Text) -> None
         '''Dispatch action to proper action group handler.'''
         if self._script:
             if args.startswith('SCL') and self._ins_component:
@@ -133,6 +142,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
                 self._handle_mode_selection(args.replace('MODE', '').strip())
 
     def _handle_mode_selection(self, mode_name):
+        # type: (Text) -> None
         '''Handles switching to one of Push's mode if possible.'''
         mode_component = None
         mode_dict = None
@@ -163,6 +173,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
                         mode_component.selected_mode = mode_dict[mode_name]
 
     def _display_message(self, args, xclip):
+        # type: (Text, Clip) -> None
         '''Temporarily displays a message in Push's display. Uses special
         handling to ensure that empty display spaces aren't written to.
         '''
@@ -179,6 +190,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
         self._script.show_notification(note_at_og_case)
 
     def _handle_scale_action(self, args, xclip, ident):
+        # type: (Text, Clip, Text) -> None
         '''Handles actions related to scale settings.'''
         if args:
             arg_array = args.split()
@@ -200,6 +212,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
             self._capture_scale_settings(xclip, ident)
 
     def _handle_in_key(self, arg_array):
+        # type: (Sequence[Text]) -> None
         try:
             self._ins_component._note_layout.is_in_key = KEYWORDS[arg_array[1]]
         except (IndexError, KeyError):
@@ -207,6 +220,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
                 not self._ins_component._note_layout.is_in_key
 
     def _handle_fixed(self, arg_array):
+        # type: (Sequence[Text]) -> None
         try:
             self._ins_component._note_layout.is_fixed = KEYWORDS[arg_array[1]]
         except (IndexError, KeyError):
@@ -214,6 +228,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
                 not self._ins_component._note_layout.is_fixed
 
     def _handle_root_note(self, arg_array):
+        # type: (Sequence[Text]) -> None
         try:
             self._ins_component._note_layout.root_note = NOTE_NAMES.index(arg_array[1])
         except KeyError:
@@ -224,12 +239,14 @@ class ClyphXPushActions(ControlSurfaceComponent):
                     self._ins_component._note_layout.root_note = new_root
 
     def _handle_octave(self, arg_array):
+        # type: (Sequence[Text]) -> None
         if arg_array[1] == '<':
             self._ins_component._slider.scroll_page_down()
         else:
             self._ins_component._slider.scroll_page_up()
 
     def _handle_scale_type(self, arg_array, args):
+        # type: (Sequence[Text], Text) -> None
         if arg_array[1] in ('<', '>'):
             factor = self._parent.get_adjustment_factor(arg_array[1])
             if self._is_push2:
@@ -259,8 +276,9 @@ class ClyphXPushActions(ControlSurfaceComponent):
                         break
 
     def _capture_scale_settings(self, xclip, ident):
+        # type: (Clip, Text) -> None
         '''Captures scale settings and writes them to X-Clip's name.'''
-        if isinstance(xclip, Live.Clip.Clip):
+        if isinstance(xclip, Clip):
             root = str(self._ins_component._note_layout.root_note)
             if self._is_push2:
                 scl_type = self._scales_component.selected_scale_index
@@ -276,6 +294,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
             )
 
     def _recall_scale_settings(self, arg_array):
+        # type: (Sequence[Text]) -> None
         '''Recalls scale settings from X-Trigger name.'''
         try:
             self._ins_component._note_layout.root_note = int(arg_array[0])
@@ -298,6 +317,7 @@ class ClyphXPushActions(ControlSurfaceComponent):
             self._scales_component.update()
 
     def _handle_sequence_action(self, args):
+        # type: (Text) -> None
         '''Handle note actions related to the note currently being
         sequenced.
         '''

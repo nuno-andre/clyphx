@@ -16,11 +16,14 @@
 
 from __future__ import absolute_import, unicode_literals
 from builtins import dict
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any, Iterator, List, Dict, Text
 
 import os
 import logging
-from _Generic.Devices import DEVICE_DICT, DEVICE_BOB_DICT, BANK_NAME_DICT
-from .core.compat import iteritems
+from _Generic.Devices import (DEVICE_DICT, DEVICE_BOB_DICT, BANK_NAME_DICT)
 from .consts import LIVE_VERSION
 
 log = logging.getLogger(__name__)
@@ -55,22 +58,22 @@ DEV_NAME_TRANSLATION = dict(
 )
 
 TEMPLATE = '''\
-    <html><h1>Live Instant Mapping Info for Live {version}</h1>
-    <br><br>
-    The following document covers the parameter banks accessible via Live\'s
-    Instant Mapping feature for each built in device. This info also applies
-    to controlling device parameters via ClyphX\'s Device Actions.
-    <br><br>
-    <i><b>NOTE: </b>The order of parameter banks is sometimes changed by
-    Ableton. If you find the information in this document to be incorrect, you
-    can recreate it with ClyphX by triggering an action named MAKE_DEV_DOC.
-    That will create a new version of this file in your user/home directory</i>.
-    <hr>
-    <h2><a id="index">Device Index</a></h2>
-    {index}
-    <hr>
-    {devices}
-    '</html>'
+<html><h1>Live Instant Mapping Info for Live {version}</h1>
+<br><br>
+The following document covers the parameter banks accessible via Live's Instant
+Mapping feature for each built in device. This info also applies to controlling
+device parameters via ClyphX's Device Actions.
+<br><br>
+<i><b>NOTE: </b>The order of parameter banks is sometimes changed by Ableton.
+If you find the information in this document to be incorrect, you can recreate
+it with ClyphX by triggering an action named MAKE_DEV_DOC. That will create a
+new version of this file in your user/home directory</i>.
+<hr>
+<h2><a id="index">Device Index</a></h2>
+{index}
+<hr>
+{devices}
+</html>
 '''
 
 
@@ -86,6 +89,7 @@ class InstantMappingMakeDoc(object):
         log.info('InstantMappingMakeDoc finished.')
 
     def _get_devices_info(self):
+        # type: () -> Dict[Text, Dict[Text, Any]]
         '''Returns a dict of dicts for each device containing its
         friendly name, bob parameters and bank names/bank parameters if
         applicable.
@@ -94,7 +98,7 @@ class InstantMappingMakeDoc(object):
                              bob=DEVICE_BOB_DICT[k][0],
                              bank_names=BANK_NAME_DICT.get(k, ()) if len(v) > 1 else (),
                              banks=v if len(v) > 1 else ()))
-                     for k, v in iteritems(DEVICE_DICT))
+                     for k, v in DEVICE_DICT.items())
 
     def _get_device_index(self, dev_dict):
         '''Returns a sorted device index for quickly navigating the file.
@@ -103,6 +107,7 @@ class InstantMappingMakeDoc(object):
                       for v in dev_dict.values())
 
     def _get_bank_params(self, bank):
+        # type: (List[Any]) -> Text
         return '<br>'.join('P{}: {}<br>'.format(i + 1, p)
                            for i, p in enumerate(bank) if p)
 
@@ -114,7 +119,7 @@ class InstantMappingMakeDoc(object):
                 for i, b in enumerate(info['bank_names']))
 
     def _get_device_info(self, info):
-        '''Writes info to the file for a device.'''
+        '''Returns formatted info on a device.'''
         template = '''\
             <h3><a id="{device}">{device}</h3>
             <b>Best Of Banks</b>
@@ -130,9 +135,10 @@ class InstantMappingMakeDoc(object):
         )
 
     def _format_devices_info(self, dev_dict):
-        return [self._get_device_info(info)
-                for _, info in sorted(dev_dict.items(),
-                                      key=lambda (k, v): (v['name'], k))]
+        ## type: (Dict[Text, Dict]) -> List[Text]
+        # FIXME: mypy doesn't like
+        ##return [self._get_device_info(info) for _, info in sorted(dev_dict.items(), key=lambda k, v: v['name'], k)]
+        pass
 
     def _create_html_file(self):
         '''Creates an HTML file in the user's home directory.

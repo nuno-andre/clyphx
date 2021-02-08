@@ -16,10 +16,14 @@
 
 from __future__ import absolute_import, unicode_literals
 from builtins import super
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any
+    from ..core.live import RackDevice, Track
 
 from functools import partial
-import Live
-from ..core import XComponent
+from ..core.xcomponent import XComponent
 
 
 class MacrobatSidechainRack(XComponent):
@@ -28,6 +32,7 @@ class MacrobatSidechainRack(XComponent):
     __module__ = __name__
 
     def __init__(self, parent, rack, track):
+        # type: (Any, RackDevice, Track) -> None
         super().__init__(parent)
         self._last_meter_left_val = -1
         self._last_meter_right_val = -1
@@ -90,11 +95,11 @@ class MacrobatSidechainRack(XComponent):
         '''
         if self._rack:
             for p in self._rack.parameters:
-                name = self._parent.get_name(p.name)
+                name = p.name.upper()
                 if name.startswith('DEVICE'):
                     if p.value == 0.0:
-                        return ()
-                if name.startswith('[SC]') and p.is_enabled:
+                        return
+                elif name.startswith('[SC]') and p.is_enabled:
                     if self._track.output_meter_level == 0.0 or (
                         self._track.has_audio_output and
                         self._track.output_meter_right == 0.0 and

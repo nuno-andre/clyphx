@@ -17,17 +17,23 @@
 from __future__ import absolute_import, unicode_literals
 from builtins import super, dict
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import (
+        Any, Optional, Text, Dict, Sequence, List,
+    )
+
 import logging
-import Live
-from ..core import ControlSurfaceComponent
+from ..core.xcomponent import ControlSurfaceComponent
+from ..core.live import Clip
 
 try:
     from _NKFW2.Utils import parse_int
     from _NKFW2.consts import NOTE_NAMES
     from _NKFW2.Scales import SCALE_TYPES
     from _NKFW2.ScaleSettingsComponent import SEQ_OFFSET, FOURTHS_OFFSET, OFFSET_NAMES
-    S_TYPES = [s.name.upper() for s in SCALE_TYPES]
-    O_NAMES = [o.upper() for o in OFFSET_NAMES]
+    S_TYPES = [s.name.upper() for s in SCALE_TYPES]  # type: List[Text]
+    O_NAMES = [o.upper() for o in OFFSET_NAMES]  # type: List[Text]
 except:
     pass
 
@@ -35,6 +41,7 @@ log = logging.getLogger(__name__)
 
 
 def adjust_property(obj, prop, min_v, max_v, arg, setter=None, v_list=None):
+    # type: (Any, Any, Any, Any, Text, Optional[Any], Optional[Any]) -> None
     '''Adjusts the given property absolutely or relatively.'''
     if arg:
         arg = arg[0].strip()
@@ -62,12 +69,14 @@ def adjust_property(obj, prop, min_v, max_v, arg, setter=None, v_list=None):
 
 
 def toggle_property(obj, prop, arg):
+    # type: (object, Text, Any) -> None
     '''Toggles the given property or turns it off/on.'''
     value = arg[0].strip() == 'ON' if arg else not getattr(obj, prop)
     setattr(obj, prop, value)
 
 
 def get_component(script, comp_name):
+    # type: (Any, Text) -> Optional[Any]
     '''Returns the component of the given name.'''
     for c in script._components:
         if c.name == comp_name:
@@ -80,9 +89,10 @@ class XArsenalActions(ControlSurfaceComponent):
     '''Actions related to Arsenal control surface scripts.'''
 
     def __init__(self, parent):
+        # type: (Any) -> None
         super().__init__()
         self._parent = parent
-        self._scripts = dict()
+        self._scripts = dict()  # type: Dict[Text, Any]
 
     def disconnect(self):
         super().disconnect()
@@ -90,6 +100,7 @@ class XArsenalActions(ControlSurfaceComponent):
         self._scripts = None
 
     def set_script(self, script):
+        # type: (Any) -> None
         ''' Adds the given script to the dict of scripts to work with.
         '''
         self._scripts[script.script_name.upper()] = dict(
@@ -99,6 +110,7 @@ class XArsenalActions(ControlSurfaceComponent):
         )
 
     def dispatch_action(self, track, xclip, ident, script_name, action):
+        # type: (None, Clip, Text, Text, Any) -> None
         '''Dispatches the action to the appropriate handler.'''
         script = self._scripts.get(script_name, None)
         if script:
@@ -114,6 +126,7 @@ class XArsenalActions(ControlSurfaceComponent):
                         self._handle_scale_action(script, action_spec, xclip, ident)
 
     def _handle_mode_action(self, script, spec):
+        # type: (Any, Text) -> None
         '''Handles selecting a specific mode or incrementing modes with
         wrapping.
         '''
@@ -123,6 +136,7 @@ class XArsenalActions(ControlSurfaceComponent):
             adjust_property(mc, 'selected_mode_index', 0, mc.num_modes - 1, spec[1:])
 
     def _handle_lock_action(self, script, spec):
+        # type: (Any, Text) -> None
         '''Handles toggling the locking of the current track or
         mode-specific locks.
         '''
@@ -134,6 +148,7 @@ class XArsenalActions(ControlSurfaceComponent):
                 tc.toggle_lock()
 
     def _handle_scale_action(self, script, spec, xclip, ident):
+        # type: (Any, Any, Clip, Text) -> None
         '''Handles scale actions or dispatches them to the appropriate
         handler.
         '''
@@ -168,10 +183,11 @@ class XArsenalActions(ControlSurfaceComponent):
             scl._notify_scale_settings()
 
     def _capture_scale_settings(self, script, xclip, ident):
+        # type: (Any, Clip, Text) -> None
         '''Captures the current scale type, tonic, in key state, offset
         and orientation and adds them to the given xclip's name.
         '''
-        if isinstance(xclip, Live.Clip.Clip):
+        if isinstance(xclip, Clip):
             comp = script['scl']
             xclip.name = '{} {} SCL {} {} {} {} {}'.format(
                 ident, script['top'].script_name, comp._scales.page_index,
@@ -180,6 +196,7 @@ class XArsenalActions(ControlSurfaceComponent):
             )
 
     def _recall_scale_settings(self, comp, spec):
+        # type: (Any, Text) -> None
         '''Recalls previously stored scale settings.'''
         if len(spec) >= 5:
             scale = parse_int(spec[1], None, 0, comp._scales.num_pages - 1)
@@ -200,6 +217,7 @@ class XArsenalActions(ControlSurfaceComponent):
                 comp._orientation_is_horizontal = spec[5].strip() == 'TRUE'
 
     def _toggle_scale_offset(self, comp, arg):
+        # type: (Any, Sequence[Text]) -> None
         '''Toggles between sequent and 4ths offsets.
 
         This is deprecated, but maintained for backwards compatibility.

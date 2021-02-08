@@ -1,13 +1,26 @@
+# coding: utf-8
+#
+# Copyright 2020-2021 Nuno André Novo
+# Some rights reserved. See COPYING, COPYING.LESSER
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 from __future__ import absolute_import, unicode_literals
+from typing import Optional, NamedTuple, List, Text
+from builtins import object
 
-from collections import namedtuple
-from .utils import repr
-
-
-Action = namedtuple('Action', ['track', 'actions', 'args'])
+from .utils import repr_slots
 
 
-Command = namedtuple('Command', ['id', 'seq', 'start', 'stop'])
+Action = NamedTuple('Action', [('tracks', List[Text]),
+                               ('name',   Text),
+                               ('obj',    Text),
+                               ('args',   List[Text])])
+
+
+Command = NamedTuple('Command', [('id',    Text),
+                                 ('seq',   Text),
+                                 ('start', List[Action]),
+                                 ('stop',  List[Action])])
 
 
 class UserControl(object):
@@ -24,6 +37,7 @@ class UserControl(object):
     __slots__ = ('name', 'type', 'channel', 'value', 'actions')
 
     def __init__(self, name, type, channel, value, actions=None):
+        # type: (Text, Text, int, int, Optional[Text]) -> None
         self.name = name
         self.type = type.lower()
         self.channel = int(channel)
@@ -44,4 +58,4 @@ class UserControl(object):
         if not (0 <= self.value <= 127):
             raise ValueError('NOTE or CC must be an integer between 0 and 127')
 
-    __repr__ = repr
+    __repr__ = repr_slots

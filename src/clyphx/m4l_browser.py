@@ -16,9 +16,14 @@
 
 from __future__ import absolute_import, unicode_literals
 from builtins import super, dict
+from typing import TYPE_CHECKING
 
-import Live
-from .core import XComponent
+if TYPE_CHECKING:
+    from typing import Any, Text, List, Dict
+    from .core.live import Device
+
+from .core.xcomponent import XComponent
+from .core.live import DeviceType
 
 BROWSER_TAGS = ('Drums', 'Instruments', 'Audio Effects', 'MIDI Effects', 'Max for Live')
 
@@ -33,19 +38,20 @@ class XM4LBrowserInterface(XComponent):
     __module__ = __name__
 
     def __init__(self, parent):
+        # type: (Any) -> None
         super().__init__(parent)
-        self._selected_tag = None
-        self._selected_device = None
-        self._selected_folder = None
-        self._selected_item = None
-        self._browser = dict()
+        self._selected_tag = dict()   # type: ignore
+        self._selected_device = dict()  # type: ignore
+        self._selected_folder = dict()  # type: ignore
+        self._selected_item = dict()  # type: ignore
+        self._browser = dict()  # type: Dict[Text, Any]
 
     def disconnect(self):
-        self._selected_tag = None
-        self._selected_device = None
-        self._selected_folder = None
-        self._selected_item = None
-        self._browser = None
+        self._selected_tag = None  # type: ignore
+        self._selected_device = None  # type: ignore
+        self._selected_folder = None  # type: ignore
+        self._selected_item = None  # type: ignore
+        self._browser = None  # type: ignore
         super().disconnect()
 
     def load_device(self):
@@ -75,11 +81,11 @@ class XM4LBrowserInterface(XComponent):
                     tag_to_use = 'Drums'
                 elif device.class_display_name.startswith('Max'):
                     tag_to_use = 'Max for Live'
-                elif device.type == Live.Device.DeviceType.audio_effect:
+                elif device.type == DeviceType.audio_effect:
                     tag_to_use = 'Audio Effects'
-                elif device.type == Live.Device.DeviceType.midi_effect:
+                elif device.type == DeviceType.midi_effect:
                     tag_to_use = 'MIDI Effects'
-                elif device.type == Live.Device.DeviceType.instrument:
+                elif device.type == DeviceType.instrument:
                     tag_to_use = 'Instruments'
 
                 if tag_to_use and device_to_use:
@@ -96,10 +102,12 @@ class XM4LBrowserInterface(XComponent):
             self.application().view.hide_view('Browser')
 
     def select_non_folder_item(self, item_name):
+        # type: (Text) -> None
         '''Stores an item that is not contained within a folder.'''
         self._selected_item = self._selected_device['items'][item_name]
 
     def select_folder_item(self, item_name):
+        # type: (Text) -> None
         '''Stores an item that is contained within a folder.'''
         self._selected_item = self._selected_folder[item_name]
 
@@ -117,6 +125,7 @@ class XM4LBrowserInterface(XComponent):
         return BROWSER_TAGS
 
     def get_devices_for_tag(self, tag_name):
+        # type: (Text) -> List[Device]
         '''Returns the list of devices for the given tag and stores the
         tag.
         '''
@@ -124,6 +133,7 @@ class XM4LBrowserInterface(XComponent):
         return sorted(self._selected_tag['devices'])
 
     def get_items_for_device(self, device_name):
+        # type: (Text) -> List[Text]
         '''Returns the list of folders and items for the given device
         and stores the device.
         '''
@@ -131,6 +141,7 @@ class XM4LBrowserInterface(XComponent):
         return sorted(self._selected_device['folders'].keys()) + sorted(self._selected_device['items'])
 
     def get_items_for_folder(self, folder_name):
+        # type: (Text) -> List[Text]
         '''Returns the list of items in the given folder and stores the
         folder.
         '''
@@ -138,6 +149,7 @@ class XM4LBrowserInterface(XComponent):
         return sorted(self._selected_folder)
 
     def _track_contains_browser(self):
+        # type: () -> bool
         '''Returns whether or not the selected track contains the Device
         Browser, in which case hotswapping isn't possble.
         '''
@@ -164,15 +176,17 @@ class XM4LBrowserInterface(XComponent):
                             )
                             break
         else:
-            for child in tag.children:
-                if child.is_device:
-                    if tag.name == 'Drums':
+            if tag.name == 'Drums':
+                for child in tag.children:
+                    if child.is_device:
                         device_dict[child.name] = dict(
                             device  = child,
                             items   = self._create_items_for_device(tag),
                             folders = dict(),
                         )
-                    else:
+            else:
+                for child in tag.children:
+                    if child.is_device:
                         device_dict[child.name] = dict(
                             device  = child,
                             items   = self._create_items_for_device(child),
@@ -183,6 +197,7 @@ class XM4LBrowserInterface(XComponent):
         return device_dict
 
     def _create_items_for_device(self, device):
+        # type: (Device) -> Dict[Text, Any]
         '''Returns a dict of loadable items for the given device or
         folder.
         '''
