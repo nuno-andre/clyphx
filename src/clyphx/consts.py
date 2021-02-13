@@ -247,4 +247,39 @@ AUDIO_DEVS = dict((dev.upper(), dev) for dev in _AUDIO_DEVS)
 INS_DEVS = dict((dev.upper(), dev) for dev in _INS_DEVS)
 
 MIDI_DEVS = dict((dev.upper(), dev) for dev in _MIDI_DEVS)
+
+#: Translation table between API names and friendly names.
+DEV_NAME_TRANSLATION = dict(
+    UltraAnalog            = 'Analog',
+    MidiArpeggiator        = 'Arpeggiator',
+    AudioEffectGroupDevice = 'Audio Effect Rack',
+    BeatRepeat             = 'Beat Repeat',
+    MidiChord              = 'Chord',
+    Compressor2            = 'Compressor',
+    DrumGroupDevice        = 'Drum Rack',
+    Tube                   = 'Dynamic Tube',
+    LoungeLizard           = 'Electric',
+    Eq8                    = 'EQ Eight',
+    FilterEQ3              = 'EQ Three',
+    FilterDelay            = 'Filter Delay',
+    FrequencyShifter       = 'Frequency Shifter',
+    GlueCompressor         = 'Glue Compressor',
+    GrainDelay             = 'Grain Delay',
+    InstrumentImpulse      = 'Impulse',
+    InstrumentGroupDevice  = 'Instrument Rack',
+    MidiEffectGroupDevice  = 'MIDI Effect Rack',
+    MultibandDynamics      = 'Multiband Dynamics',
+    MidiNoteLength         = 'Note Length',
+    MidiPitcher            = 'Pitch',
+    MidiRandom             = 'Random',
+    MultiSampler           = 'Sampler',
+    MidiScale              = 'Scale',
+    CrossDelay             = 'Simple Delay',
+    OriginalSimpler        = 'Simpler',
+    SpectrumAnalyzer       = 'Spectrum',
+    StringStudio           = 'Tension',
+    StereoGain             = 'Utility',
+    MidiVelocity           = 'Velocity',
+    Vinyl                  = 'Vinyl Distortion',
+)
 # endregion

@@ -23,7 +23,7 @@ import os
 
 from _Framework.ControlSurface import ControlSurface
 from .core.legacy import _DispatchCommand, _SingleDispatch, ActionList
-from .core.utils import get_base_path, repr_tracklist
+from .core.utils import get_base_path, repr_tracklist, set_user_profile
 from .core.live import Live, Track, DeviceIO, Clip, get_random_int
 from .core.parsing import get_xclip_action_list
 from .consts import LIVE_VERSION, SCRIPT_INFO
@@ -67,6 +67,7 @@ class ClyphX(ControlSurface):
     def __init__(self, c_instance):
         # type: (MidiRemoteScript) -> None
         super().__init__(c_instance)
+        set_user_profile()
         self._user_settings_logged = False
         self._is_debugging = False
         self._push_emulation = False
@@ -98,6 +99,13 @@ class ClyphX(ControlSurface):
         msg = '--- %s --- Live Version: %s ---'
         log.info(msg, SCRIPT_INFO, '.'.join(map(str, LIVE_VERSION)))
         self.show_message(SCRIPT_INFO)
+
+        from .dev_doc import get_device_params
+        from .core.utils import get_user_clyphx_path
+        path = get_user_clyphx_path('live_instant_mapping.md')
+        log.info('Updating Live Instant Mapping info')
+        with open(path, 'w') as f:
+            f.write(get_device_params(format='md', tables=True))  # type: ignore
 
 
     def disconnect(self):

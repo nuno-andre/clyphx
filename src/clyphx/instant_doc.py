@@ -15,47 +15,18 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
-from builtins import dict
 from typing import TYPE_CHECKING
+from builtins import dict
+import logging
 
 if TYPE_CHECKING:
     from typing import Any, Iterator, List, Dict, Text
 
-import os
-import logging
 from _Generic.Devices import (DEVICE_DICT, DEVICE_BOB_DICT, BANK_NAME_DICT)
-from .consts import LIVE_VERSION
+from .consts import LIVE_VERSION, DEV_NAME_TRANSLATION
+from .core.utils import get_user_clyphx_path
 
 log = logging.getLogger(__name__)
-
-#: Translation table between API names and friendly names.
-DEV_NAME_TRANSLATION = dict(
-    UltraAnalog            = 'Analog',
-    MidiArpeggiator        = 'Arpeggiator',
-    AudioEffectGroupDevice = 'Audio Effect Rack',
-    MidiChord              = 'Chord',
-    Compressor2            = 'Compressor',
-    DrumGroupDevice        = 'Drum Rack',
-    Tube                   = 'Dynamic Tube',
-    Eq8                    = 'EQ Eight',
-    FilterEQ3              = 'EQ Three',
-    LoungeLizard           = 'Electric',
-    InstrumentImpulse      = 'Impulse',
-    InstrumentGroupDevice  = 'Instrument Rack',
-    MidiEffectGroupDevice  = 'MIDI Effect Rack',
-    MidiNoteLength         = 'Note Length',
-    MidiPitcher            = 'Pitch',
-    MidiRandom             = 'Random',
-    MultiSampler           = 'Sampler',
-    MidiScale              = 'Scale',
-    CrossDelay             = 'Simple Delay',
-    OriginalSimpler        = 'Simpler',
-    SpectrumAnalyzer       = 'Spectrum',
-    StringStudio           = 'Tension',
-    StereoGain             = 'Utility',
-    MidiVelocity           = 'Velocity',
-    Vinyl                  = 'Vinyl Distortion',
-)
 
 TEMPLATE = '''\
 <html><h1>Live Instant Mapping Info for Live {version}</h1>
@@ -144,8 +115,7 @@ class InstantMappingMakeDoc(object):
         '''Creates an HTML file in the user's home directory.
         '''
         dev_dict = self._get_devices_info()
-        html_file = os.path.join(os.path.expanduser('~'),
-                                 'Live Instant Mapping Info.html')
+        html_file = get_user_clyphx_path('Live Instant Mapping Info.html')
 
         data = dict(
             version = 'v{}.{}.{}'.format(*LIVE_VERSION),

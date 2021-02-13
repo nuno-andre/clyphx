@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 import logging
 import os
 
+from ..consts import SCRIPT_NAME
+
 if TYPE_CHECKING:
     from typing import Text, TypeVar, Iterable
     from .live import Track
@@ -36,3 +38,17 @@ def get_base_path(*items):
     here = os.path.dirname(os.path.realpath(__file__))
     dest = os.path.join(here, os.pardir, *items)
     return os.path.realpath(dest)
+
+
+def get_user_clyphx_path(*items):
+    base = '~/.{}'.format(SCRIPT_NAME.lower())
+    base = os.path.expanduser(base)
+    dest = os.path.join(base, *items)
+    return os.path.realpath(dest)
+
+
+def set_user_profile():
+    path = get_user_clyphx_path()
+    if not os.path.exists(path):
+        os.mkdir(path)
+        os.mkdir(os.path.join(path, 'log'))
