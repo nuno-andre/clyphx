@@ -33,18 +33,3 @@ def get_xclip_action_list(xclip, full_action_list):
 
     log.debug('get_xclip_action_list returning %s', result)
     return result
-
-
-def track_list_to_string(track_list):
-    # type: (Iterable[Track]) -> Text
-    '''Convert list of tracks to a string of track names or 'None' if
-    no tracks. This is used for debugging.
-    '''
-    # TODO: if no track_list result is 'None]'
-    result = 'None'
-    if track_list:
-        result = '['
-        for track in track_list:
-            result += '{}, '.format(track.name)
-        result = result[:len(result)-2]
-    return result + ']'

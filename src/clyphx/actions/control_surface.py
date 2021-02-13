@@ -27,7 +27,7 @@ from _Framework.DeviceComponent import DeviceComponent
 from ..core.xcomponent import XComponent, SessionComponent
 from ..core.live import Clip
 from ..consts import REPEAT_STATES
-from .push import ClyphXPushActions
+from .push import XPushActions
 from .pxt_live import XPxtActions
 from .mxt_live import XMxtActions
 from .arsenal import XArsenalActions
@@ -47,18 +47,16 @@ class XCsActions(XComponent):
     def __init__(self, parent):
         # type: (Any) -> None
         super().__init__(parent)    # type: ignore
-        self._push_actions = ClyphXPushActions(parent)
+        self._push_actions = XPushActions(parent)
         self._pxt_actions = XPxtActions(parent)
         self._mxt_actions = XMxtActions(parent)
         self._arsenal_actions = XArsenalActions(parent)
         self._scripts = dict()  # type: Dict[Any, Any]
 
     def disconnect(self):
-        self._scripts = dict()
-        self._arsenal_actions = None
-        self._push_actions = None
-        self._pxt_actions = None
-        self._mxt_actions = None
+        for attr in ('_scripts', '_arsenal_actions', '_push_actions',
+                     '_pxt_actions', '_mxt_actions'):
+            setattr(self, attr, None)
         super().disconnect()
 
     def connect_script_instances(self, instantiated_scripts):

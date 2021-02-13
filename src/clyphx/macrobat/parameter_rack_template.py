@@ -33,8 +33,8 @@ class MacrobatParameterRackTemplate(XComponent):
     def __init__(self, parent, rack, track):
         # type: (Any, RackDevice, Track) -> None
         super().__init__(parent)
-        self._on_off_param = []  # type: List[Any]
-        self._param_macros = dict()  # type: Dict[Text, DeviceParameter]
+        self._on_off_param = list()  # type: List[Any]
+        self._param_macros = dict()  # type: Dict[int, DeviceParameter]
         self._update_macro = 0
         self._update_param = 0
         self._track = track
@@ -42,7 +42,7 @@ class MacrobatParameterRackTemplate(XComponent):
 
     def disconnect(self):
         self.remove_macro_listeners()
-        self._on_off_param = []
+        self._on_off_param = list()
         self._param_macros = dict()
         self._track = None
         super().disconnect()
@@ -77,7 +77,7 @@ class MacrobatParameterRackTemplate(XComponent):
         '''For use with DR racks, get drum rack to operate on as well as
         the params of any simplers/samplers in the rack.
         '''
-        drum_rack = dict(devs_by_index=dict(), devs_by_name=dict())
+        drum_rack = dict(devs_by_index=dict(), devs_by_name=dict())  # type: Dict[Text, Dict]
 
         if self._track and self._track.devices:
             for d in self._track.devices:
@@ -109,11 +109,10 @@ class MacrobatParameterRackTemplate(XComponent):
     def update_macro(self, arg=None):
         # type: (None) -> None
         '''Update macro to match value of param.'''
-        if self._update_macro in self._param_macros:
-            if self._param_macros[self._update_macro][0] and self._param_macros[self._update_macro][1]:
-                self._param_macros[self._update_macro][0].value = self.scale_param_value_to_macro(
-                    self._param_macros[self._update_macro][1],
-                )
+        macro = self._param_macros.get(self._update_macro)
+        if macro:
+            if macro[0] and macro[1]:
+                macro[0].value = self.scale_param_value_to_macro(macro[1])
         self._tasks.kill()
         self._tasks.clear()
 

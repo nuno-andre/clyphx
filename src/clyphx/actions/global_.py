@@ -19,6 +19,7 @@ from builtins import super, dict, range, map
 from typing import TYPE_CHECKING
 from functools import partial
 from itertools import chain
+import logging
 
 if TYPE_CHECKING:
     from typing import (
@@ -35,6 +36,9 @@ from ..consts import (AUDIO_DEVS, MIDI_DEVS, INS_DEVS,
                       GQ_STATES, REPEAT_STATES, RQ_STATES,
                       MIDI_STATUS)
 
+log = logging.getLogger(__name__)
+
+
 class XGlobalActions(XComponent):
     '''Global actions.
     '''
@@ -48,7 +52,7 @@ class XGlobalActions(XComponent):
         self._last_rqntz = 5
         self._repeat_enabled = False
         self._tempo_ramp_active = False
-        self._tempo_ramp_settings = []  # type: Sequence[Any]
+        self._tempo_ramp_settings = list()  # type: Sequence[Any]
         self._last_beat = -1
         self.song().add_current_song_time_listener(self.on_time_changed)
         self.song().add_is_playing_listener(self.on_time_changed)
@@ -57,15 +61,15 @@ class XGlobalActions(XComponent):
         if self.song().midi_recording_quantization != 0:
             self._last_rqntz = int(self.song().midi_recording_quantization)
         self._last_scene_index = list(self.song().scenes).index(self.song().view.selected_scene)
-        self._scenes_to_monitor = []  # type: Iterable[Scene]
+        self._scenes_to_monitor = list()  # type: List[Scene]
         self.setup_scene_listeners()
 
     def disconnect(self):
         self.remove_scene_listeners()
         self.song().remove_current_song_time_listener(self.on_time_changed)
         self.song().remove_is_playing_listener(self.on_time_changed)
-        self._tempo_ramp_settings = []
-        self._scenes_to_monitor = None
+        for attr in ('_tempo_ramp_settings', '_scenes_to_monitor'):
+            setattr(self, attr, None)
         super().disconnect()
 
     def dispatch_action(self, cmd):
@@ -141,6 +145,8 @@ class XGlobalActions(XComponent):
             except:
                 pass
 
+# region TRACKS
+
     def create_audio_track(self, track, xclip, ident, value=None):
         # type: (None, None, None, Optional[Text]) -> None
         '''Creates audio track at end of track list or at the specified
@@ -151,8 +157,8 @@ class XGlobalActions(XComponent):
                 index = int(value) - 1
                 if 0 <= index < len(self.song().tracks):
                     self.song().create_audio_track(index)
-            except:
-                pass
+            except Exception as e:
+                log.error('Error creating audio track: %r', e)
         else:
             self.song().create_audio_track(-1)
 
@@ -166,8 +172,8 @@ class XGlobalActions(XComponent):
                 index = int(value) - 1
                 if 0 <= index < len(self.song().tracks):
                     self.song().create_midi_track(index)
-            except:
-                pass
+            except Exception as e:
+                log.error('Error creating MIDI track: %r', e)
         else:
             self.song().create_midi_track(-1)
 
@@ -214,56 +220,7 @@ class XGlobalActions(XComponent):
         except:
             pass
 
-    def create_scene(self, track, xclip, ident, value=None):
-        # type: (None, Clip, None, Optional[Text]) -> None
-        '''Creates scene at end of scene list or at the specified index.
-        '''
-        current_name = None
-        if isinstance(xclip, Clip):
-            current_name = xclip.name
-            xclip.name = ''
-        if value and value.strip():
-            try:
-                index = int(value) - 1
-                if 0 <= index < len(self.song().scenes):
-                    self.song().create_scene(index)
-            except:
-                pass
-        else:
-            self.song().create_scene(-1)
-        if current_name:
-            self._parent.schedule_message(
-                4, partial(self.refresh_xclip_name, (xclip, current_name))
-            )
-
-    def duplicate_scene(self, track, xclip, ident, args):
-        # type: (None, Clip, None, Text) -> None
-        '''Duplicates the given scene.'''
-        current_name = None
-        if isinstance(xclip, Clip) and args:
-            current_name = xclip.name
-            xclip.name = ''
-        self.song().duplicate_scene(self.get_scene_to_operate_on(xclip, args.strip()))
-        if current_name:
-            self._parent.schedule_message(
-                4, partial(self.refresh_xclip_name, (xclip, current_name))
-            )
-
-    def refresh_xclip_name(self, clip_info):
-        # type: (Tuple[Clip, str]) -> None
-        '''This is used for both dupe and create scene to prevent the
-        action from getting triggered over and over again.
-        '''
-        if clip_info[0]:
-            clip_info[0].name = clip_info[1]
-
-    def delete_scene(self, track, xclip, ident, args):
-        # type: (None, Clip, None, Text) -> None
-        '''Deletes the given scene as long as it's not the last scene in
-        the set.
-        '''
-        if len(self.song().scenes) > 1:
-            self.song().delete_scene(self.get_scene_to_operate_on(xclip, args.strip()))
+# endregion
 
     def swap_device_preset(self, track, xclip, ident, args):
         # type: (Track, None, None, Text) -> None
@@ -350,8 +307,7 @@ class XGlobalActions(XComponent):
         '''
         # XXX: using a similar method for loading plugins doesn't seem to work!
         args = args.strip()
-        tag_target = None
-        name = None
+
         if args in AUDIO_DEVS:
             tag_target = self.application().browser.audio_effects
             name = AUDIO_DEVS[args]
@@ -361,11 +317,14 @@ class XGlobalActions(XComponent):
         elif args in INS_DEVS:
             tag_target = self.application().browser.instruments
             name = INS_DEVS[args]
-        if tag_target:
-            for dev in tag_target.children:
-                if dev.name == name:
-                    self.application().browser.load_item(dev)
-                    break
+        else:
+            log.warning("Device '%s' not found", args)
+            return
+
+        for dev in tag_target.children:
+            if dev.name == name:
+                self.application().browser.load_item(dev)
+                break
 
     def load_m4l(self, track, xclip, ident, args):
         # type: (None, None, None, Text) -> None
@@ -506,6 +465,8 @@ class XGlobalActions(XComponent):
         '''Triggers Live's redo.'''
         if self.song().can_redo:
             self.song().redo()
+
+# region NAVIGATION
 
     def move_up(self, track, xclip, ident, value=None):
         # type: (None, None, None, None) -> None
@@ -653,15 +614,16 @@ class XGlobalActions(XComponent):
         zoom_all = 'ALL' in value
         value = value.replace('ALL', '').strip()
         try:
-            value = int(value)
+            val = int(value)
         except:
             return
-        # TODO
-        direct = (value > 0) + 2
-        for _ in range(abs(value) + 1):
-            self.application().view.zoom_view(
-                Application.View.NavDirection(direct), '', zoom_all
-            )
+        else:
+            # TODO
+            direct = (val > 0) + 2
+            for _ in range(abs(val) + 1):
+                self.application().view.zoom_view(
+                    Application.View.NavDirection(direct), '', zoom_all
+                )
 
     def adjust_vertical_zoom(self, track, xclip, ident, value):
         # type: (None, None, None, Text) -> None
@@ -678,6 +640,8 @@ class XGlobalActions(XComponent):
         direct = (v > 0)
         for _ in range(abs(v) + 1):
             self.application().view.zoom_view(Application.View.NavDirection(direct), '', zoom_all)
+
+# endregion
 
     def adjust_tempo(self, track, xclip, ident, args):
         # type: (None, None, None, Text) -> None
@@ -743,7 +707,7 @@ class XGlobalActions(XComponent):
         args = args.strip()
         if args.startswith(('<', '>')):
             factor = self._parent.get_adjustment_factor(args, True)
-            self.song().groove_amount = max(0.0, min(1.3125, (self.song().groove_amount + factor * float(1.3125 / 131.0))))
+            self.song().groove_amount = max(0.0, min(1.3125, self.song().groove_amount + factor * float(1.3125 / 131.0)))
         else:
             try:
                 self.song().groove_amount = int(args) * float(1.3125 / 131.0)
@@ -862,72 +826,6 @@ class XGlobalActions(XComponent):
                     state_to_set = not t.fold_state
                 t.fold_state = KEYWORDS.get(value, state_to_set)
 
-    def set_scene(self, track, xclip, ident, args):
-        # type: (None, Clip, None, Text) -> None
-        '''Sets scene to play (doesn't launch xclip).'''
-        args = args.strip()
-        scene = self.get_scene_to_operate_on(xclip, args)
-        if args:
-            # don't allow randomization unless more than 1 scene
-            if 'RND' in args and len(self.song().scenes) > 1:
-                num_scenes = len(self.song().scenes)
-                rnd_range = [0, num_scenes]
-                if '-' in args:
-                    rnd_range_data = args.replace('RND', '').split('-')
-                    if len(rnd_range_data) == 2:
-                        try:
-                            new_min = int(rnd_range_data[0]) - 1
-                        except:
-                            new_min = 0
-                        try:
-                            new_max = int(rnd_range_data[1])
-                        except:
-                            new_max = num_scenes
-                        if 0 < new_min and new_max < num_scenes + 1 and new_min < new_max - 1:
-                            rnd_range = [new_min, new_max]
-                scene = get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
-                if scene == self._last_scene_index:
-                    while scene == self._last_scene_index:
-                        scene = get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
-            # don't allow adjustment unless more than 1 scene
-            elif args.startswith(('<', '>')) and len(self.song().scenes) > 1:
-                factor = self._parent.get_adjustment_factor(args)
-                if factor < len(self.song().scenes):
-                    scene = self._last_scene_index + factor
-                    if scene >= len(self.song().scenes):
-                        scene -= len(self.song().scenes)
-                    elif scene < 0 and abs(scene) >= len(self.song().scenes):
-                        scene = -(abs(scene) - len(self.song().scenes))
-        self._last_scene_index = scene
-        for t in self.song().tracks:
-            if t.is_foldable or (t.clip_slots[scene].has_clip and t.clip_slots[scene].clip == xclip):
-                pass
-            else:
-                t.clip_slots[scene].fire()
-
-    def get_scene_to_operate_on(self, xclip, args):
-        # type: (Clip, Text) -> int
-        scene = list(self.song().scenes).index(self.song().view.selected_scene)
-        if isinstance(xclip, Clip):
-            scene = xclip.canonical_parent.canonical_parent.playing_slot_index
-        if '"' in args:
-            scene_name = args[args.index('"')+1:]
-            if '"' in scene_name:
-                scene_name = scene_name[0:scene_name.index('"')]
-                for i in range(len(self.song().scenes)):
-                    if scene_name == self.song().scenes[i].name.upper():
-                        scene = i
-                        break
-        elif args == 'SEL':
-            scene = list(self.song().scenes).index(self.song().view.selected_scene)
-        elif args:
-            try:
-                if 0 <= int(args) < len(self.song().scenes) + 1:
-                    scene = int(args) - 1
-            except:
-                pass
-        return scene
-
     def set_locator(self, track, xclip, ident, args):
         # type: (None, None, None, None) -> None
         '''Set/delete a locator at the current playback position.'''
@@ -1020,6 +918,125 @@ class XGlobalActions(XComponent):
             self.song().loop_start = new_start
             self.song().loop_length = new_length
 
+# region SCENES
+
+    def create_scene(self, track, xclip, ident, value=None):
+        # type: (None, Clip, None, Optional[Text]) -> None
+        '''Creates scene at end of scene list or at the specified index.
+        '''
+        current_name = None
+        if isinstance(xclip, Clip):
+            current_name = xclip.name
+            xclip.name = ''
+        if value and value.strip():
+            try:
+                index = int(value) - 1
+                if 0 <= index < len(self.song().scenes):
+                    self.song().create_scene(index)
+            except:
+                pass
+        else:
+            self.song().create_scene(-1)
+        if current_name:
+            self._parent.schedule_message(
+                4, partial(self.refresh_xclip_name, (xclip, current_name))
+            )
+
+    def duplicate_scene(self, track, xclip, ident, args):
+        # type: (None, Clip, None, Text) -> None
+        '''Duplicates the given scene.'''
+        current_name = None
+        if isinstance(xclip, Clip) and args:
+            current_name = xclip.name
+            xclip.name = ''
+        self.song().duplicate_scene(self.get_scene_to_operate_on(xclip, args.strip()))
+        if current_name:
+            self._parent.schedule_message(
+                4, partial(self.refresh_xclip_name, (xclip, current_name))
+            )
+
+    def refresh_xclip_name(self, clip_info):
+        # type: (Tuple[Clip, str]) -> None
+        '''This is used for both dupe and create scene to prevent the
+        action from getting triggered over and over again.
+        '''
+        if clip_info[0]:
+            clip_info[0].name = clip_info[1]
+
+    def delete_scene(self, track, xclip, ident, args):
+        # type: (None, Clip, None, Text) -> None
+        '''Deletes the given scene as long as it's not the last scene in
+        the set.
+        '''
+        if len(self.song().scenes) > 1:
+            self.song().delete_scene(self.get_scene_to_operate_on(xclip, args.strip()))
+
+    def set_scene(self, track, xclip, ident, args):
+        # type: (None, Clip, None, Text) -> None
+        '''Sets scene to play (doesn't launch xclip).'''
+        args = args.strip()
+        scene = self.get_scene_to_operate_on(xclip, args)
+        if args:
+            # don't allow randomization unless more than 1 scene
+            if 'RND' in args and len(self.song().scenes) > 1:
+                num_scenes = len(self.song().scenes)
+                rnd_range = [0, num_scenes]
+                if '-' in args:
+                    rnd_range_data = args.replace('RND', '').split('-')
+                    if len(rnd_range_data) == 2:
+                        try:
+                            new_min = int(rnd_range_data[0]) - 1
+                        except:
+                            new_min = 0
+                        try:
+                            new_max = int(rnd_range_data[1])
+                        except:
+                            new_max = num_scenes
+                        if 0 < new_min and new_max < num_scenes + 1 and new_min < new_max - 1:
+                            rnd_range = [new_min, new_max]
+                scene = get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
+                if scene == self._last_scene_index:
+                    while scene == self._last_scene_index:
+                        scene = get_random_int(0, rnd_range[1] - rnd_range[0]) + rnd_range[0]
+            # don't allow adjustment unless more than 1 scene
+            elif args.startswith(('<', '>')) and len(self.song().scenes) > 1:
+                factor = self._parent.get_adjustment_factor(args)
+                if factor < len(self.song().scenes):
+                    scene = self._last_scene_index + factor
+                    if scene >= len(self.song().scenes):
+                        scene -= len(self.song().scenes)
+                    elif scene < 0 and abs(scene) >= len(self.song().scenes):
+                        scene = -(abs(scene) - len(self.song().scenes))
+        self._last_scene_index = scene
+        for t in self.song().tracks:
+            if t.is_foldable or (t.clip_slots[scene].has_clip and t.clip_slots[scene].clip == xclip):
+                pass
+            else:
+                t.clip_slots[scene].fire()
+
+    def get_scene_to_operate_on(self, xclip, args):
+        # type: (Clip, Text) -> int
+        scene = list(self.song().scenes).index(self.song().view.selected_scene)
+        if isinstance(xclip, Clip):
+            scene = xclip.canonical_parent.canonical_parent.playing_slot_index
+        if '"' in args:
+            scene_name = args[args.index('"')+1:]
+            if '"' in scene_name:
+                scene_name = scene_name[0:scene_name.index('"')]
+                for i in range(len(self.song().scenes)):
+                    if scene_name == self.song().scenes[i].name.upper():
+                        scene = i
+                        break
+        elif args == 'SEL':
+            scene = list(self.song().scenes).index(self.song().view.selected_scene)
+        elif args:
+            try:
+                if 0 <= int(args) < len(self.song().scenes) + 1:
+                    scene = int(args) - 1
+            except:
+                pass
+        return scene
+
     def setup_scene_listeners(self):
         '''Setup listeners for all scenes in set and check that last
         index is in current scene range.
@@ -1035,11 +1052,11 @@ class XGlobalActions(XComponent):
                 scene.add_is_triggered_listener(listener)
 
     def remove_scene_listeners(self):
-        if self._scenes_to_monitor:
-            scenes = self._scenes_to_monitor
-            for i, scene in enumerate(self._scenes_to_monitor):
-                if scene:
-                    listener = lambda index=i: self.on_scene_triggered(index)
-                    if scene.is_triggered_has_listener(listener):
-                        scene.remove_is_triggered_listener(listener)
+        for i, scene in enumerate(self._scenes_to_monitor):
+            if scene:
+                listener = lambda index=i: self.on_scene_triggered(index)
+                if scene.is_triggered_has_listener(listener):
+                    scene.remove_is_triggered_listener(listener)
         self._scenes_to_monitor = []
+
+# endregion

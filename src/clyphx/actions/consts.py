@@ -9,7 +9,8 @@ from .device import XDeviceActions
 from .dr import XDrActions
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Dict, Text, Optional
+    from typing import Any, Callable, Dict, Text, Optional, Sequence
+    from ..core.live import Device
 
 # NOTE: Action names and their corresponding values can't contain a '/' or '-'
 #       within the first four chars like this 'EX/ONE', but 'EXMP/ONE' is okay.
@@ -174,10 +175,18 @@ LOOPER_ACTIONS = dict(
     PLAY   = XDeviceActions.set_looper_state,
     REC    = XDeviceActions.set_looper_state,
     STOP   = XDeviceActions.set_looper_state,
-)  # type: Dict[Text, XComponentMethod]
+)  # type: Dict[Text, Callable[[XDeviceActions, Optional[Text]], None]]
 
 DR_ACTIONS = dict(
     SCROLL = XDrActions.scroll_selector,
     UNMUTE = XDrActions.unmute_all,
     UNSOLO = XDrActions.unsolo_all,
-)  # type: Dict[Text, Callable[[XDrActions, Any, None, None, None, Optional[Text]], None]]
+)  # type: Dict[Text, Callable[[XDrActions, Device, Optional[Text]], None]]
+
+PAD_ACTIONS = dict(
+    MUTE = XDrActions._mute_pads,
+    SOLO = XDrActions._solo_pads,
+    VOL  = XDrActions._adjust_pad_volume,
+    PAN  = XDrActions._adjust_pad_pan,
+    # TODO: SEL, SEND
+)  # type: Dict[Text, Callable[[XDrActions, Sequence[Any], Optional[Text]], None]]

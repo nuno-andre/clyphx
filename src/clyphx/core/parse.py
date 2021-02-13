@@ -10,9 +10,12 @@ from builtins import map, object
 import re
 
 from .models import Action, Command, UserControl
+from .exceptions import ParsingError
 
 if TYPE_CHECKING:
-    from typing import Any, Iterable, Iterator
+    from typing import Any, Optional, Text, Iterator, Iterable
+
+# region TERMINAL SYMBOLS
 
 OBJECT_SYMBOLS = {
     'SEL',
@@ -28,6 +31,8 @@ OBJECT_SYMBOLS = {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
 }
 
+
+# endregion
 
 class Parser(object):
     '''Command parser.
@@ -89,10 +94,10 @@ class Parser(object):
         start, stop = self.lists.match(cmd.pop('lists')).groups()
         try:
             stop = list(self.parse_action_list(stop))
-        except ValueError:
+        except ValueError as e:
             if not stop or stop == '*':
                 stop = stop or None
             else:
-                raise
+                raise ParsingError(e)
         cmd.update(start=list(self.parse_action_list(start)), stop=stop)  # type: ignore
         return Command(**cmd)

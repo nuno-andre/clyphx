@@ -398,8 +398,8 @@ class XClipActions(XComponent):
 
     def clear_envelope(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
-        '''Clears the envelope of the specified param or all envelopes from
-        the given clip.
+        '''Clears the envelope of the specified param or all envelopes
+        from the given clip.
         '''
         if args:
             param = self._get_envelope_parameter(track, args.strip())
@@ -422,8 +422,8 @@ class XClipActions(XComponent):
 
     def _get_envelope_parameter(self, track, args):
         # type: (Track, Text) -> Optional[Any]
-        '''Gets the selected, mixer or device parameter for envelope-related
-        actions.
+        '''Gets the selected, mixer or device parameter for envelope-
+        -related actions.
         '''
         param = None
         if 'SEL' in args:

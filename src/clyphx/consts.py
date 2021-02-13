@@ -20,7 +20,9 @@ import logging
 
 from . import __version__
 from .core.live import (GridQuantization,
+                        MixerDevice,
                         RecordingQuantization,
+                        WarpMode,
                         get_application)
 
 if TYPE_CHECKING:
@@ -53,7 +55,15 @@ NOTE_NAMES = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
 
 OCTAVE_NAMES = ('-2', '-1', '0', '1', '2', '3', '4', '5', '6', '7', '8')
 
-ENV_TYPES = ('IRAMP', 'DRAMP', 'IPYR', 'DPYR', 'SQR', 'SAW')
+ENV_TYPES = (
+    'IRAMP',    # Linear increasing ramp
+    'DRAMP',    # Linear decreasing ramp
+    'IPYR',     # Linear increase until midpoint and then linear decrease
+    'DPYR',     # Linear decrease until midpoint and then linear increase
+    'SAW',      # Saw wave synced to 1/4 notes
+    'SQR',      # Square wave synced to 1/4 notes
+    # 'TRI',      # Triangle wave synced to 1/4 notes
+)
 
 MIDI_STATUS = dict(
     NOTE = 144,
@@ -61,17 +71,39 @@ MIDI_STATUS = dict(
     PC   = 192,
 )  # type: Mapping[Text, int]
 
-# TODO: mode 5?
 WARP_MODES = dict((
-    ('BEATS',       0),
-    ('TONES',       1),
-    ('TEXTURE',     2),
-    ('RE-PITCH',    3),
-    ('COMPLEX',     4),
-    ('COMPLEX PRO', 6),
+    ('BEATS',       WarpMode.beats),
+    ('TONES',       WarpMode.tones),
+    ('TEXTURE',     WarpMode.texture),
+    ('RE-PITCH',    WarpMode.repitch),
+    ('COMPLEX',     WarpMode.complex),
+    # ('RECYCLE',     WarpMode.rex),  # not implemented
+    ('COMPLEX PRO', WarpMode.complex_pro),
+    # ('COUNT',       WarpMode.count),
 ))  # type: Mapping[Text, int]
 
+XFADE_STATES = dict(
+    A   = MixerDevice.crossfade_assignments.A,
+    OFF = MixerDevice.crossfade_assignments.NONE,
+    B   = MixerDevice.crossfade_assignments.B,
+)  # type: Mapping[Text, int]
+
+MON_STATES = dict(
+    IN   = 0,
+    AUTO = 1,
+    OFF  = 2,
+)  # type: Mapping[Text, int]
+
+LOOPER_STATES = dict(
+    STOP = 0.0,
+    REC  = 1.0,
+    PLAY = 2.0,
+    OVER = 3.0,
+)  # type: Mapping[Text, float]
+
 # region STATES
+# TODO: check gq, rq,r_qnrz, and clip_grid uses
+# XXX: bars vs beats
 GQ_STATES = dict((
     ('NONE',   0),
     ('8 BAR',  1),
@@ -104,25 +136,6 @@ RQ_STATES = dict((
     ('1/16 + 1/16T', 7),
     ('1/32',         8),
 ))  # type: Mapping[Text, int]
-
-XFADE_STATES = dict(
-    A   = 0,
-    OFF = 1,
-    B   = 2,
-)  # type: Mapping[Text, int]
-
-MON_STATES = dict(
-    IN   = 0,
-    AUTO = 1,
-    OFF  = 2,
-)  # type: Mapping[Text, int]
-
-LOOPER_STATES = dict(
-    STOP = 0.0,
-    REC  = 1.0,
-    PLAY = 2.0,
-    OVER = 3.0,
-)  # type: Mapping[Text, float]
 
 R_QNTZ_STATES = dict((
     ('1/4',          RecordingQuantization.rec_q_quarter),

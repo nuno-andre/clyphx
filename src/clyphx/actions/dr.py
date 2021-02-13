@@ -16,10 +16,12 @@
 
 from __future__ import absolute_import, unicode_literals
 from typing import TYPE_CHECKING
+from functools import partial
 
 if TYPE_CHECKING:
-    from typing import Any, Optional, Iterable, Sequence, Text
+    from typing import Any, Optional, Callable, Iterable, Sequence, Text
     from ..core.legacy import _DispatchCommand
+    from ..core.live import Track, Clip, Device
 
 from ..core.xcomponent import XComponent
 from ..consts import KEYWORDS
@@ -32,8 +34,31 @@ class XDrActions(XComponent):
     '''
     __module__ = __name__
 
-    def scroll_selector(self, dr, track, xclip, ident, args):
-        # type: (Any, None, None, None, Text) -> None
+    def dispatch_dr_actions(self, cmd):
+        if cmd.args:
+            for scmd in cmd:
+                self.dispatch_dr_action(scmd.track, scmd.xclip, scmd.ident, scmd.args)
+
+    def dispatch_dr_action(self, track, xclip, ident, args):
+        # type: (Track, Clip, Text, Text) -> None
+        from .consts import DR_ACTIONS
+
+        arg_action = DR_ACTIONS.get(args.split()[0])
+        if arg_action:
+            action = partial(arg_action, self)   # type: Callable
+        elif 'PAD' in args:
+            action = self.dispatch_pad_action
+        else:
+            return
+
+        # get dr to operate on
+        for device in track.devices:
+            if device.can_have_drum_pads:
+                action(device, args)
+                break
+
+    def scroll_selector(self, dr, args):
+        # type: (Device, Text) -> None
         '''Scroll Drum Rack selector up/down.'''
         args = args.replace('SCROLL', '').strip()
         if args.startswith(('<', '>')):
@@ -51,60 +76,34 @@ class XDrActions(XComponent):
                     value = 0
             dr.view.drum_pads_scroll_position = value
 
-    def unmute_all(self, dr, track, xclip, ident, args):
-        # type: (Any, None, None, None, None) -> None
+    def unmute_all(self, dr, args):
+        # type: (Device, None) -> None
         '''Unmute all pads in the Drum Rack.'''
         for pad in dr.drum_pads:
             pad.mute = False
 
-    def unsolo_all(self, dr, track, xclip, ident, args):
-        # type: (Any, None, None, None, None) -> None
+    def unsolo_all(self, dr, args):
+        # type: (Device, None) -> None
         '''Unsolo all pads in the Drum Rack.'''
         for pad in dr.drum_pads:
             pad.solo = False
-
-    def dispatch_dr_actions(self, cmd):
-        if cmd.args:
-            for scmd in cmd:
-                self.dispatch_dr_action(scmd.track, scmd.xclip, scmd.ident. scmd.args)
-
-    def dispatch_dr_action(self, track, xclip, ident, args):
-        from .consts import DR_ACTIONS
-
-        arg_action = DR_ACTIONS.get(args.split()[0])
-        if arg_action:
-            action = partial(action, self)
-        elif 'PAD' in args:
-            action = self.dispatch_pad_action
-        else:
-            return
-
-        # get dr to operate on
-        for device in track.devices:
-            if device.can_have_drum_pads:
-                action(device, t, xclip, ident, args)
-                break
 
 # region PAD ACTIONS
     def dispatch_pad_action(self, dr, track, xclip, ident, _args):
         # type: (Any, None, None, None, Text) -> None
         '''Dispatches pad-based actions.'''
+        from .consts import PAD_ACTIONS
+
         args = _args.split()
         if len(args) > 1:
             pads = self._get_pads_to_operate_on(dr, args[0].replace('PAD', '').strip())
             if pads:
                 action = args[1]
                 action_arg = args[2] if len(args) > 2 else None
-                if args[1] == 'MUTE':
-                    self._mute_pads(pads, action_arg)
-                elif args[1] == 'SOLO':
-                    self._solo_pads(pads, action_arg)
+                if args[1] in PAD_ACTIONS:
+                    PAD_ACTIONS[args[1]](self, pads, action_arg)
                 elif args[1] == 'SEL':
                     dr.view.selected_drum_pad = pads[-1]
-                elif args[1] == 'VOL' and action_arg:
-                    self._adjust_pad_volume(pads, action_arg)
-                elif args[1] == 'PAN' and action_arg:
-                    self._adjust_pad_pan(pads, action_arg)
                 elif 'SEND' in args[1] and action_arg and len(args) > 3:
                     self._adjust_pad_send(pads, args[3], action_arg)
 

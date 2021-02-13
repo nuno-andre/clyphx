@@ -42,7 +42,7 @@ class MacrobatLearnRack(MacrobatParameterRackTemplate):
     def __init__(self, parent, rack, track):
         # type: (Any, RackDevice, Track) -> None
         self._rack = rack
-        # delay adding listener to prevent issue with change on set load
+        # XXX: delay adding listener to prevent issue with change on set load
         parent.schedule_message(
             8, partial(parent.song().view.add_selected_parameter_listener, self.on_selected_parameter_changed)
         )
@@ -429,8 +429,8 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
         super().__init__(parent, rack, track)
 
     def disconnect(self):
-        self._rack = None
-        self._wrapper = None
+        for attr in ('_rack', '_wrapper'):
+            setattr(self, attr, None)
         super().disconnect()
 
     def scale_macro_value_to_param(self, macro, param):

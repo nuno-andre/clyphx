@@ -235,22 +235,22 @@ CSLINKER_SCRIPT_2_NAME = None
 # Example: MY_BTN1 = NOTE, 1, 10, 1/MUTE ; 2/MUTE
 
 # You can optionally specify an Action List to perform when the control sends
-# an off message.  To do this, place a comma after the On Action List and then
+# an off message.  To do this, place a colon after the On Action List and then
 # specify the Off Action List.
 
-# Example: MY_BTN2 = CC, 16, 117, 1/MUTE ; 2/MUTE, 3/PLAY >
+# Example: MY_BTN2 = CC, 16, 117, 1/MUTE ; 2/MUTE : 3/PLAY >
 
 # To perform the same Action List for the On Action List and Off Action List,
 # just specify an asterisk for the Off Action List.
 
-# Example: MY_BTN3 = NOTE, 5, 0, 1/MUTE, *
+# Example: MY_BTN3 = NOTE, 5, 0, 1/MUTE : *
 
 # Below is an example list that has been commented out (the # at the beginning
 # of a line makes the line a comment). Your list should be formatted in the same
 # way except without the # at the beginning of each line.
 
 
-# btn_1 = note, 1, 0, mute , *
+# btn_1 = note, 1, 0, mute : *
 # btn_2 = note, 1, 1, solo
 # btn_3 = cc, 9, 2, arm
 # btn_4 = cc, 9, 3, mon

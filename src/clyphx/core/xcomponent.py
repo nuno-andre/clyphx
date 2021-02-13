@@ -28,6 +28,7 @@ class XComponent(ControlSurfaceComponent):
         '''Called by the control surface on disconnect (app closed,
         script closed).
         '''
+        log.debug('Disconnecting %s', getattr(self, 'name', 'a %s' % self.__class__.name))
         self._parent = None
         super().disconnect()
 

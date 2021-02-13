@@ -34,10 +34,10 @@ class MacrobatMidiRack(XComponent):
     def __init__(self, parent, rack, name):
         # type: (Any, Device, Text) -> None
         super().__init__(parent)
-        self._macro_to_cc = []  # type: List[Any]
-        self._macro_to_pc = []  # type: List[Any]
-        self._macro_to_sysex = []  # type: List[Any]
-        self._sysex_list = []   # type: List[Any]
+        self._macro_to_cc = list()  # type: List[Any]
+        self._macro_to_pc = list()  # type: List[Any]
+        self._macro_to_sysex = list()  # type: List[Any]
+        self._sysex_list = list()  # type: List[Any]
         self.build_sysex_list()
         self.setup_device(rack, name)
 

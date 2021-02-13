@@ -38,11 +38,29 @@ def test_user_settings(user_settings):
     cfg = UserSettings(user_settings)
 
     assert cfg.prefs == cfg.extra_prefs == RESULT['extra_prefs']
-    assert cfg.controls == cfg.user_controls == RESULT['user_controls']
+    assert cfg.xcontrols == cfg.user_controls == RESULT['user_controls']
     assert cfg.snapshots == cfg.snapshots_settings == RESULT['snapshot_settings']
-    assert cfg.cs_linker == cfg.cslinker == RESULT['cslinker']
+    assert cfg.cslinker == RESULT['cslinker']
     assert cfg.vars == cfg.user_variables == RESULT['user_variables']
     assert cfg.identifier_note == RESULT['identifier_note']
+
+# endregion
+
+# region USER CONTROLS
+
+def test_user_controls():
+    from clyphx.core.models import UserControl, STATUS_BYTE
+
+    TEST = {'no_off': ('NOTE, 1, 10, 1/MUTE ; 2/MUTE',
+                       {'status_byte': 144, 'channel': 0, 'value': 10}),
+            'off':    ('CC, 16, 117, 1/MUTE ; 2/MUTE : 3/PLAY >',
+                       {'status_byte': 176, 'channel': 15, 'value': 117}),
+    }
+
+    for name, (data, asserts) in TEST.items():
+        uc = UserControl.parse(name, data)
+        for attr, val in asserts.items():
+            assert getattr(uc, attr) == val
 
 # endregion
 
@@ -56,24 +74,27 @@ def test_tracks():
     for (source, target) in [
         (
             '[] 1, 3, 5, "My Track", A-MST/MUTE',
-            {'start': [['1', '3', '5', '"My Track"', 'A-MST']]},
+            {'on': [['1', '3', '5', '"My Track"', 'A-MST']]},
         ),
         (
             '[] >-5/CLIP(SEL-7) WARP',
-            {'start': [['>-5']]},
+            {'on': [['>-5']]},
         ),
         (
             '[] DUMMY : "My Track"/DEV(ALL) OFF',
-            {'stop': [['"My Track"']]},
+            {'on': [['"My Track"']]},
         ),
         (
             '[IDENT] REC ON ; 1-2/ARM : UNARM ; 3-4/REC OFF',
-            {'start': [None, ['1-2']], 'stop': [None, ['3-4']]},
+            {'on': [None, ['1-2']], 'off': [None, ['3-4']]},
         ),
     ]:
         res = parse(source)
-        for step in ('start', 'stop'):
+        for step in ('on', 'off'):
             for i, value in enumerate(target.get(step, [])):
                 assert getattr(res, step)[i].tracks == value
+
+def test_actions():
+    pass
 
 # rendregion

@@ -22,10 +22,14 @@ import logging
 
 from .core.xcomponent import XComponent
 from .core.legacy import ActionList
+from .core.models import UserControl
 from .core.live import forward_midi_cc, forward_midi_note
 
 if TYPE_CHECKING:
-    from typing import Any, Iterable, Sequence, Dict, Text, List, Tuple
+    from typing import (
+        Any, Optional, Text, Dict,
+        Iterable, Sequence, List, Tuple,
+    )
     from .core.live import Clip, Track
 
 log = logging.getLogger(__name__)
@@ -121,63 +125,24 @@ class XControlComponent(XTrigger):
                 self._parent.handle_action_list_trigger(self.song().view.selected_track,
                                                         ctrl_data['name'])
 
-    def read_user_settings(self, settings, midi_map_handle):
-        # TODO
-        for name, data in settings.items():
-            msg_type, chnl, val, actions = map(str.strip, data.split(',', 3))
-            try:
-                status_byte = {'note': 144, 'cc': 176}[msg_type]
-            except KeyError:
-                log.error("MSG TYPE of user controls has to be 'NOTE' or 'CC'")
-                continue
-
-
-    def get_user_control_settings(self, data, midi_map_handle):
-        # type: (Iterable[Text], int) -> None
-        '''Receives control data from user settings file and builds
-        control dictionary.
-        '''
+    def get_user_controls(self, settings, midi_map_handle):
+        # type: (Dict[Text, Text], Any) -> None
         self._control_list = dict()
-        for _d in data:
-            status_byte = None
-            channel = None
-            ctrl_num = None
-            on_action = None
-            off_action = None
-            d = _d.split('=')
-            ctrl_name = d[0].strip()
-            new_ctrl_data = d[1].split(',')
-            try:
-                if new_ctrl_data[0].strip() == 'NOTE':
-                    status_byte = 144
-                elif new_ctrl_data[0].strip() == 'CC':
-                    status_byte = 176
-                if 1 <= int(new_ctrl_data[1]) < 17:
-                    channel = int(new_ctrl_data[1]) - 1
-                if 0 <= int(new_ctrl_data[2]) < 128:
-                    ctrl_num = int(new_ctrl_data[2])
-                on_action = '[{}] {}'.format(ctrl_name, new_ctrl_data[3])
-                if on_action and len(new_ctrl_data) > 4:
-                    if new_ctrl_data[4].strip() == '*':
-                        off_action = on_action
-                    else:
-                        off_action = '[{}] {}'.format(ctrl_name, new_ctrl_data[4])
-            except:
-                pass
-            if status_byte and channel is not None and ctrl_num is not None and on_action:
-                self._control_list[(status_byte + channel, ctrl_num)] = dict(
-                    ident      = ctrl_name,
-                    on_action  = on_action,
-                    off_action = off_action,
-                    name       = ActionList(on_action),
-                )
-                fn = forward_midi_note if status_byte == 144 else forward_midi_cc
-                fn(self._parent._c_instance.handle(), midi_map_handle, channel, ctrl_num)
+        for name, data in settings.items():
+            uc = UserControl.parse(name, data)
+            self._control_list[uc._key] = dict(
+                ident      = name,
+                on_action  = uc.on_actions,
+                off_action = uc.off_actions,
+                name       = ActionList(uc.on_actions)
+            )
+            fn = forward_midi_note if uc.status_byte == 144 else forward_midi_cc
+            fn(self._parent._c_instance.handle(), midi_map_handle, uc.channel, uc.value)
 
     def rebuild_control_map(self, midi_map_handle):
         # type: (int) -> None
         '''Called from main when build_midi_map is called.'''
-        log.info('XControlComponent.rebuild_control_map')
+        log.debug('XControlComponent.rebuild_control_map')
         for key in self._control_list.keys():
             if key[0] >= 176:
                 # forwards a CC msg to the receive_midi method
@@ -242,7 +207,7 @@ class XTrackComponent(XTrigger):
             self._clip.add_loop_jump_listener(self.on_loop_jump)
 
     def get_xclip(self, slot_index):
-        # type: (int) -> Clip
+        # type: (int) -> Optional[Clip]
         '''Get the xclip associated with slot_index or None.'''
         clip = None
         if self._track and 0 <= slot_index < len(self._track.clip_slots):
@@ -262,8 +227,8 @@ class XTrackComponent(XTrigger):
             self._triggered_lseq_clip = self._clip
 
     def on_timer(self):
-        '''Continuous timer, calls main script if there are any triggered
-        clips.
+        '''Continuous timer, calls main script if there are any
+        triggered clips.
         '''
         if self._track and (not self._track.mute or
                             self._parent._process_xclips_if_track_muted):

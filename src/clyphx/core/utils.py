@@ -4,7 +4,8 @@ import logging
 import os
 
 if TYPE_CHECKING:
-    from typing import Text, TypeVar
+    from typing import Text, TypeVar, Iterable
+    from .live import Track
     T = TypeVar('T')
 
 log = logging.getLogger(__name__)
@@ -17,6 +18,17 @@ def repr_slots(self):
         ', '.join('{}={}'.format(k, getattr(self, k))
                     for k in self.__slots__),
     ))
+
+
+def repr_tracklist(tracks):
+    # type: (Iterable[Track]) -> Text
+    '''Convert list of tracks to a string of track names or 'None' if
+    no tracks. This is used for debugging.
+    '''
+    if not tracks:
+        return '[None]'
+    else:
+        return '[{}]'.format(', '.join(t.name for t in tracks))
 
 
 def get_base_path(*items):

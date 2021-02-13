@@ -15,14 +15,14 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
-from builtins import super
 from typing import TYPE_CHECKING
+from functools import partial
+from builtins import super
+import logging
 
 if TYPE_CHECKING:
     from typing import Any, Iterable, Sequence, Optional, Dict, Text, List
 
-import logging
-from functools import partial
 from _Framework.ControlSurface import ControlSurface
 from .core.xcomponent import ControlSurfaceComponent, SessionComponent
 
@@ -36,7 +36,7 @@ class CsLinker(ControlSurfaceComponent):
     def __init__(self):
         super().__init__()
         self._slave_objects = [None, None]  # type: List[Any]
-        self._script_names = None  # type: List[Text]
+        self._script_names = list()  # type: List[Text]
         self._horizontal_link = False
         self._matched_link = False
         self._multi_axis_link = False

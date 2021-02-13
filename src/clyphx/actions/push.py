@@ -57,7 +57,7 @@ P2_MAIN_MODES = dict(
 
 
 # TODO: on_enabled_change / update
-class ClyphXPushActions(ControlSurfaceComponent):
+class XPushActions(ControlSurfaceComponent):
     '''Actions related to Push/Push2 ???? control surface script.
     '''
 

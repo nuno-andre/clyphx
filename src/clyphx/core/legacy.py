@@ -8,6 +8,8 @@ from __future__ import absolute_import, unicode_literals
 from typing import TYPE_CHECKING
 from builtins import object, super
 
+from .utils import repr_tracklist
+
 if TYPE_CHECKING:
     from typing import Union, Text, Sequence, Iterator
     from .live import Track, Clip
@@ -19,23 +21,19 @@ class _DispatchCommand(object):
     def __init__(self, tracks, xclip, ident, action_name, args):
         # type: (Sequence[Track], Clip, Text, Text, Text) -> None
         self.tracks = tracks
-        self.xclip = xclip  # TODO: xtrigger?
+        self.xclip = xclip  # TODO: xtrigger
         self.ident = ident
         self.action_name = action_name
         self.args = args.strip()
 
     def __repr__(self):
         # type: () -> str
-        if self.tracks:
-            tracks = '[{}]'.format(', '.join(t.name for t in self.tracks))
-        else:
-            tracks = '[None]'
-        clip = self.xclip.name if self.xclip else ''
-        rest = ', '.join('{}={}'.format(k, self.__dict__[str(k)])
-                         for k in ('ident', 'action_name', 'args'))
-
-        return str('_DispatchCommand(tracks={}, xclip={}, '
-                   '{})'.format(tracks, clip, rest))
+        return str('_DispatchCommand(tracks={}, xclip={}, {})'.format(
+            repr_tracklist(self.tracks),
+            self.xclip.name if self.xclip else '',
+            ', '.join('{}={}'.format(k, self.__dict__[str(k)])
+                         for k in ('ident', 'action_name', 'args')),
+        ))
 
     def __iter__(self):
         # type: () -> Iterator[_SingleDispatch]

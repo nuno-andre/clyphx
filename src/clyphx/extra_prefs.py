@@ -37,7 +37,7 @@ class ExtraPrefs(XComponent):
     def __init__(self, parent, config):
         # type: (Any, Dict[Text, Any]) -> None
         super().__init__(parent)
-        log.info('Starting ExtraPrefs with %s', config)
+        log.debug('Starting ExtraPrefs with %s', config)
         self._show_highlight = config.get('navigation_highlight', True)  # type: bool
         self._exclusive_arm = config.get('exclusive_arm_on_select', False)  # type: bool
         self._exclusive_fold = config.get('exclusive_show_group_on_select', False)  # type: bool
@@ -60,7 +60,6 @@ class ExtraPrefs(XComponent):
         functions and removes/sets up listeners for clip-related
         functions.
         '''
-        log.info('ExtraPrefs.on_selected_track_changed')
         super().on_selected_track_changed()
         track = self.song().view.selected_track
         clip_slot = self.song().view.highlighted_clip_slot

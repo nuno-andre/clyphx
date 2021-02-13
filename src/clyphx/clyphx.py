@@ -15,17 +15,27 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import with_statement, absolute_import, unicode_literals
 from builtins import super, dict, range, map
-
-import logging
+from typing import TYPE_CHECKING
 from functools import partial
 from itertools import chain
-from typing import TYPE_CHECKING
+import logging
+import os
 
-from .core.live import Clip, get_random_int
 from _Framework.ControlSurface import ControlSurface
-from .macrobat import Macrobat
+from .core.legacy import _DispatchCommand, _SingleDispatch, ActionList
+from .core.utils import get_base_path, repr_tracklist
+from .core.live import Live, Track, DeviceIO, Clip, get_random_int
+from .core.parsing import get_xclip_action_list
+from .consts import LIVE_VERSION, SCRIPT_INFO
+from .xtriggers import XTrackComponent, XControlComponent, XCueComponent
 from .extra_prefs import ExtraPrefs
+from .user_config import get_user_settings
+from .user_actions import XUserActions
+from .macrobat import Macrobat
 from .cs_linker import CsLinker
+from .m4l_browser import XM4LBrowserInterface
+from .push_apc_combiner import PushApcCombiner
+from .push_mocks import MockHandshakeTask, MockHandshake
 from .actions import (
     XGlobalActions, GLOBAL_ACTIONS,
     XTrackActions, TRACK_ACTIONS,
@@ -35,22 +45,7 @@ from .actions import (
     XSnapActions,
     XCsActions,
 )
-from .xtriggers import (
-    XTrackComponent, XControlComponent, XCueComponent
-)
-from .user_actions import XUserActions
-from .user_config import get_user_settings
-from .m4l_browser import XM4LBrowserInterface
-from .push_apc_combiner import PushApcCombiner
-from .consts import LIVE_VERSION, SCRIPT_INFO
-from .push_mocks import MockHandshakeTask, MockHandshake
-from .core.utils import get_base_path
-from .core.live import Live, Track, DeviceIO
-from .core.parsing import get_xclip_action_list, track_list_to_string
-from .core.legacy import _DispatchCommand, _SingleDispatch, ActionList
-import os
 
-# FIXME
 if TYPE_CHECKING:
     from typing import (
         Any, Text, Union, Optional, Dict,
@@ -104,25 +99,16 @@ class ClyphX(ControlSurface):
         log.info(msg, SCRIPT_INFO, '.'.join(map(str, LIVE_VERSION)))
         self.show_message(SCRIPT_INFO)
 
-    # TODO: this teardown makes the baby mypy cry
+
     def disconnect(self):
-        self._PushApcCombiner  = None
-        self.macrobat          = None  # type: ignore
-        self._extra_prefs      = None  # type: ignore
-        self.cs_linker         = None  # type: ignore
-        self.track_actions     = None  # type: ignore
-        self.snap_actions      = None  # type: ignore
-        self.global_actions    = None  # type: ignore
-        self.device_actions    = None  # type: ignore
-        self.dr_actions        = None  # type: ignore
-        self.clip_actions      = None  # type: ignore
-        self.cs_actions        = None  # type: ignore
-        self.user_actions      = None  # type: ignore
-        self.control_component = None  # type: ignore
-        self._user_variables   = dict()
-        self._play_seq_clips   = dict()
-        self._loop_seq_clips   = dict()
-        self.current_tracks    = []
+        for attr in (
+            '_PushApcCombiner', 'macrobat', '_extra_prefs', 'cs_linker',
+            'track_actions', 'snap_actions', 'global_actions',
+            'device_actions', 'dr_actions', 'clip_actions', 'cs_actions',
+            'user_actions', 'control_component', '_user_variables',
+            '_play_seq_clips', '_loop_seq_clips', 'current_tracks',
+        ):
+            setattr(self, attr, None)
         super().disconnect()
 
     @property
@@ -131,7 +117,7 @@ class ClyphX(ControlSurface):
         return log.getEffectiveLevel() <= 10
 
     @_is_debugging.setter
-    def _is_debugging(self, value):  # type: ignore
+    def _is_debugging(self, value):
         log.setLevel(logging.DEBUG if value else logging.INFO)
 
     def start_debugging(self):
@@ -322,7 +308,7 @@ class ClyphX(ControlSurface):
             args = result_name.replace(name[0], '', 1)
             result_name = result_name.replace(args, '')
         log.debug('format_action_name -> track(s)=%s, action=%s, args=%s',
-                  track_list_to_string(result_track), result_name.strip(), args.strip())
+                  repr_tracklist(result_track), result_name.strip(), args.strip())
         return dict(track=result_track, action=result_name.strip(), args=args.strip())
 
     def replace_user_variables(self, string):
@@ -356,7 +342,7 @@ class ClyphX(ControlSurface):
         '''Handle assigning new value to variable with either assignment
         or expression enclosed in parens.
         '''
-        log.info('handle user variable assignment: %s', string_with_assign)
+        log.debug('handle user variable assignment: %s', string_with_assign)
         # for compat with old-style variables
         string_with_assign = string_with_assign.replace('$', '')
         try:
@@ -484,7 +470,7 @@ class ClyphX(ControlSurface):
     def get_track_to_operate_on(self, origin_name):
         # type: (Text) -> Tuple[List[Any], Text]
         '''Gets track or tracks to operate on.'''
-        log.info('get track to operate on')
+        log.debug('get track to operate on')
         result_tracks = []
         result_name = origin_name
         if '/' in origin_name:
@@ -533,7 +519,7 @@ class ClyphX(ControlSurface):
                                 result_tracks = [tracks[track_range[0]]]
             result_name = origin_name[origin_name.index('/') + 1:].strip()
         log.debug('get_track_to_operate_on -> result_tracks=%s, result_name=%s',
-                  track_list_to_string(result_tracks), result_name)
+                  repr_tracklist(result_tracks), result_name)
         return (result_tracks, result_name)
 
     def get_track_index_by_name(self, name, tracks):
@@ -623,7 +609,7 @@ class ClyphX(ControlSurface):
         if not self._startup_actions_complete:
             actions = settings.get('startup_actions', False)
             if actions:
-                msg = partial(self.perform_startup_actions, '[]{}'.format(actions))
+                msg = partial(self.perform_startup_actions, '[] {}'.format(actions))
                 self.schedule_message(2, msg)
                 self._startup_actions_complete = True
 
@@ -638,16 +624,13 @@ class ClyphX(ControlSurface):
         '''Get user settings (variables, prefs and control settings)
         from text file and perform startup actions if any.
         '''
-        from collections import defaultdict
-
         self._get_snapshot_settings(self._user_settings.snapshot_settings)
         self._get_some_extra_prefs(self._user_settings.extra_prefs)
         self.cs_linker.read_settings(self._user_settings.cslinker)
-        # TODO
-        # self.control_component.read_user_settings(self._user_controls, midi_map_handle)
+        self.control_component.get_user_controls(self._user_settings.xcontrols,
+                                                 midi_map_handle)
 
-        list_to_build = None
-        lists_to_build = defaultdict(list)
+        lists_to_build = {'vars': list()}
 
         filepath = get_base_path('UserSettings.txt')
         if not self._user_settings_logged:
@@ -670,8 +653,8 @@ class ClyphX(ControlSurface):
                 elif '[EXTRA PREFS]' in line:
                     list_to_build = 'prefs'
                 elif '=' in line:
-                    if list_to_build in {'vars', 'controls'}:
-                        lists_to_build[list_to_build].append(line)
+                    if list_to_build in {'vars'}:
+                        lists_to_build['vars'].append(line)
             elif 'PUSH_EMULATION' in line:
                 self._push_emulation = line.split('=')[1].strip() == 'ON'
                 if self._push_emulation:
@@ -683,10 +666,6 @@ class ClyphX(ControlSurface):
         for line in lists_to_build['vars']:
             line = self.replace_user_variables(line)
             self.handle_user_variable_assignment(line)
-
-        if lists_to_build['controls']:
-            self.control_component.get_user_control_settings(
-                lists_to_build['controls'], midi_map_handle)
 
     def enable_push_emulation(self, scripts):
         # type: (Iterable[Any]) -> None
