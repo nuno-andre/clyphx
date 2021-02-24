@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 from ..core.xcomponent import ControlSurfaceComponent
 from ..core.live import Clip
-from ..consts import KEYWORDS, NOTE_NAMES
+from ..consts import switch, NOTE_NAMES
 
 if TYPE_CHECKING:
     from typing import Any, Sequence, Text, List, Dict, Optional
@@ -213,19 +213,11 @@ class XPushActions(ControlSurfaceComponent):
 
     def _handle_in_key(self, arg_array):
         # type: (Sequence[Text]) -> None
-        try:
-            self._ins_component._note_layout.is_in_key = KEYWORDS[arg_array[1]]
-        except (IndexError, KeyError):
-            self._ins_component._note_layout.is_in_key =\
-                not self._ins_component._note_layout.is_in_key
+        switch(self._ins_component._note_layout, 'is_in_key', arg_array[1])
 
     def _handle_fixed(self, arg_array):
         # type: (Sequence[Text]) -> None
-        try:
-            self._ins_component._note_layout.is_fixed = KEYWORDS[arg_array[1]]
-        except (IndexError, KeyError):
-            self._ins_component._note_layout.is_fixed =\
-                not self._ins_component._note_layout.is_fixed
+        switch(self._ins_component._note_layout, 'is_fixed', arg_array[1])
 
     def _handle_root_note(self, arg_array):
         # type: (Sequence[Text]) -> None

@@ -1,6 +1,6 @@
 # coding: utf-8
 #
-# Copyright 2020-2021 Nuno André Novo
+# Copyright (c) 2020-2021 Nuno André Novo
 # Some rights reserved. See COPYING, COPYING.LESSER
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
@@ -58,16 +58,24 @@ class UserSettings(object):
     '''
     def __init__(self, *filepaths):
         # type: (Text) -> None
+        self._vars = None
         for path in filepaths:
             self._parse_config(path)
 
     @property
     def vars(self):
-        return self._getattrs(['user_variables', 'variables'], fallback=dict())
+        if self._vars is None:
+            self._vars = UserVars()
+            valid_section_names = ['user_variables', 'variables']
+            config = self._getattrs(valid_section_names, fallback=dict())
+            for k, v in config.items():
+                self._vars[k] = v
+        return self._vars
 
     @property
     def prefs(self):
-        return self._getattrs(['extra_prefs', 'general_settings'], fallback=dict())
+        valid_section_names = ['extra_prefs', 'general_settings']
+        return self._getattrs(valid_section_names, fallback=dict())
 
     def _getattrs(self, attrs, fallback=unset):
         for attr in attrs:
@@ -132,48 +140,85 @@ def get_user_settings():
     from .core.utils import get_base_path
     import os
 
-    filepath = os.path.expanduser('~/ClyphX/UserSettings.txt')
-    if os.path.exists(filepath):
-        return UserSettings(filepath)
+    for func, arg in [
+        # (os.path.expandvars, '$CLYPHX_CONFIG'),
+        (os.path.expanduser, '~/ClyphX/UserSettings.txt'),
+        (get_base_path,      'UserSettings.txt'),
+    ]:
+        filepath = func(arg)
+        if os.path.exists(filepath):
+            log.info('Reading settings from %s', filepath)
+            return UserSettings(filepath)
 
-    filepath = get_base_path('UserSettings.txt')
-    if os.path.exists(filepath):
-        return UserSettings(filepath)
-
-    filepath = os.path.expandvars('$CLYPHX_CONFIG')
-    if os.path.exists(filepath) and os.path.isfile(filepath):
-        return UserSettings(filepath)
-
-    raise Exception('User settings not found.')
+    raise OSError('User settings not found.')
 
 
 # TODO
 class UserVars(object):
+    '''User vars container.
+
+    Var names are case-insensitive and should not contain characters
+    other than letters, numbers, and underscores.
+    '''
     _vars = dict()  # type: Dict[Text, Text]
 
+    # new format: %VARNAME%
+    re_var = re.compile(r'%(\w+?)%')
+
+   # legacy format: $VARNAME
+    re_legacy_var = re.compile(r'\$(\w+?)\b')
+
     def __getitem__(self, key):
-        # TODO
-        return self._vars.get(key, '0')
+        # (Text) -> Text
+        try:
+            key = key.group(1)
+        except AttributeError:
+            pass
+        try:
+            return self._vars[key.lower()]
+        except KeyError:
+            log.warning("Var '%s' not found. Defaults to '0'.", key)
+            return '0'
 
     def __setitem__(self, key, value):
-        self.add_var(key, value)
-
-    def add_var(self, name, value):
         # type: (Text, Text) -> None
-        value = str(value)
-        if not any(x in value for x in (';', '%', '=')):
-            if '(' in value and ')' in value:
-                try:
-                    value = eval(value)
-                except Exception as e:
-                    log.error('Evaluation error: %s=%s', name, value)
-                    return
-            self._vars[name] = str(value)
-            log.debug('User variable assigned: %s=%s', name, value)
+        self._add_var(key.lower(), value)
 
-    def resolve_vars(self, string):
-        # type: (Text) -> Text
-        '''Replace any user variables in the given string with the value
-        the variable represents.
+    def _add_var(self, name, value):
+        # type: (Text, Text) -> None
+        value = self.sub(str(value))
+
+        if any(x in value for x in (';', '%', '=')):
+            err = "Invalid assignment: {} = {}"
+            raise ValueError(err.format(name, value))
+
+        if '(' in value and ')' in value:
+            value = eval(value)
+        self._vars[name] = str(value)
+        log.debug('User variable assigned: %s=%s', name, value)
+
+    def add(self, statement):
+        # type: (Text) -> None
+        '''Evaluates the expression (either an assignment or an
+        expression enclosed in parens) and stores the result.
         '''
-        pass
+        statement = statement.replace('$', '')  # legacy vars compat
+        try:
+            key, val = [x.strip() for x in statement.split('=')]
+            self._add_var(key, val)
+        except Exception as e:
+            log.error("Failed to evaluate '%s': %r", statement, e)
+
+    def sub(self, string):
+        # type: (Text) -> Text
+        '''Replace any user variables in the given string with their
+        stored value.
+        '''
+        try:
+            if '%' in string:
+                return self.re_var.sub(self.__getitem__, string)
+            elif '$' in string:
+                return self.re_legacy_var.sub(self.__getitem__, string)
+        except Exception as e:
+            log.error("Failed to substitute '%s': %r", string, e)
+        return string

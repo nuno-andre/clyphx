@@ -15,7 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
-__version__ = 2, 7, 2
+__version__ = 3, 0, 0, 'dev3'
 
 import sys
 import os

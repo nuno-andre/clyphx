@@ -1,3 +1,4 @@
+# pyright: reportMissingTypeStubs=true
 # -*- coding: utf-8 -*-
 # This file is part of ClyphX.
 #
@@ -15,32 +16,27 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
-from builtins import super, dict, range
+from builtins import super, range
 from typing import TYPE_CHECKING
 import logging
 
 if TYPE_CHECKING:
-    from typing import (
-        Any, Union, Optional, Text, Dict,
-        Iterable, Sequence, List, Tuple,
-    )
+    from typing import Any, Optional, Text, Dict, List, Tuple
     from ..core.live import DeviceParameter, Track
     from ..core.legacy import _DispatchCommand
 
-import random
 from ..core.xcomponent import XComponent
-from ..core.live import Clip, get_random_int
+from ..core.live import Clip
 from .clip_env_capture import XClipEnvCapture
-from ..consts import KEYWORDS, ONOFF
+from .clip_notes import ClipNotesMixin
 from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES,
                       WARP_MODES, ENV_TYPES,
-                      NOTE_NAMES, OCTAVE_NAMES)
+                      KEYWORDS, ONOFF, switch)
 
 log = logging.getLogger(__name__)
-# pyright: reportMissingTypeStubs=true
 
 
-class XClipActions(XComponent):
+class XClipActions(XComponent, ClipNotesMixin):
     '''Clip-related actions.
     '''
     __module__ = __name__
@@ -64,11 +60,11 @@ class XClipActions(XComponent):
                     if len(action) > 1:
                         clip_args = action[1]
                     if clip_args and clip_args.split()[0] in CLIP_ACTIONS:
-                        fn = CLIP_ACTIONS[clip_args.split()[0]]
-                        fn(self, action[0], scmd.track, scmd.xclip, scmd.ident,
-                           clip_args.replace(clip_args.split()[0], ''))
+                        func = CLIP_ACTIONS[clip_args.split()[0]]
+                        func(self, action[0], scmd.track, scmd.xclip, scmd.ident,
+                             clip_args.replace(clip_args.split()[0], ''))
                     elif clip_args and clip_args.split()[0].startswith('NOTES'):
-                        self.do_clip_note_action(action[0], None, None, None, cmd.args)
+                        self.dispatch_clip_note_action(action[0], cmd.args)
                     elif cmd.action_name.startswith('CLIP'):
                         self.set_clip_on_off(action[0], scmd.track, scmd.xclip, None, cmd.args)
 
@@ -118,13 +114,14 @@ class XClipActions(XComponent):
     def set_clip_on_off(self, clip, track, xclip, ident, value=None):
         # type: (Clip, None, None, None, Optional[Text]) -> None
         '''Toggles or turns clip on/off.'''
+        # XXX: reversed value, not fallback
         clip.muted = not KEYWORDS.get(value, clip.muted)
 
     def set_warp(self, clip, track, xclip, ident, value=None):
         # type: (Clip, None, None, None, Optional[Text]) -> None
         '''Toggles or turns clip warp on/off.'''
         if clip.is_audio_clip:
-            clip.warping = KEYWORDS.get(value, not clip.warping)
+            switch(clip, 'warping', value)
 
     def adjust_time_signature(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
@@ -134,8 +131,8 @@ class XClipActions(XComponent):
                 num, denom = args.split('/')
                 clip.signature_numerator = int(num)
                 clip.signature_denominator = int(denom)
-            except:
-                pass
+            except Exception as e:
+                log.error('Failed to adjust time signature: %r', e)
 
     def adjust_detune(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
@@ -148,8 +145,8 @@ class XClipActions(XComponent):
             else:
                 try:
                     clip.pitch_fine = int(args)
-                except:
-                    pass
+                except Exception as e:
+                    log.error('Failed to adjust detune: %r', e)
 
     def adjust_transpose(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
@@ -167,8 +164,26 @@ class XClipActions(XComponent):
             if clip.is_audio_clip:
                 try:
                     clip.pitch_coarse = int(args)
-                except:
-                    pass
+                except Exception as e:
+                    log.error('Failed to adjust transpose: %r', e)
+
+    def do_note_pitch_adjustment(self, clip, factor):
+        # type: (Clip, Any) -> None
+        '''Adjust note pitch. This isn't a note action, it's called via
+        Clip Semi.
+        '''
+        edited_notes = []
+        note_data = self.get_notes_to_operate_on(clip)
+        if note_data['notes_to_edit']:
+            for n in note_data['notes_to_edit']:
+                new_pitch = n[0] + factor
+                if 0 <= new_pitch < 128:
+                    edited_notes.append((new_pitch, n[1], n[2], n[3], n[4]))
+                else:
+                    edited_notes = []
+                    return
+            if edited_notes:
+                self.write_all_notes(clip, edited_notes, note_data['other_notes'])
 
     def adjust_gain(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
@@ -183,8 +198,8 @@ class XClipActions(XComponent):
             else:
                 try:
                     clip.gain = int(args) * float(1.0 / 127.0)
-                except:
-                    pass
+                except Exception as e:
+                    log.error('Failed to adjust gain: %r', e)
 
     def adjust_start(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
@@ -204,8 +219,8 @@ class XClipActions(XComponent):
                     clip.start_marker = float(args)
                 else:
                     clip.loop_start = float(args)
-            except:
-                pass
+            except Exception as e:
+                log.error('Failed to adjust start: %r', e)
 
     def adjust_loop_start(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
@@ -217,8 +232,8 @@ class XClipActions(XComponent):
         else:
             try:
                 clip.loop_start = float(args)
-            except:
-                pass
+            except Exception as e:
+                log.error('Failed to adjust loop start: %r', e)
 
     def adjust_end(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
@@ -240,8 +255,8 @@ class XClipActions(XComponent):
                     clip.end_marker = float(args)
                 else:
                     clip.loop_end = float(args)
-            except:
-                pass
+            except Exception as e:
+                log.error('Failed to adjust end: %r', e)
 
     def adjust_loop_end(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
@@ -254,8 +269,8 @@ class XClipActions(XComponent):
         else:
             try:
                 clip.loop_end = float(args)
-            except:
-                pass
+            except Exception as e:
+                log.error('Failed to adjust loop end: %r', e)
 
     def adjust_cue_point(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
@@ -276,8 +291,8 @@ class XClipActions(XComponent):
                         clip.looping = True
                     if clip != xclip:
                         clip.fire()
-                except:
-                    pass
+                except Exception as e:
+                    log.error('Failed to adjust cue point: %r', e)
             else:
                 if isinstance(xclip, Clip):
                     xclip.name = '{} {}'.format(xclip.name.strip(), clip.loop_start)
@@ -311,7 +326,7 @@ class XClipActions(XComponent):
     def set_triplet_grid(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, Text) -> None
         '''Toggles or turns triplet grid on or off.'''
-        clip.view.grid_is_triplet = KEYWORDS.get(args, not clip.view.grid_is_triplet)
+        switch(clip.view, 'grid_is_triplet', args)
 
     def capture_to_envelope(self, clip, track, xclip, ident, args):
         # type: (Clip, Any, None, None, Text) -> None
@@ -512,8 +527,8 @@ class XClipActions(XComponent):
         if clip.is_midi_clip:
             try:
                 clip.duplicate_loop()
-            except:
-                pass
+            except Exception as e:
+                log.error('Failed to duplicate clip content: %r', e)
 
     def delete_clip(self, clip, track, xclip, ident, args):
         # type: (Clip, None, None, None, None) -> None
@@ -527,8 +542,8 @@ class XClipActions(XComponent):
         '''
         try:
             track.duplicate_clip_slot(list(track.clip_slots).index(clip.canonical_parent))
-        except:
-            pass
+        except Exception as e:
+            log.error('Failed to duplicate clip: %r', e)
 
     def chop_clip(self, clip, track, xclip, ident, args):
         # type: (Clip, Track, None, None, Text) -> None
@@ -554,8 +569,8 @@ class XClipActions(XComponent):
                 dupe.start_marker = dupe_start
                 dupe.loop_start = dupe_start
                 dupe.name = '{}-{}'.format(clip.name, i + 1)
-        except:
-            pass
+        except Exception as e:
+            log.error('Failed to chop clip: %r', e)
 
     def split_clip(self, clip, track, xclip, ident, args):
         # type: (Clip, Track, None, None, Text) -> None
@@ -585,14 +600,31 @@ class XClipActions(XComponent):
                     dupe.start_marker = dupe_start
                     dupe.loop_start = dupe_start
                     dupe.name = '{}-{}'.format(clip.name, i + 1)
-        except:
-            pass
+        except Exception as e:
+            log.error('Failed to split clip: %r', e)
 
+    def get_clip_stats(self, clip):
+        # type: (Clip) -> Dict[Text, Any]
+        '''Get real length and end of looping clip.'''
+        clip.looping = 0
+        length = clip.length
+        end = clip.loop_end
+        clip.looping = 1
+        loop_length = clip.loop_end - clip.loop_start
+        return dict(
+            clip_length = length,
+            real_end    = end,
+            loop_length = loop_length,
+        )
+
+# TODO: make Mixin together with transport functions
+# TODO: check XGlobalActions.do_loop_action and device_looper
+# region CLIP LOOP ACTIONS
     def do_clip_loop_action(self, clip, track, xclip, ident, args):
         # type: (Clip, Track, Clip, None, Text) -> None
         '''Handle clip loop actions.'''
         args = args.strip()
-        if not args or args in KEYWORDS:
+        if not args or args.upper() in KEYWORDS:
             self.set_loop_on_off(clip, args)
         else:
             if args.startswith('START'):
@@ -617,9 +649,10 @@ class XClipActions(XComponent):
                     new_end = clip_stats['real_end']
                 elif args.startswith('*'):
                     try:
-                        new_end = (clip.loop_end - clip_stats['loop_length']) + (clip_stats['loop_length'] * float(args[1:]))
-                    except:
-                        pass
+                        new_end = ((clip.loop_end - clip_stats['loop_length'])
+                                   + (clip_stats['loop_length'] * float(args[1:])))
+                    except Exception as e:
+                        log.error('Failed to do clip action: %r', e)
                 else:
                     self.do_loop_set(clip, args, clip_stats)
                     return
@@ -667,8 +700,8 @@ class XClipActions(XComponent):
                         start += bar - distance
             end = start + (bar * bars_to_loop)
             self.set_new_loop_position(clip, start, end, clip_stats)
-        except:
-            pass
+        except Exception as e:
+            log.error('Failed to do loop set: %r', e)
 
     def set_new_loop_position(self, clip, new_start, new_end, clip_stats):
         # type: (Clip, float, float, Dict[Text, Any]) -> None
@@ -683,397 +716,4 @@ class XClipActions(XComponent):
             else:
                 clip.loop_start = new_start
                 clip.loop_end = new_end
-
-    def do_clip_note_action(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
-        '''Handle clip note actions.'''
-        if clip.is_audio_clip:
-            return
-        note_data = self.get_notes_to_operate_on(clip, args.strip())
-        if note_data['notes_to_edit']:
-            newargs = (clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
-            if not note_data['args'] or note_data['args'] in KEYWORDS:
-                self.set_notes_on_off(*newargs)
-            elif note_data['args'] == 'REV':
-                self.do_note_reverse(*newargs)
-            elif note_data['args'] == 'INV':
-                self.do_note_invert(*newargs)
-            elif note_data['args'] == 'COMP':
-                self.do_note_compress(*newargs)
-            elif note_data['args'] == 'EXP':
-                self.do_note_expand(*newargs)
-            elif note_data['args'] == 'SCRN':
-                self.do_pitch_scramble(*newargs)
-            elif note_data['args'] == 'SCRP':
-                self.do_position_scramble(*newargs)
-            elif note_data['args'] in ('CMB', 'SPLIT'):
-                self.do_note_split_or_combine(*newargs)
-            elif note_data['args'].startswith(('GATE <', 'GATE >')):
-                self.do_note_gate_adjustment(*newargs)
-            elif note_data['args'].startswith(('NUDGE <', 'NUDGE >')):
-                self.do_note_nudge_adjustment(*newargs)
-            elif note_data['args'] == 'DEL':
-                self.do_note_delete(*newargs)
-            elif note_data['args'] in ('VELO <<', 'VELO >>'):
-                self.do_note_crescendo(*newargs)
-            elif note_data['args'].startswith('VELO'):
-                self.do_note_velo_adjustment(*newargs)
-
-    def set_notes_on_off(self, clip, args, notes_to_edit, other_notes):
-        '''Toggles or turns note mute on/off.'''
-        edited_notes = []
-        for n in notes_to_edit:
-            new_mute = False
-            if not args:
-                new_mute = not n[4]
-            elif args == 'ON':
-                new_mute = True
-            # TODO: check appending same tuple n times
-            edited_notes.append((n[0], n[1], n[2], n[3], new_mute))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_note_pitch_adjustment(self, clip, factor):
-        '''Adjust note pitch. This isn't a note action, it's called via
-        Clip Semi.
-        '''
-        edited_notes = []
-        note_data = self.get_notes_to_operate_on(clip)
-        if note_data['notes_to_edit']:
-            for n in note_data['notes_to_edit']:
-                new_pitch = n[0] + factor
-                if 0 <= new_pitch < 128:
-                    edited_notes.append((new_pitch, n[1], n[2], n[3], n[4]))
-                else:
-                    edited_notes = []
-                    return
-            if edited_notes:
-                self.write_all_notes(clip, edited_notes, note_data['other_notes'])
-
-    def do_note_gate_adjustment(self, clip, args, notes_to_edit, other_notes):
-        '''Adjust note gate.'''
-        edited_notes = []
-        factor = self._parent.get_adjustment_factor(args.split()[1], True)
-        for n in notes_to_edit:
-            new_gate = n[2] + (factor * 0.03125)
-            if n[1] + new_gate > clip.loop_end or new_gate < 0.03125:
-                edited_notes = []
-                return
-            else:
-                edited_notes.append((n[0], n[1], new_gate, n[3], n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_note_nudge_adjustment(self, clip, args, notes_to_edit, other_notes):
-        '''Adjust note position.'''
-        edited_notes = []
-        factor = self._parent.get_adjustment_factor(args.split()[1], True)
-        for n in notes_to_edit:
-            new_pos = n[1] + (factor * 0.03125)
-            if n[2] + new_pos > clip.loop_end or new_pos < 0.0:
-                edited_notes = []
-                return
-            else:
-                edited_notes.append((n[0], new_pos, n[2], n[3], n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_note_velo_adjustment(self, clip, args, notes_to_edit, other_notes):
-        # type: (Clip, Text, Iterable[Tuple[Any, Any, Any, Any, Any]], Iterable[Tuple[Any, Any, Any, Any, Any]]) -> None
-        '''Adjust/set/randomize note velocity.'''
-        edited_notes = []
-        args = args.replace('VELO ', '')
-        args = args.strip()
-        for n in notes_to_edit:
-            if args == 'RND':
-                # FIXME: get_random_int
-                edited_notes.append((n[0], n[1], n[2], get_random_int(64, 64), n[4]))
-            elif args.startswith(('<', '>')):
-                factor = self._parent.get_adjustment_factor(args)
-                new_velo = n[3] + factor
-                if 0 <= new_velo < 128:
-                    edited_notes.append((n[0], n[1], n[2], new_velo, n[4]))
-                else:
-                    edited_notes = []
-                    return
-            else:
-                try:
-                    edited_notes.append((n[0], n[1], n[2], float(args), n[4]))
-                except:
-                    pass
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_pitch_scramble(self, clip, args, notes_to_edit, other_notes):
-        '''Scrambles the pitches in the clip, but maintains rhythm.'''
-        edited_notes = []
-        pitches = [n[0] for n in notes_to_edit]
-        random.shuffle(pitches)
-        for i in range(len(notes_to_edit)):
-            edited_notes.append((
-                pitches[i],
-                notes_to_edit[i][1],
-                notes_to_edit[i][2],
-                notes_to_edit[i][3],
-                notes_to_edit[i][4],
-            ))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_position_scramble(self, clip, args, notes_to_edit, other_notes):
-        '''Scrambles the position of notes in the clip, but maintains pitches.
-        '''
-        edited_notes = []
-        positions = [n[1] for n in notes_to_edit]
-        random.shuffle(positions)
-        for i in range(len(notes_to_edit)):
-            edited_notes.append((
-                notes_to_edit[i][0],
-                positions[i],
-                notes_to_edit[i][2],
-                notes_to_edit[i][3],
-                notes_to_edit[i][4],
-            ))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_note_reverse(self, clip, args, notes_to_edit, other_notes):
-        '''Reverse the position of notes.'''
-        edited_notes = []
-        for n in notes_to_edit:
-            edited_notes.append(
-                (n[0], abs(clip.loop_end - (n[1] + n[2]) + clip.loop_start), n[2], n[3], n[4])
-            )
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_note_invert(self, clip, args, notes_to_edit, other_notes):
-        ''' Inverts the pitch of notes.'''
-        edited_notes = []
-        for n in notes_to_edit:
-            edited_notes.append((127 - n[0], n[1], n[2], n[3], n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_note_compress(self, clip, args, notes_to_edit, other_notes):
-        '''Compresses the position and duration of notes by half.'''
-        edited_notes = []
-        for n in notes_to_edit:
-            edited_notes.append((n[0], n[1] / 2, n[2] / 2, n[3], n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_note_expand(self, clip, args, notes_to_edit, other_notes):
-        '''Expands the position and duration of notes by 2.'''
-        edited_notes = []
-        for n in notes_to_edit:
-            edited_notes.append((n[0], n[1] * 2, n[2] * 2, n[3], n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_note_split_or_combine(self, clip, args, notes_to_edit, other_notes):
-        '''Split notes into 2 equal parts or combine each consecutive set of 2
-        notes.
-        '''
-        edited_notes = []
-        current_note = []
-        check_next_instance = False
-
-        if args == 'SPLIT':
-            for n in notes_to_edit:
-                if n[2] / 2 < 0.03125:
-                    return
-                else:
-                    edited_notes.append(n)
-                    edited_notes.append((n[0], n[1] + (n[2] / 2), n[2] / 2, n[3], n[4]))
-        else:
-            for n in notes_to_edit:
-                edited_notes.append(n)
-                if current_note and check_next_instance:
-                    if current_note[0] == n[0] and current_note[1] + current_note[2] == n[1]:
-                        edited_notes[edited_notes.index(current_note)] = [
-                            current_note[0],
-                            current_note[1],
-                            current_note[2] + n[2],
-                            current_note[3],
-                            current_note[4],
-                        ]
-                        edited_notes.remove(n)
-                        current_note = []
-                        check_next_instance = False
-                    else:
-                        current_note = n
-                else:
-                    current_note = n
-                    check_next_instance = True
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_note_crescendo(self, clip, args, notes_to_edit, other_notes):
-        '''Applies crescendo/decrescendo to notes.'''
-        edited_notes = []
-        last_pos = -1
-        pos_index = 0
-        new_pos = -1
-        new_index = 0
-
-        sorted_notes = sorted(notes_to_edit, key=lambda note: note[1], reverse=False)
-        if args == 'VELO <<':
-            sorted_notes = sorted(notes_to_edit, key=lambda note: note[1], reverse=True)
-        for n in sorted_notes:
-            if n[1] != last_pos:
-                last_pos = n[1]
-                pos_index += 1
-        for n in sorted_notes:
-            if n[1] != new_pos:
-                new_pos = n[1]
-                new_index += 1
-            edited_notes.append((n[0], n[1], n[2], ((128 / pos_index) * new_index) - 1, n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_note_delete(self, clip, args, notes_to_edit, other_notes):
-        '''Delete notes.'''
-        self.write_all_notes(clip, [], other_notes)
-
-    def get_clip_stats(self, clip):
-        # type: (Clip) -> Dict[Text, Any]
-        '''Get real length and end of looping clip.'''
-        clip.looping = 0
-        length = clip.length
-        end = clip.loop_end
-        clip.looping = 1
-        loop_length = clip.loop_end - clip.loop_start
-        return dict(
-            clip_length = length,
-            real_end    = end,
-            loop_length = loop_length,
-        )
-
-    def get_notes_to_operate_on(self, clip, args=None):
-        # type: (Clip, Optional[Text]) -> Union[Dict[Text, Sequence[Any]], Optional[Text]]
-        '''Get notes within loop braces to operate on.'''
-        notes_to_edit = []
-        other_notes = []
-        new_args = None
-        note_range = (0, 128)
-        pos_range = (clip.loop_start, clip.loop_end)
-        if args:
-            new_args = [a.strip() for a in args.split()]
-            note_range = self.get_note_range(new_args[0])
-            new_args.remove(new_args[0])
-            if new_args and '@' in new_args[0]:
-                pos_range = self.get_pos_range(clip, new_args[0])
-                new_args.remove(new_args[0])
-            new_args = ' '.join(new_args)  # type: ignore
-        clip.select_all_notes()
-        all_notes = clip.get_selected_notes()
-        clip.deselect_all_notes()
-        for n in all_notes:
-            if note_range[0] <= n[0] < note_range[1] and pos_range[0] <= n[1] < pos_range[1]:
-                notes_to_edit.append(n)
-            else:
-                other_notes.append(n)
-        return dict(
-            notes_to_edit = notes_to_edit,
-            other_notes   = other_notes,
-            args          = new_args,
-        )
-
-    def get_pos_range(self, clip, string):
-        # type: (Clip, Text) -> Tuple[float, float]
-        '''Get note position or range to operate on.'''
-        pos_range = (clip.loop_start, clip.loop_end)
-        user_range = string.split('-')
-        try:
-            start = float(user_range[0].replace('@', ''))
-        except:
-            pass
-        else:
-            if start >= 0.0:
-                pos_range = (start, start)
-                if len(user_range) > 1:
-                    try:
-                        pos_range = (start, float(user_range[1]))
-                    except:
-                        pass
-        return pos_range
-
-    def get_note_range(self, string):
-        # type: (Text) -> Tuple[int, int]
-        '''Get note lane or range to operate on.'''
-        note_range = (0, 128)
-        string = string.replace('NOTES', '')
-        if len(string) > 1:
-            try:
-                note_range = self.get_note_range_from_string(string)
-            except:
-                try:
-                    start_note_name = self.get_note_name_from_string(string)
-                    start_note_num = self.string_to_note(start_note_name)
-                    note_range = (start_note_num, start_note_num + 1)
-                    string = string.replace(start_note_name, '').strip()
-                    if len(string) > 1 and string.startswith('-'):
-                        string = string[1:]
-                        end_note_name = self.get_note_name_from_string(string)
-                        end_note_num = self.string_to_note(end_note_name)
-                        if end_note_num > start_note_num:
-                            note_range = (start_note_num, end_note_num + 1)
-                except ValueError:
-                    pass
-        return note_range
-
-    def get_note_range_from_string(self, string):
-        # type: (Text) -> Tuple[int, int]
-        '''Returns a note range (specified in ints) from string.
-        '''
-        int_split = string.split('-')
-        start = int(int_split[0])
-        try:
-            end = int(int_split[1]) + 1
-        except IndexError:
-            end = start + 1
-        if 0 <= start and end <= 128 and start < end:
-            return (start, end)
-        raise ValueError("'{}' is not a valid range note.")
-
-    def get_note_name_from_string(self, string):
-        # type: (Text) -> Text
-        '''Get the first note name specified in the given string.'''
-        if len(string) >= 2:
-            result = string[0:2].strip()
-            if (result.endswith('#') or result.endswith('-')) and len(string) >= 3:
-                result = string[0:3].strip()
-                if result.endswith('-') and len(string) >= 4:
-                    result = string[0:4].strip()
-            return result
-        raise ValueError("'{}' does not contain a note".format(string))
-
-    def string_to_note(self, string):
-        # type: (Text) -> Any
-        '''Get note value from string.'''
-        base_note = None
-
-        for s in string:
-            if s in NOTE_NAMES:
-                base_note = NOTE_NAMES.index(s)
-            if base_note is not None and s == '#':
-                base_note += 1
-
-        if base_note is not None:
-            for o in OCTAVE_NAMES:
-                if o in string:
-                    base_note = base_note + (OCTAVE_NAMES.index(o) * 12)
-                    break
-            if 0 <= base_note < 128:
-                return base_note
-
-        raise ValueError("'{}' is not a valid note".format(string))
-
-    def write_all_notes(self, clip, edited_notes, other_notes):
-        # type: (Clip, List[Tuple[Any, Any, Any, Any, Any]], Any) -> None
-        '''Writes new notes to clip.'''
-        edited_notes.extend(other_notes)
-        clip.select_all_notes()
-        clip.replace_selected_notes(tuple(edited_notes))
-        clip.deselect_all_notes()
+# endregion

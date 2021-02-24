@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 from ..core.xcomponent import XComponent
 from ..core.live import Application, Clip, DeviceType, get_random_int
-from ..consts import KEYWORDS
+from ..consts import KEYWORDS, switch
 from ..consts import (AUDIO_DEVS, MIDI_DEVS, INS_DEVS,
                       GQ_STATES, REPEAT_STATES, RQ_STATES,
                       MIDI_STATUS)
@@ -349,7 +349,7 @@ class XGlobalActions(XComponent):
     def set_session_record(self, track, xclip, ident, value=None):
         # type: (None, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off session record.'''
-        self.song().session_record = KEYWORDS.get(value, not self.song().session_record)
+        switch(self.song(), 'session_record', value)
 
     def trigger_session_record(self, track, xclip, ident, value=None):
         # type: (None, Clip, None, Optional[Text]) -> None
@@ -386,9 +386,7 @@ class XGlobalActions(XComponent):
     def set_session_automation_record(self, track, xclip, ident, value=None):
         # type: (None, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off session automation record.'''
-        self.song().session_automation_record = KEYWORDS.get(
-            value, not self.song().session_automation_record
-        )
+        switch(self.song(), 'session_automation_record', value)
 
     def retrigger_recording_clips(self, track, xclip, ident, value=None):
         # type: (Track, None, None, None) -> None
@@ -407,27 +405,27 @@ class XGlobalActions(XComponent):
     def set_overdub(self, track, xclip, ident, value=None):
         # type: (None, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off overdub.'''
-        self.song().overdub = KEYWORDS.get(value, not self.song().overdub)
+        switch(self.song(), 'overdub', value)
 
     def set_metronome(self, track, xclip, ident, value=None):
         # type: (None, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off metronome.'''
-        self.song().metronome = KEYWORDS.get(value, not self.song().metronome)
+        switch(self.song(), 'metronome', value)
 
     def set_record(self, track, xclip, ident, value=None):
         # type: (None, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off record.'''
-        self.song().record_mode = KEYWORDS.get(value, not self.song().record_mode)
+        switch(self.song(), 'record_mode', value)
 
     def set_punch_in(self, track, xclip, ident, value=None):
         # type: (None, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off punch in.'''
-        self.song().punch_in = KEYWORDS.get(value, not self.song().punch_in)
+        switch(self.song(), 'punch_in', value)
 
     def set_punch_out(self, track, xclip, ident, value=None):
         # type: (None, None, None, Optional[Text]) -> None
         '''Toggles or turns on/off punch out.'''
-        self.song().punch_out = KEYWORDS.get(value, not self.song().punch_out)
+        switch(self.song(), 'punch_out', value)
 
     def restart_transport(self, track, xclip, ident, value=None):
         # type: (None, None, None, None) -> None
@@ -824,7 +822,7 @@ class XGlobalActions(XComponent):
             if t.is_foldable:
                 if state_to_set is None:
                     state_to_set = not t.fold_state
-                t.fold_state = KEYWORDS.get(value, state_to_set)
+                switch(t, 'fold_state', value, state_to_set)
 
     def set_locator(self, track, xclip, ident, args):
         # type: (None, None, None, None) -> None
@@ -863,7 +861,7 @@ class XGlobalActions(XComponent):
         # type: (None, None, None, Text) -> None
         '''Handle arrange loop action.'''
         args = args.strip()
-        if not args or args in KEYWORDS:
+        if not args or args.upper() in KEYWORDS:
             self.set_loop_on_off(args)
         else:
             new_start = self.song().loop_start
@@ -892,7 +890,7 @@ class XGlobalActions(XComponent):
     def set_loop_on_off(self, value=None):
         # type: (Optional[Text]) -> None
         '''Toggles or turns on/off arrange loop.'''
-        self.song().loop = KEYWORDS.get(value, not self.song().loop)
+        switch(self.song(), 'loop', value)
 
     def move_loop_by_factor(self, args):
         # type: (Text) -> None
@@ -914,7 +912,7 @@ class XGlobalActions(XComponent):
         are within range.
         '''
         # TODO: maybe (new_start + new_length < self.song().song_length) ?
-        if new_start >= 0 and new_length >= 0 and new_length <= self.song().song_length:
+        if 0 <= new_start and 0 <= new_length <= self.song().song_length:
             self.song().loop_start = new_start
             self.song().loop_length = new_length
 

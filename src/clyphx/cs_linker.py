@@ -22,6 +22,7 @@ import logging
 
 if TYPE_CHECKING:
     from typing import Any, Iterable, Sequence, Optional, Dict, Text, List
+    from .core.live import MidiRemoteScript
 
 from _Framework.ControlSurface import ControlSurface
 from .core.xcomponent import ControlSurfaceComponent, SessionComponent
@@ -53,6 +54,7 @@ class CsLinker(ControlSurfaceComponent):
         pass
 
     def read_settings(self, settings):
+        # type: (Dict[Text, Any]) -> None
         '''Read settings dict.
         '''
         self._matched_link = settings.get('cslinker_matched_link', False)
@@ -71,7 +73,7 @@ class CsLinker(ControlSurfaceComponent):
                 self.connect_script_instances(cs)
 
     def connect_script_instances(self, instantiated_scripts):
-        # type: (Iterable[Any]) -> None
+        # type: (Iterable[MidiRemoteScript]) -> None
         '''Attempts to find the two specified scripts, find their
         SessionComponents and create slave objects for them.
         '''
@@ -143,6 +145,7 @@ class CsLinker(ControlSurfaceComponent):
 
     def on_scene_list_changed(self):
         '''Refreshes slave objects if vertically linked.'''
+        # TODO: horizontal?
         if not self._matched_link and (not self._horizontal_link or self._multi_axis_link):
             self._refresh_slave_objects()
 

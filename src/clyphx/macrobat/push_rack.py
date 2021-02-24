@@ -19,7 +19,7 @@ from builtins import super
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Any
+    from typing import Any, Number
     from ..core.live import RackDevice
 
 from ..core.xcomponent import XComponent
@@ -94,11 +94,11 @@ class MacrobatPushRack(XComponent):
     def _handle_scale_type_change(self, args=None):
         # type: (None) -> None
         if self._push_ins:
-            mode_list = self._script._scales_enabler._mode_map['enabled'].mode._component._scale_list.scrollable_list
-            current_type = self._script._scales_enabler._mode_map['enabled'].mode._component._scale_list.scrollable_list.selected_item_index
+            component = self._script._scales_enabler._mode_map['enabled'].mode._component
+            mode_list = component._scale_list.scrollable_list
             new_type = self.scale_macro_value_to_param(self._rack.parameters[2],
                                                        len(mode_list.items))
-            if new_type != current_type:
+            if new_type != mode_list.selected_item_index:  # != current_type
                 mode_list._set_selected_item_index(new_type)
                 self._update_scale_display_and_buttons()
                 self._parent.schedule_message(1, self._update_rack_name)
@@ -107,8 +107,9 @@ class MacrobatPushRack(XComponent):
         '''Updates Push's scale display and buttons to indicate current
         settings.
         '''
-        self._script._scales_enabler._mode_map['enabled'].mode._component._update_data_sources()
-        self._script._scales_enabler._mode_map['enabled'].mode._component.update()
+        component = self._script._scales_enabler._mode_map['enabled'].mode._component
+        component._update_data_sources()
+        component.update()
 
     def _update_rack_name(self):
         '''Update rack name to reflect selected root note and scale type.
@@ -120,6 +121,7 @@ class MacrobatPushRack(XComponent):
             )
 
     def scale_macro_value_to_param(self, macro, hi_value):
+        # type: (Any, Number) -> int
         '''Scale the value of the macro to the Push parameter being
         controlled.
         '''

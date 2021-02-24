@@ -55,9 +55,7 @@ class InstantMappingMakeDoc(object):
     '''
 
     def __init__(self):
-        log.info('InstantMappingMakeDoc initialized.')
         self._create_html_file()
-        log.info('InstantMappingMakeDoc finished.')
 
     def _get_devices_info(self):
         # type: () -> Dict[Text, Dict[Text, Any]]

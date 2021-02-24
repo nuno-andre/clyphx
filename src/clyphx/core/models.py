@@ -1,6 +1,6 @@
 # coding: utf-8
 #
-# Copyright 2020-2021 Nuno André Novo
+# Copyright (c) 2020-2021 Nuno André Novo
 # Some rights reserved. See COPYING, COPYING.LESSER
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
@@ -21,10 +21,10 @@ Action = NamedTuple('Action', [('tracks', List[Text]),
                                ('args',   List[Text])])
 
 
-Command = NamedTuple('Command', [('id',    Text),
-                                 ('seq',   Text),
-                                 ('start', List[Action]),
-                                 ('stop',  List[Action])])
+Spec = NamedTuple('Spec', [('id',  Text),
+                           ('seq', Text),
+                           ('on',  List[Action]),
+                           ('off', List[Action])])
 
 
 class UserControl(object):

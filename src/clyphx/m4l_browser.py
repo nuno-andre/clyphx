@@ -19,7 +19,7 @@ from builtins import super, dict
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any, Text, List, Dict
+    from typing import Any, Text, List, Tuple, Dict
     from .core.live import Device
 
 from .core.xcomponent import XComponent
@@ -40,10 +40,10 @@ class XM4LBrowserInterface(XComponent):
     def __init__(self, parent):
         # type: (Any) -> None
         super().__init__(parent)
-        self._selected_tag = dict()   # type: ignore
-        self._selected_device = dict()  # type: ignore
-        self._selected_folder = dict()  # type: ignore
-        self._selected_item = dict()  # type: ignore
+        self._selected_tag = dict()   # type: Dict[Any, Any]
+        self._selected_device = dict()  # type: Dict[Any, Any]
+        self._selected_folder = dict()  # type: Dict[Any, Any]
+        self._selected_item = dict()  # type: Dict[Any, Any]
         self._browser = dict()  # type: Dict[Text, Any]
 
     def disconnect(self):
@@ -69,6 +69,7 @@ class XM4LBrowserInterface(XComponent):
         appropriate tag and device to use and returns the items for the
         device.
         '''
+        # type: () -> List[Any]
         device = self.song().view.selected_track.view.selected_device
         items = []
         if device:
@@ -92,7 +93,8 @@ class XM4LBrowserInterface(XComponent):
                     self.application().view.toggle_browse()
                     self._selected_tag = self._browser[tag_to_use]
                     self._selected_device = self._selected_tag['devices'][device_to_use]
-                    items = sorted(self._selected_device['folders'].keys()) + sorted(self._selected_device['items'])
+                    items = (sorted(self._selected_device['folders'].keys())
+                             + sorted(self._selected_device['items']))
         return items
 
     def deactivate_hotswap(self):
@@ -115,6 +117,7 @@ class XM4LBrowserInterface(XComponent):
         '''Returns the list of browser tags. Also, initializes browser
         if it hasn't already been initialized.
         '''
+        # type: () -> Tuple[Text]
         if not self._browser:
             for tag in self.application().browser.tags:
                 if tag.name in BROWSER_TAGS:
@@ -138,7 +141,8 @@ class XM4LBrowserInterface(XComponent):
         and stores the device.
         '''
         self._selected_device = self._selected_tag['devices'][device_name]
-        return sorted(self._selected_device['folders'].keys()) + sorted(self._selected_device['items'])
+        return (sorted(self._selected_device['folders'].keys())
+                + sorted(self._selected_device['items']))
 
     def get_items_for_folder(self, folder_name):
         # type: (Text) -> List[Text]
@@ -163,6 +167,7 @@ class XM4LBrowserInterface(XComponent):
         is needed for M4L tag, which only contains folders, and Drums
         tag, which ontains devices and folders.
         '''
+        # type: (Text) -> Dict[Text, Any]
         device_dict = dict()
         if tag.name == 'Max for Live':
             for child in tag.children:
@@ -197,7 +202,7 @@ class XM4LBrowserInterface(XComponent):
         return device_dict
 
     def _create_items_for_device(self, device):
-        # type: (Device) -> Dict[Text, Any]
+        # type: (Device) -> Dict[Text, Device]
         '''Returns a dict of loadable items for the given device or
         folder.
         '''
@@ -208,6 +213,7 @@ class XM4LBrowserInterface(XComponent):
         return items
 
     def _create_folders_for_device(self, device):
+        # type: (Device) -> Dict[Text, Dict[Text, Device]]
         '''Creates dict of folders for the given device.'''
         return dict(('{} >'.format(c.name), self._create_items_for_device(c))
                     for c in device.children if c.is_folder)

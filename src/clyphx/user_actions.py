@@ -84,7 +84,7 @@ from typing import TYPE_CHECKING
 import logging
 
 from .core.xcomponent import XComponent
-from .core.legacy import ActionList
+from .triggers import ActionList
 
 if TYPE_CHECKING:
     from typing import Any, Text, Dict, List, Optional

@@ -1,6 +1,17 @@
 # Contributing to ClyphX
 
-## Vendorized packages
+## Gotchas
+- Live API objects must not be checked using `is None` since this would treat
+  lost weakrefs as valid.
+  ```
+  # True both if obj represents a lost weakref or is None
+  obj == None
+  ```
+- Lists and dicts should be created with `list()` and `dict()`, as oppossed to
+  `[]` and `{}`, to make use of the `future` lib optimizations.
+
+
+## Vendored packages
 
 | package           | version | description |
 | ----------------- | ------- | ----------- |
@@ -14,7 +25,7 @@
 
 ## VSCode
 
-Rename `.vscode/.settings.json` to `.vscode/settings.json`.
+Rename `.vscode/.settings.jsonc` to `.vscode/settings.json`.
 
 ### VSCode Tasks
 

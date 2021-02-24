@@ -43,11 +43,13 @@ class MacrobatSidechainRack(XComponent):
 
     def disconnect(self):
         if self._track:
-            if self._track.has_audio_output and self._track.output_meter_left_has_listener(self.audio_left_changed):
-                self._track.remove_output_meter_left_listener(self.audio_left_changed)
-            if self._track.has_audio_output and self._track.output_meter_right_has_listener(self.audio_right_changed):
-                self._track.remove_output_meter_right_listener(self.audio_right_changed)
-            if self._track.has_midi_output and self._track.output_meter_level_has_listener(self.midi_changed):
+            if self._track.has_audio_output:
+                if self._track.output_meter_left_has_listener(self.audio_left_changed):
+                    self._track.remove_output_meter_left_listener(self.audio_left_changed)
+                if self._track.output_meter_right_has_listener(self.audio_right_changed):
+                    self._track.remove_output_meter_right_listener(self.audio_right_changed)
+            if (self._track.has_midi_output
+                    and self._track.output_meter_level_has_listener(self.midi_changed)):
                 self._track.remove_output_meter_level_listener(self.midi_changed)
         self._track = None
         self._rack = None
@@ -66,7 +68,8 @@ class MacrobatSidechainRack(XComponent):
                 self._track.add_output_meter_left_listener(self.audio_left_changed)
             if not self._track.output_meter_right_has_listener(self.audio_right_changed):
                 self._track.add_output_meter_right_listener(self.audio_right_changed)
-        if self._track.has_midi_output and not self._track.output_meter_level_has_listener(self.midi_changed):
+        if (self._track.has_midi_output
+                and not self._track.output_meter_level_has_listener(self.midi_changed)):
             self._track.add_output_meter_level_listener(self.midi_changed)
 
     def audio_left_changed(self):

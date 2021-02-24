@@ -66,7 +66,7 @@ def test_user_controls():
 
 # region COMMAND PARSER TEST
 
-def test_tracks():
+def test_specs():
     from clyphx.core.parse import Parser
 
     parse = Parser()

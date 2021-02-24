@@ -51,8 +51,8 @@ class MacrobatRnRRack(XComponent):
         '''
         - Will not reset/randomize any other Macrobat racks except for
           MIDI Rack
-        - Allowable rack names are: ['NK RST', 'NK RST ALL', 'NK RND',
-          'NK RND ALL']
+        - Allowable rack names are: ['nK RST', 'nK RST ALL', 'nK RND',
+          'nK RND ALL']
         '''
         self.remove_on_off_listeners()
         if rack:
@@ -69,21 +69,18 @@ class MacrobatRnRRack(XComponent):
 
     def on_off_changed(self):
         '''On/off changed, perform assigned function.'''
+        from .consts import RNR_ON_OFF
+
         if self._on_off_param and self._on_off_param[0]:
-            is_reset = False
-            if self._on_off_param[1].startswith('NK RND ALL'):
-                mess_type = 'all'
-            elif self._on_off_param[1].startswith('NK RND'):
-                mess_type = 'next'
-            elif self._on_off_param[1].startswith('NK RST ALL'):
-                mess_type = 'all'
-                is_reset = True
-            elif self._on_off_param[1].startswith('NK RST'):
-                mess_type = 'next'
-                is_reset = True
+            name = self._on_off_param[1].upper()
+            for k, v in RNR_ON_OFF.items():
+                if name.startswith(k):
+                    mess_type, reset = v
+                    break
             else:
-                return
-            action = self.do_device_reset if is_reset else self.do_device_randomize
+                return None
+
+            action = self.do_device_reset if reset else self.do_device_randomize
             self._parent.schedule_message(1, partial(action, mess_type))
 
     def do_device_randomize(self, params):

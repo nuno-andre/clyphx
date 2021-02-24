@@ -26,12 +26,13 @@ from .core.live import (GridQuantization,
                         get_application)
 
 if TYPE_CHECKING:
-    from typing import Any, Optional, Sequence, Text, Dict, Mapping
+    from typing import Any, Optional, Sequence, Text, Dict, Mapping, TypeVar
     from .core.live import Application
+    T = TypeVar('T')
 
 log = logging.getLogger(__name__)
-
 app = get_application()  # type: Application
+unset = object()
 
 LIVE_VERSION = (app.get_major_version(),
                 app.get_minor_version(),
@@ -48,6 +49,16 @@ SCRIPT_VERSION = __version__
 SCRIPT_INFO = '{} v{}'.format(SCRIPT_NAME, '.'.join(map(str, SCRIPT_VERSION)))
 
 KEYWORDS = dict(ON=1, OFF=0)  # type: Mapping[Optional[Text], bool]
+
+def switch(obj, attr, value, fallback=unset):
+    # type: (T, Text, Text, Any) -> None
+    '''Turns object attribute on/off or toggles (if there is no fallback).
+    '''
+    try:
+        v = KEYWORDS[value.upper().strip()]
+    except (AttributeError, KeyError):
+        v = (not getattr(obj, attr)) if fallback is unset else fallback
+    setattr(obj, attr, v)
 
 ONOFF = dict(ON=True, OFF=False)  # type: Mapping[Text, bool]
 

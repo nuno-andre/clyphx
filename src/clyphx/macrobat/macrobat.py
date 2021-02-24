@@ -15,7 +15,7 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
-from builtins import super
+from builtins import super, dict
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -23,15 +23,6 @@ if TYPE_CHECKING:
     from ..core.live import Device, RackDevice, Track
 
 from ..core.xcomponent import XComponent
-from .midi_rack import MacrobatMidiRack
-from .rnr_rack import MacrobatRnRRack
-from .sidechain_rack import MacrobatSidechainRack
-from .parameter_racks import (
-    MacrobatLearnRack, MacrobatChainMixRack, MacrobatDRMultiRack,
-    MacrobatDRRack, MacrobatReceiverRack, MacrobatTrackRack,
-    MacrobatChainSelectorRack, MacrobatDRPadMixRack,
-)
-from .push_rack import MacrobatPushRack
 
 
 class Macrobat(XComponent):
@@ -126,39 +117,39 @@ class MacrobatTrackComponent(XComponent):
     def setup_macrobat_rack(self, rack):
         # type: (RackDevice) -> None
         '''Setup Macrobat rack if meets criteria.'''
+        from .consts import MACROBAT_RACKS
+
         if rack.class_name.endswith('GroupDevice'):
             name = rack.name.upper()
-            m = None
-            if name.startswith('NK RECEIVER'):
-                m = MacrobatReceiverRack(self._parent, rack, self._track)
-            elif name.startswith('NK TRACK') and not self._track.has_midi_output:
-                m = MacrobatTrackRack(self._parent, rack, self._track)
-            elif name.startswith('NK DR PAD MIX'):
-                m = MacrobatDRPadMixRack(self._parent, rack, self._track)
-            elif self._parent._can_have_nested_devices:
-                if name.startswith('NK DR MULTI'):
-                    m = MacrobatDRMultiRack(self._parent, rack, self._track)
-                elif name.startswith('NK CHAIN MIX'):
-                    m = MacrobatChainMixRack(self._parent, rack, self._track)
-                elif name.startswith('NK DR'):
-                    m = MacrobatDRRack(self._parent, rack, self._track)
-                elif (name.startswith('NK LEARN') and
-                        self._track == self.song().master_track and
-                        not self._has_learn_rack):
-                    m = MacrobatLearnRack(self._parent, rack, self._track)
-                    self._has_learn_rack = True
-            elif name.startswith('NK MIDI'):
-                m = MacrobatMidiRack(self._parent, rack, name)
-            elif name.startswith(('NK RST', 'NK RND')):
-                m = MacrobatRnRRack(self._parent, rack, name, self._track)
-            elif name.startswith('NK SIDECHAIN'):
-                m = MacrobatSidechainRack(self._parent, rack, self._track)
-            elif name.startswith('NK SCL'):
-                m = MacrobatPushRack(self._parent, rack)
-            elif name.startswith('NK CS'):
-                m = MacrobatChainSelectorRack(self._parent, rack, self._track)
-            if m:
-                self._current_devices.append((m, rack))
+            for key, cls in MACROBAT_RACKS.items():
+                if name.startswith(key):
+                    break
+            else:
+                return None
+
+            # checks
+            if key == 'NK TRACK' and self._track.has_midi_output:
+                return None
+            elif (key in ('NK DR MULTI', 'NK CHAIN MIX', 'NK DR', 'NK LEARN')
+                    and not self._parent._can_have_nested_devices):
+                return None
+            elif key == 'NK LEARN':
+                if self._track != self.song().master_track or self._has_learn_rack:
+                    return None
+                self._has_learn_rack = True
+
+            # instances
+            if key == 'NK MIDI':
+                args = self._parent, rack, name
+            elif key in ('NK RST', 'NK RND'):
+                args = self._parent, rack, name, self._track
+            elif key == 'NK SCL':
+                args = self._parent, rack
+            else:
+                # all param racks and push rack
+                args= self._parent, rack, self._track
+
+            self._current_devices.append((cls(*args), rack))
 
     def remove_devices(self, dev_list):
         # type: (Iterable[RackDevice]) -> None

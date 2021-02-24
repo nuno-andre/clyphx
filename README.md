@@ -17,7 +17,7 @@ OVER
 A more complex _Action List_ might mute Tracks 1-2, unmute and arm Track 4, turn
 the 2nd Device on Track 4 on, and launch the selected Clip on track 4:
 ```
-1/MUTE ON; 2/MUTE ON; 4/MUTE OFF; 4/ARM ON; 4/DEV2 ON; 4/PLAY
+1-2/MUTE ON; 4/MUTE OFF; 4/ARM ON; 4/DEV2 ON; 4/PLAY
 ```
 
 **ClyphX** also includes:

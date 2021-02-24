@@ -17,6 +17,8 @@
 from __future__ import absolute_import, unicode_literals
 from builtins import super
 from typing import TYPE_CHECKING
+import logging
+import re
 
 from ..core.xcomponent import XComponent
 from .user_config import SYSEX_LIST
@@ -24,6 +26,14 @@ from .user_config import SYSEX_LIST
 if TYPE_CHECKING:
     from typing import Optional, Any, Text, List, Dict
     from ..core.live import Device
+
+log = logging.getLogger(__name__)
+
+# channel an CC patterns, now they are case-insensitive and accept an
+#   optional whitespace before the number, e.g. [CC 3], [CC5], [ch 120]
+#   (range validation is done in methods)
+RE_CH = re.compile(r'\[ch\s?(\d{1,2})\]', re.I)
+RE_CC = re.compile(r'\[cc\s?(\d{1,3})\]', re.I)
 
 
 class MacrobatMidiRack(XComponent):
@@ -147,29 +157,36 @@ class MacrobatMidiRack(XComponent):
 
     def check_for_channel(self, name):
         # type: (Text) -> int
-        '''Check for user-specified channel in rack name.'''
-        result = 0
-        if '[CH' in name and ']' in name and not name.count('[') > 1 and not name.count(']') > 1:
+        '''Check for user-specified channel in rack name.
+        '''
+        if name.count('[') == name.count(']') == 1:
+            value = RE_CH.search(name)
             try:
-                get_ch = int(name[name.index('[')+3:name.index(']')])
-                if 1 <= get_ch < 17:
-                    result = get_ch - 1
-            except:
+                ch = int(value.group(1))
+                if 1 <= ch < 17:
+                    return cc - 1
+            except AttributeError:
                 pass
-        return result
+            except ValueError:
+                log.error("Invalid MIDI channel number: '%d'", value)
+        return 0
 
     def check_for_cc_num(self, name):
         # type: (Text) -> Optional[int]
-        '''Check for user-specified CC# in macro name.'''
-        result = None
-        if '[CC' in name and ']' in name and not name.count('[') > 1 and not name.count(']') > 1:
+        '''Check for user-specified CC# in macro name.
+        '''
+        if name.count('[') == name.count(']') == 1:
+            value = RE_CC.search(name)
             try:
-                get_cc = int(name[name.index('[')+3:name.index(']')])
-                if 0 <= get_cc < 128:
-                    result = get_cc
-            except:
+                cc = int(value.group(1))
+                if 0 <= cc < 128:
+                    return cc
+                raise ValueError
+            except AttributeError:
                 pass
-        return result
+            except ValueError:
+                log.error("Invalid MIDI CC number: '%d'", value)
+        return None
 
     def remove_macro_listeners(self):
         '''Remove listeners.'''

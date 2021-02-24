@@ -1,18 +1,21 @@
 # coding: utf-8
 #
-# Copyright 2020-2021 Nuno André Novo
+# Copyright (c) 2020-2021 Nuno André Novo
 # Some rights reserved. See COPYING, COPYING.LESSER
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from __future__ import absolute_import, unicode_literals
 from typing import TYPE_CHECKING
 from builtins import object, super
+import logging
 
 from .utils import repr_tracklist
 
 if TYPE_CHECKING:
     from typing import Union, Text, Sequence, Iterator
     from .live import Track, Clip
+
+log = logging.getLogger(__name__)
 
 
 class _DispatchCommand(object):
@@ -37,7 +40,7 @@ class _DispatchCommand(object):
 
     def __iter__(self):
         # type: () -> Iterator[_SingleDispatch]
-        for i, t in self.tracks:
+        for i, t in enumerate(self.tracks):
             yield _SingleDispatch(t, self.xclip, self.ident, self.action_name, self.args)
 
     def to_single(self):
@@ -49,16 +52,11 @@ class _SingleDispatch(_DispatchCommand):
     '''Dispatch command for a single track.
     '''
     def __init__(self, track, xclip, ident, action_name, args):
+        if isinstance(track, list):
+            # FIXME:
+            if len(track) == 1:
+                track = track[0]
+            else:
+                raise TypeError('SingleDispatch should receive an only track: %s', track)
         super().__init__([track], xclip, ident, action_name, args)
         self.track = track
-
-
-class ActionList(object):
-    '''Allows X-Triggers with no name to trigger Action Lists. It can
-    also be used to trigger ClyphX Actions via UserActions.
-    '''
-    __module__ = __name__
-
-    def __init__(self, name='none'):
-        # type: (Text) -> None
-        self.name = name

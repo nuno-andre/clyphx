@@ -21,13 +21,12 @@ from itertools import chain
 import logging
 import os
 
-from _Framework.ControlSurface import ControlSurface
-from .core.legacy import _DispatchCommand, _SingleDispatch, ActionList
-from .core.utils import get_base_path, repr_tracklist, set_user_profile
+from _Framework.ControlSurface import OptimizedControlSurface
+from .core.legacy import _DispatchCommand, _SingleDispatch
+from .core.utils import repr_tracklist, set_user_profile
 from .core.live import Live, Track, DeviceIO, Clip, get_random_int
-from .core.parsing import get_xclip_action_list
+# from .core.parse import SpecParser
 from .consts import LIVE_VERSION, SCRIPT_INFO
-from .xtriggers import XTrackComponent, XControlComponent, XCueComponent
 from .extra_prefs import ExtraPrefs
 from .user_config import get_user_settings
 from .user_actions import XUserActions
@@ -36,6 +35,13 @@ from .cs_linker import CsLinker
 from .m4l_browser import XM4LBrowserInterface
 from .push_apc_combiner import PushApcCombiner
 from .push_mocks import MockHandshakeTask, MockHandshake
+from .triggers import (
+    XTrackComponent,
+    XControlComponent,
+    XCueComponent,
+    ActionList,
+    get_xclip_action_list,
+)
 from .actions import (
     XGlobalActions, GLOBAL_ACTIONS,
     XTrackActions, TRACK_ACTIONS,
@@ -47,19 +53,17 @@ from .actions import (
 )
 
 if TYPE_CHECKING:
-    from typing import (
-        Any, Text, Union, Optional, Dict,
-        Iterable, Sequence, List, Tuple,
-    )
-    from .core.live import (
-        Clip, Device, DeviceParameter, Track, MidiRemoteScript,
-    )
+    from typing import (Any, Text, Union, Optional, Dict,
+                        Iterable, Sequence, List, Tuple)
+    from .core.live import (Clip, Device, DeviceParameter,
+                            Track, MidiRemoteScript)
+    from .triggers import XTrigger
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-class ClyphX(ControlSurface):
+class ClyphX(OptimizedControlSurface):
     '''ClyphX Main.
     '''
     __module__ = __name__
@@ -74,6 +78,7 @@ class ClyphX(ControlSurface):
         self._PushApcCombiner = None
         self._process_xclips_if_track_muted = True
         self._user_settings = get_user_settings()
+        # self.parse = SpecParser()
         with self.component_guard():
             self.macrobat = Macrobat(self)
             self._extra_prefs = ExtraPrefs(self, self._user_settings.prefs)
@@ -148,13 +153,18 @@ class ClyphX(ControlSurface):
         log.info('------- Debugging Started -------')
 
     def handle_dispatch_command(self, cmd):
+        try:
+            self._handle_dispatch_command(cmd)
+        except Exception as e:
+            log.exception('Failed to dispatch command: %r', cmd)
+
+    def _handle_dispatch_command(self, cmd):
         # type: (_DispatchCommand) -> None
         '''Command handler.
 
         Main dispatch for calling appropriate class of actions, passes
         all necessary arguments to class method.
         '''
-        log.debug('handle action dispatch: %r', cmd)
         name = cmd.action_name
 
         if not cmd.tracks:
@@ -188,7 +198,6 @@ class ClyphX(ControlSurface):
         else:
             log.error('Not found dispatcher for %r', cmd)
             return
-        log.debug('action dispatch triggered: %r', cmd)
 
     def dispatch_user_actions(self, cmd):
         # type: (_DispatchCommand) -> None
@@ -198,6 +207,7 @@ class ClyphX(ControlSurface):
             action(t, cmd.args)
 
     def handle_external_trigger(self, xtrigger):
+        # type: (XTrigger) -> None
         '''This replaces the below method for compatibility with scripts
         that also work with ClyphX Pro.
         '''
@@ -221,30 +231,29 @@ class ClyphX(ControlSurface):
                                         ActionList('[] {}'.format(name)))
 
     def handle_action_list_trigger(self, track, xtrigger):
-        # type: (Track, Any) -> None
+        # type: (Track, XTrigger) -> None
         '''Directly dispatches snapshot recall, X-Control overrides and
         Seq X-Clips. Otherwise, separates ident from action names,
         splits up lists of action names and calls action dispatch.
         '''
         log.debug('ClyphX.handle_action_list_trigger'
                   '(track=%r, xtrigger=%r)', track, xtrigger)
-        # XXX: True both if obj represents a lost weakref or is None.
-        #      Live API objects must not be checked using "is None",
-        #      since this would treat lost weakrefs as valid.
         if xtrigger == None:
             # TODO: use case?
             return
 
         name = xtrigger.name.strip().upper()
-        log.info("handle action list trigger name '%s'", name)
         if name and name[0] == '[' and ']' in name:
+
             # snap action, so pass directly to snap component
             if ' || (' in name and isinstance(xtrigger, Clip) and xtrigger.is_playing:
                 # self.snap_actions.recall_track_snapshot(name, xtrigger)
                 self.snap_actions.recall_track_snapshot(None, xtrigger)
+
             # control reassignment, so pass directly to control component
             elif '[[' in name and ']]' in name:
                 self.control_component.assign_new_actions(name)
+
             # standard trigger
             else:
                 ident = name[name.index('['):name.index(']')+1].strip()
@@ -288,20 +297,23 @@ class ClyphX(ControlSurface):
                         self._loop_seq_clips[xtrigger.name] = [ident, formatted_action_list]
                         self.handle_loop_seq_action_list(xtrigger, 0)
                     else:
+                        # TODO: split in singledispatch per track?
                         for action in formatted_action_list:
-                            command = _SingleDispatch(action['track'], xtrigger, ident, action['action'], action['args'])
+                            command = _DispatchCommand(action['track'],
+                                                       xtrigger,
+                                                       ident,
+                                                       action['action'],
+                                                       action['args'])
                             self.handle_dispatch_command(command)
-                            log.debug('handle_action_list_trigger triggered: %r', command)
 
     def format_action_name(self, origin_track, origin_name):
         # type: (Any, Text) -> Optional[Dict[Text, Any]]
         '''Replaces vars (if any) then splits up track, action name and
         arguments (if any) and returns dict.
         '''
-        log.info('format action name')
-        result_name = self.replace_user_variables(origin_name)
+        result_name = self._user_settings.vars.sub(origin_name)
         if '=' in result_name:
-            self.handle_user_variable_assignment(result_name)
+            self._user_settings.vars.add(result_name)
             return None
         result_track = [origin_track]
         if len(result_name) >= 4 and (
@@ -318,55 +330,6 @@ class ClyphX(ControlSurface):
         log.debug('format_action_name -> track(s)=%s, action=%s, args=%s',
                   repr_tracklist(result_track), result_name.strip(), args.strip())
         return dict(track=result_track, action=result_name.strip(), args=args.strip())
-
-    def replace_user_variables(self, string):
-        # type: (Text) -> Text
-        '''Replace any user variables in the given string with the value
-        the variable represents.
-        '''
-        log.info('replace user variables')
-        while '%' in string:
-            var = string[string.index('%')+1:]
-            if '%' in var:
-                var = var[0:var.index('%')]
-                string = string.replace(
-                    '%{}%'.format(var), self._user_variables.get(var, '0'), 1
-                )
-            else:
-                string = string.replace('%', '', 1)
-        if '$' in string:
-            # for compat with old-style variables
-            for s in string.split():
-                if '$' in s and not '=' in s:
-                    var = s.replace('$', '')
-                    string = string.replace(
-                        '${}'.format(var), self._user_variables.get(var, '0'), 1
-                    )
-        log.debug('replace_user_variables returning %s', string)
-        return string
-
-    def handle_user_variable_assignment(self, string_with_assign):
-        # type: (Text) -> None
-        '''Handle assigning new value to variable with either assignment
-        or expression enclosed in parens.
-        '''
-        log.debug('handle user variable assignment: %s', string_with_assign)
-        # for compat with old-style variables
-        string_with_assign = string_with_assign.replace('$', '')
-        try:
-            var0, var1 = [x.strip() for x in string_with_assign.split('=')][0:2]
-            if not any(x in var1 for x in (';', '%', '=')):
-                if '(' in var1 and ')' in var1:
-                    try:
-                        self._user_variables[var0] = str(eval(var1))
-                    except Exception as e:
-                        raise Exception(e)
-                        #pass
-                else:
-                    self._user_variables[var0] = var1
-                log.debug('handle_user_variable_assignment, %s=%s', var0, var1)
-        except ValueError:
-            log.error('in handle_user_variable_assignment(string_with_assign=%s)', string_with_assign)
 
     def handle_loop_seq_action_list(self, xclip, count):
         # type: (Clip, int) -> None
@@ -386,7 +349,6 @@ class ClyphX(ControlSurface):
                                        action['action'],
                                        action['args'])
             self.handle_dispatch_command(command)
-            log.debug('handle_loop_seq_action_list triggered: %r', command)
 
     def handle_play_seq_action_list(self, action_list, xclip, ident):
         # type: (Any, Clip, Text) -> None
@@ -408,7 +370,6 @@ class ClyphX(ControlSurface):
                                     action['action'],
                                     action['args'])
         self.handle_dispatch_command(command)
-        log.debug('handle_play_seq_action_list triggered: %r', command)
 
     def do_parameter_adjustment(self, param, value):
         # type: (DeviceParameter, Text) -> None
@@ -460,7 +421,7 @@ class ClyphX(ControlSurface):
                       param.name, new_value)
 
     def get_adjustment_factor(self, string, as_float=False):
-        # type: (Text, bool) -> Optional[int]
+        # type: (Text, bool) -> Union[int, float]
         '''Get factor for use with < > actions.'''
         factor = 1
 
@@ -472,17 +433,15 @@ class ClyphX(ControlSurface):
 
         if string.startswith('<'):
             factor = -(factor)
-        log.debug('get_adjustment_factor returning factor=%s', factor)
         return factor
 
     def get_track_to_operate_on(self, origin_name):
         # type: (Text) -> Tuple[List[Any], Text]
         '''Gets track or tracks to operate on.'''
-        log.debug('get track to operate on')
         result_tracks = []
         result_name = origin_name
         if '/' in origin_name:
-            tracks = self.song().tracks + self.song().return_tracks + [self.song().master_track]  # type: List[Track]
+            tracks = self.song().tracks + self.song().return_tracks + (self.song().master_track,)  # type: Tuple[Track]
             sel_track_index = tracks.index(self.song().view.selected_track)
             if origin_name.index('/') > 0:
                 track_spec = origin_name.split('/')[0].strip()
@@ -535,7 +494,6 @@ class ClyphX(ControlSurface):
         '''Gets the index(es) associated with the track name(s)
         specified in name.
         '''
-        log.info('get track index by name')
         while '"' in name:
             track_name = name[name.index('"')+1:]
             if '"' in track_name:
@@ -561,7 +519,6 @@ class ClyphX(ControlSurface):
         # type: (Track, Text, Text) -> Tuple[Optional[Device], Text]
         '''Get device to operate on and action to perform with args.
         '''
-        log.info('get device to operate on')
         device = None
         device_args = args
         if 'DEV"' in action_name:
@@ -637,43 +594,6 @@ class ClyphX(ControlSurface):
         self.cs_linker.read_settings(self._user_settings.cslinker)
         self.control_component.get_user_controls(self._user_settings.xcontrols,
                                                  midi_map_handle)
-
-        lists_to_build = {'vars': list()}
-
-        filepath = get_base_path('UserSettings.txt')
-        if not self._user_settings_logged:
-            log.info('Attempting to read UserSettings file: %s', filepath)
-
-        for line in open(filepath):
-            line = line.strip().upper()
-            if not line or line.startswith(('#', '"')):
-                continue
-            if line[0] != '*' and not self._user_settings_logged:
-                log.info(str(line))
-            if not line.startswith(
-                ('STARTUP_', 'INCLUDE_NESTED_', 'SNAPSHOT_',
-                 'PROCESS_XCLIPS_', 'PUSH_EMU', 'APC_PUSH_EMU', 'CSLINKER')
-            ):
-                if '[USER CONTROLS]' in line:
-                    list_to_build = 'controls'
-                elif '[USER VARIABLES]' in line:
-                    list_to_build = 'vars'
-                elif '[EXTRA PREFS]' in line:
-                    list_to_build = 'prefs'
-                elif '=' in line:
-                    if list_to_build in {'vars'}:
-                        lists_to_build['vars'].append(line)
-            elif 'PUSH_EMULATION' in line:
-                self._push_emulation = line.split('=')[1].strip() == 'ON'
-                if self._push_emulation:
-                    if 'APC' in line:
-                        with self.component_guard():
-                            self._PushApcCombiner = PushApcCombiner(self)
-                    self.enable_push_emulation(self._control_surfaces())
-
-        for line in lists_to_build['vars']:
-            line = self.replace_user_variables(line)
-            self.handle_user_variable_assignment(line)
 
     def enable_push_emulation(self, scripts):
         # type: (Iterable[Any]) -> None

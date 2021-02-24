@@ -4,13 +4,15 @@ from typing import TYPE_CHECKING
 
 from .global_ import XGlobalActions
 from .track import XTrackActions
-from .clip import XClipActions
+from .clip import XClipActions, ClipNotesMixin
 from .device import XDeviceActions
 from .dr import XDrActions
 
 if TYPE_CHECKING:
-    from typing import Any, Callable, Dict, Text, Optional, Sequence
+    from typing import Any, Callable, Dict, Text, Optional, Sequence, Tuple
     from ..core.live import Device
+
+    Note = Tuple[int, float, Any, Any, bool]
 
 # NOTE: Action names and their corresponding values can't contain a '/' or '-'
 #       within the first four chars like this 'EX/ONE', but 'EXMP/ONE' is okay.
@@ -143,6 +145,32 @@ CLIP_ACTIONS = dict(
     NAME     = XClipActions.set_clip_name,
 )  # type: Dict[Text, Callable]
 
+CLIP_NOTE_ACTIONS_CMD = dict([
+    ('REV',     ClipNotesMixin.do_note_reverse),
+    ('INV',     ClipNotesMixin.do_note_invert),
+    ('COMP',    ClipNotesMixin.do_note_compress),
+    ('EXP',     ClipNotesMixin.do_note_expand),
+    ('SCRN',    ClipNotesMixin.do_pitch_scramble),
+    ('SCRP',    ClipNotesMixin.do_position_scramble),
+    ('CMB',     ClipNotesMixin.do_note_combine),
+    ('SPLIT',   ClipNotesMixin.do_note_split),
+    ('DEL',     ClipNotesMixin.do_note_delete),
+    ('VELO <<', ClipNotesMixin.do_note_crescendo),
+    ('VELO >>', ClipNotesMixin.do_note_crescendo),
+    ('ON',      ClipNotesMixin.set_notes_on_off),
+    ('OFF',     ClipNotesMixin.set_notes_on_off),
+    (None,      ClipNotesMixin.set_notes_on_off),
+    ('',        ClipNotesMixin.set_notes_on_off),
+])  # type: Dict[Text, Callable[[Clip, Text, Sequence[Note], Sequence[Note]], None]]
+
+CLIP_NOTE_ACTIONS_PREF = dict([
+    ('GATE <',  ClipNotesMixin.do_note_gate_adjustment),
+    ('GATE >',  ClipNotesMixin.do_note_gate_adjustment),
+    ('NUDGE <', ClipNotesMixin.do_note_nudge_adjustment),
+    ('NUDGE >', ClipNotesMixin.do_note_nudge_adjustment),
+    ('VELO',    ClipNotesMixin.do_note_velo_adjustment),
+])  # type: Dict[Text, Callable[[Clip, Text, Sequence[Note], Sequence[Note]], None]]
+
 DEVICE_ACTIONS = dict(
     CSEL  = XDeviceActions.adjust_selected_chain,
     CS    = XDeviceActions.adjust_chain_selector,
@@ -150,14 +178,14 @@ DEVICE_ACTIONS = dict(
     RND   = XDeviceActions.randomize_params,
     SEL   = XDeviceActions.select_device,
     SET   = XDeviceActions.set_all_params,
-    P1    = XDeviceActions.adjust_best_of_bank_param,
-    P2    = XDeviceActions.adjust_best_of_bank_param,
-    P3    = XDeviceActions.adjust_best_of_bank_param,
-    P4    = XDeviceActions.adjust_best_of_bank_param,
-    P5    = XDeviceActions.adjust_best_of_bank_param,
-    P6    = XDeviceActions.adjust_best_of_bank_param,
-    P7    = XDeviceActions.adjust_best_of_bank_param,
-    P8    = XDeviceActions.adjust_best_of_bank_param,
+    P1    = XDeviceActions.adjust_bob_param,
+    P2    = XDeviceActions.adjust_bob_param,
+    P3    = XDeviceActions.adjust_bob_param,
+    P4    = XDeviceActions.adjust_bob_param,
+    P5    = XDeviceActions.adjust_bob_param,
+    P6    = XDeviceActions.adjust_bob_param,
+    P7    = XDeviceActions.adjust_bob_param,
+    P8    = XDeviceActions.adjust_bob_param,
     B1    = XDeviceActions.adjust_banked_param,
     B2    = XDeviceActions.adjust_banked_param,
     B3    = XDeviceActions.adjust_banked_param,

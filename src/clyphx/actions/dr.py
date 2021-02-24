@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from ..core.live import Track, Clip, Device
 
 from ..core.xcomponent import XComponent
-from ..consts import KEYWORDS
+from ..consts import switch
 
 MAX_SCROLL_POS = 28
 
@@ -43,7 +43,7 @@ class XDrActions(XComponent):
         # type: (Track, Clip, Text, Text) -> None
         from .consts import DR_ACTIONS
 
-        arg_action = DR_ACTIONS.get(args.split()[0])
+        arg_action = DR_ACTIONS.get(args.split()[0].upper())
         if arg_action:
             action = partial(arg_action, self)   # type: Callable
         elif 'PAD' in args:
@@ -98,40 +98,42 @@ class XDrActions(XComponent):
         if len(args) > 1:
             pads = self._get_pads_to_operate_on(dr, args[0].replace('PAD', '').strip())
             if pads:
-                action = args[1]
+                action = args[1].upper()
                 action_arg = args[2] if len(args) > 2 else None
-                if args[1] in PAD_ACTIONS:
-                    PAD_ACTIONS[args[1]](self, pads, action_arg)
-                elif args[1] == 'SEL':
+                if action in PAD_ACTIONS:
+                    PAD_ACTIONS[action](self, pads, action_arg)
+                elif action == 'SEL':
                     dr.view.selected_drum_pad = pads[-1]
-                elif 'SEND' in args[1] and action_arg and len(args) > 3:
+                elif 'SEND' in action and action_arg and len(args) > 3:
                     self._adjust_pad_send(pads, args[3], action_arg)
 
     def _mute_pads(self, pads, action_arg):
         # type: (Iterable[Any], Optional[Text]) -> None
         '''Toggles or turns on/off pad mute.'''
         for pad in pads:
-            pad.mute = KEYWORDS.get(action_arg, not pad.mute)
+            switch(pad, 'mute', action_arg)
 
     def _solo_pads(self, pads, action_arg):
         # type: (Iterable[Any], Optional[Text]) -> None
         '''Toggles or turns on/off pad solo.'''
         for pad in pads:
-            pad.solo = KEYWORDS.get(action_arg, not pad.solo)
+            switch(pad, 'solo', action_arg)
 
     def _adjust_pad_volume(self, pads, action_arg):
         # type: (Sequence[Any], Text) -> None
         '''Adjust/set pad volume.'''
         for pad in pads:
             if pad.chains:
-                self._parent.do_parameter_adjustment(pad.chains[0].mixer_device.volume, action_arg)
+                param = pad.chains[0].mixer_device.volume
+                self._parent.do_parameter_adjustment(param, action_arg)
 
     def _adjust_pad_pan(self, pads, action_arg):
         # type: (Sequence[Any], Text) -> None
         '''Adjust/set pad pan.'''
         for pad in pads:
             if pad.chains:
-                self._parent.do_parameter_adjustment(pad.chains[0].mixer_device.panning, action_arg)
+                param = pad.chains[0].mixer_device.panning
+                self._parent.do_parameter_adjustment(param, action_arg)
 
     def _adjust_pad_send(self, pads, action_arg, send):
         # type: (Sequence[Any], Text, Text) -> None

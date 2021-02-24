@@ -30,7 +30,10 @@ def repr_tracklist(tracks):
     if not tracks:
         return '[None]'
     else:
-        return '[{}]'.format(', '.join(t.name for t in tracks))
+        try:
+            return '[{}]'.format(', '.join(t.name for t in tracks))
+        except:
+            return '[ERROR {}]'.format(tracks)
 
 
 def get_base_path(*items):
