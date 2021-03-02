@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 from ..core.xcomponent import XComponent
 from ..core.live import Clip, Conversions
 from .clip_env_capture import XClipEnvCapture
-from .clip_notes import ClipNotesMixin
+from .clip_notes import NotesMixin
 from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES,
                       WARP_MODES, ENV_TYPES,
                       KEYWORDS, ONOFF, switch)
@@ -36,7 +36,7 @@ from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES,
 log = logging.getLogger(__name__)
 
 
-class XClipActions(XComponent, ClipNotesMixin):
+class XClipActions(XComponent, NotesMixin):
     '''Clip-related actions.
     '''
     __module__ = __name__
@@ -63,7 +63,8 @@ class XClipActions(XComponent, ClipNotesMixin):
                         func(self, action[0], scmd.track, scmd.xclip,
                              clip_args.replace(clip_args.split()[0], ''))
                     elif clip_args and clip_args.split()[0].startswith('NOTES'):
-                        self.dispatch_clip_note_action(action[0], cmd.args)
+                        args = [a.strip() for a in cmd.args.split() if a.strip()]
+                        self.dispatch_clip_note_action(action[0], args)
                     elif cmd.action_name.startswith('CLIP'):
                         self.set_clip_on_off(action[0], scmd.track, scmd.xclip, cmd.args)
 

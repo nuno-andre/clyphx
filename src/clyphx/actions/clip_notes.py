@@ -15,83 +15,80 @@
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import absolute_import, unicode_literals
-from builtins import object, dict, range
-from typing import TYPE_CHECKING, NamedTuple, List, Text
+from builtins import object, dict, range, tuple
+from typing import NamedTuple, List, Text, Tuple
 import logging
-
-if TYPE_CHECKING:
-    from typing import Any, Union, Optional, Dict, Tuple
-    Note = Tuple[int, float, Any, Any, bool]
-    NoteActionSignature = Clip, Text, List[Note], List[Note]
-
 import random
-from ..consts import NOTE_NAMES, OCTAVE_NAMES
+
 from ..core.live import Clip, get_random_int
+from ..core.models import Pitch, pitch_range #, Note
 
-# from ..core.models import Note
-# from ..core.parse import Pitch
-# NoteData = NamedTuple('NoteData', [('notes_to_edit', List[Note]),
-#                                    ('other_notes',   List[Note]),
-#                                    ('args',          Text)])  # TODO: Tuple[Text]
+log = logging.getLogger(__name__)
+
+Note = Tuple[int, float, float, int, bool]
 
 
-class ClipNotesMixin(object):
+CmdData = NamedTuple('CmdData', [('clip',          Clip),
+                                 ('notes_to_edit', List[Note]),
+                                 ('other_notes',   List[Note]),
+                                 ('args',          List[Text])])
+
+
+class NotesMixin(object):
 
     def dispatch_clip_note_action(self, clip, args):
-        # type: (Clip, Text) -> None
+        # type: (Clip, List[Text]) -> None
         '''Handle clip note actions.'''
-        from .consts import CLIP_NOTE_ACTIONS_CMD, CLIP_NOTE_ACTIONS_PREF
+        from .consts import NOTES_ACTIONS
 
         if clip.is_audio_clip:
             return
-        note_data = self.get_notes_to_operate_on(clip, args.strip())
-        if note_data['notes_to_edit']:
-            newargs = (clip, note_data['args'], note_data['notes_to_edit'], note_data['other_notes'])
-            func = CLIP_NOTE_ACTIONS_CMD.get(note_data['args'])
-            if not func:
-                for k, v in CLIP_NOTE_ACTIONS_PREF.items():
-                    if note_data['args'].startswith(k):
-                        func = v
-                        break
-                else:
-                    return
-            func(self, *newargs)
 
-    def get_notes_to_operate_on(self, clip, args=None):
-        # type: (Clip, Optional[Text]) -> Union[Dict[Text, List[Any]], Optional[Text]]
+        data = self.get_notes_to_edit(clip, args)
+        if data.notes_to_edit:
+            # TODO: pop arg
+            action = data.args[0] if data.args else None
+            try:
+                func = NOTES_ACTIONS[action]
+            except KeyError:
+                log.error("Note action not found in %s", data.args)
+            else:
+                edited = func(self, data)
+                if edited:
+                    self.write_notes(data, edited)
+
+    def get_notes_to_edit(self, clip, args):
+        # type: (Clip, List[Text]) -> CmdData
         '''Get notes within loop braces to operate on.'''
         notes_to_edit = []
         other_notes = []
-        new_args = None
         note_range = (0, 128)
-        pos_range = (clip.loop_start, clip.loop_end)
+        pos_range = None
+
         if args:
-            new_args = [a.strip() for a in args.split()]
-            note_range = self.get_note_range(new_args[0])
-            new_args.remove(new_args[0])
-            if new_args and '@' in new_args[0]:
-                pos_range = self.get_pos_range(clip, new_args[0])
-                new_args.remove(new_args[0])
-            new_args = ' '.join(new_args)  # type: ignore
+            note_range = self.get_note_range(args[0])
+            args.pop(0)
+            if args and '@' in args[0]:
+                pos_range = self.get_pos_range(clip, args[0])
+                args.pop(0)
+        pos_range = pos_range or (clip.loop_start, clip.loop_end)
+
         clip.select_all_notes()
         all_notes = clip.get_selected_notes()
         clip.deselect_all_notes()
+
         for n in all_notes:
             if note_range[0] <= n[0] < note_range[1] and pos_range[0] <= n[1] < pos_range[1]:
                 notes_to_edit.append(n)
             else:
                 other_notes.append(n)
-        return dict(
-            notes_to_edit = notes_to_edit,
-            other_notes   = other_notes,
-            args          = new_args,
-        )
+        return CmdData(clip, notes_to_edit, other_notes, args)
 
     @staticmethod
     def get_pos_range(clip, string):
         # type: (Clip, Text) -> Tuple[float, float]
         '''Get note position or range to operate on.'''
-        pos_range = (clip.loop_start, clip.loop_end)
+        pos_range = None
         user_range = string.split('-')
         try:
             start = float(user_range[0].replace('@', ''))
@@ -105,273 +102,154 @@ class ClipNotesMixin(object):
                         pos_range = (start, float(user_range[1]))
                     except:
                         pass
-        return pos_range
+        return pos_range or (clip.loop_start, clip.loop_end)
 
     def get_note_range(self, string):
         # type: (Text) -> Tuple[int, int]
         '''Get note lane or range to operate on.'''
+        # TODO: check limit range in 128
         note_range = (0, 128)
         string = string.replace('NOTES', '')
         if len(string) > 1:
             try:
-                note_range = self.get_note_range_from_string(string)
+                note_range = pitch_range(string)
             except:
                 try:
-                    start_note_name = self.get_note_name_from_string(string)
-                    start_note_num = self.string_to_note(start_note_name)
-                    note_range = (start_note_num, start_note_num + 1)
-                    string = string.replace(start_note_name, '').strip()
-                    if len(string) > 1 and string.startswith('-'):
-                        string = string[1:]
-                        end_note_name = self.get_note_name_from_string(string)
-                        end_note_num = self.string_to_note(end_note_name)
-                        if end_note_num > start_note_num:
-                            note_range = (start_note_num, end_note_num + 1)
+                    start_note = Pitch.first_note(string)
+                    note_range = (start_note, start_note + 1)
+                    string = string.replace(str(start_note), '').strip()
+
+                    end_note = Pitch.first_note(string[1:])
+                    if end_note > start_note_num:
+                        note_range = (start_note_num, end_note + 1)
                 except ValueError:
                     pass
         return note_range
 
     @staticmethod
-    def get_note_range_from_string(string):
-        # type: (Text) -> Tuple[int, int]
-        '''Returns a note range (specified in ints) from string.
-        '''
-        int_split = string.split('-')
-        start = int(int_split[0])
-        try:
-            end = int(int_split[1]) + 1
-        except IndexError:
-            end = start + 1
-        if 0 <= start and end <= 128 and start < end:
-            return (start, end)
-        raise ValueError("Invalid range note: '{}'".format(string))
+    def write_notes(data, edited):
+        # type: (CmdData, List[Note]) -> None
+        edited.extend(data.other_notes)
+        data.clip.select_all_notes()
+        data.clip.replace_selected_notes(tuple(edited))
+        data.clip.deselect_all_notes()
 
-    @staticmethod
-    def get_note_name_from_string(string):
-        # type: (Text) -> Text
-        '''Get the first note name specified in the given string.'''
-        if len(string) >= 2:
-            result = string[:2].strip()
-            if (result.endswith('#') or result.endswith('-')) and len(string) >= 3:
-                result = string[:3].strip()
-                if result.endswith('-') and len(string) >= 4:
-                    result = string[:4].strip()
-            return result
-        raise ValueError("'{}' does not contain a note".format(string))
-
-    @staticmethod
-    def string_to_note(string):
-        # type: (Text) -> Any
-        '''Get note value from string.'''
-        base_note = None
-
-        for s in string:
-            if s in NOTE_NAMES:
-                base_note = NOTE_NAMES.index(s)
-            if base_note is not None and s == '#':
-                base_note += 1
-
-        if base_note is not None:
-            for o in OCTAVE_NAMES:
-                if o in string:
-                    base_note = base_note + (OCTAVE_NAMES.index(o) * 12)
-                    break
-            if 0 <= base_note < 128:
-                return base_note
-
-        raise ValueError("Invalid note: '{}'".format(string))
-
-    @staticmethod
-    def write_all_notes(clip, edited_notes, other_notes):
-        # type: (Clip, List[Note], Any) -> None
-        '''Writes new notes to clip.'''
-        edited_notes.extend(other_notes)
-        clip.select_all_notes()
-        clip.replace_selected_notes(tuple(edited_notes))
-        clip.deselect_all_notes()
 
 # region NOTE ACTIONS
-    def set_notes_on_off(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def set_notes_on_off(self, data):
+        # type: (CmdData) -> List[Note]
         '''Toggles or turns note mute on/off.'''
-        edited_notes = []
-        for n in notes_to_edit:
-            new_mute = False
-            if not args:
-                new_mute = not n[4]
-            elif args == 'ON':
-                new_mute = True
-            # TODO: check appending same tuple n times
-            edited_notes.append((n[0], n[1], n[2], n[3], new_mute))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+        if not data.args:
+            edited = [(n[0], n[1], n[2], n[3], not n[4]) for n in data.notes_to_edit]
+        else:
+            mute = data.args[0] == 'ON'
+            edited = [(n[0], n[1], n[2], n[3], mute) for n in data.notes_to_edit]
+        return edited
 
-    def do_note_gate_adjustment(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_note_gate_adjustment(self, data):
+        # type: (CmdData) -> List[Note]
         '''Adjust note gate.'''
-        edited_notes = []
-        factor = self.get_adjustment_factor(args.split()[1], True)
-        for n in notes_to_edit:
+        edited = []
+        factor = self.get_adjustment_factor(data.args[1], True)
+        loop_end = data.clip.loop_end
+        for n in data.notes_to_edit:
             new_gate = n[2] + (factor * 0.03125)
-            if n[1] + new_gate > clip.loop_end or new_gate < 0.03125:
-                edited_notes = []
+            if n[1] + new_gate > loop_end or new_gate < 0.03125:
+                edited = []
                 return
             else:
-                edited_notes.append((n[0], n[1], new_gate, n[3], n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+                edited.append((n[0], n[1], new_gate, n[3], n[4]))
+        return edited
 
-    def do_note_nudge_adjustment(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_note_nudge_adjustment(self, data):
+        # type: (CmdData) -> List[Note]
         '''Adjust note position.'''
-        edited_notes = []
-        factor = self.get_adjustment_factor(args.split()[1], True)
-        for n in notes_to_edit:
+        edited = []
+        factor = self.get_adjustment_factor(data.args[1], True)
+        for n in data.notes_to_edit:
             new_pos = n[1] + (factor * 0.03125)
-            if n[2] + new_pos > clip.loop_end or new_pos < 0.0:
-                edited_notes = []
+            if n[2] + new_pos > data.clip.loop_end or new_pos < 0.0:
+                edited = []
                 return
             else:
-                edited_notes.append((n[0], new_pos, n[2], n[3], n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+                edited.append((n[0], new_pos, n[2], n[3], n[4]))
+        return edited
 
-    def do_note_velo_adjustment(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
-        '''Adjust/set/randomize note velocity.'''
-        edited_notes = []
-        args = args.replace('VELO ', '')
-        args = args.strip()
-        for n in notes_to_edit:
-            if args == 'RND':
-                # FIXME: get_random_int
-                edited_notes.append((n[0], n[1], n[2], get_random_int(64, 64), n[4]))
-            elif args.startswith(('<', '>')):
-                factor = self.get_adjustment_factor(args)
-                new_velo = n[3] + factor
-                if 0 <= new_velo < 128:
-                    edited_notes.append((n[0], n[1], n[2], new_velo, n[4]))
-                else:
-                    edited_notes = []
-                    return
-            else:
-                try:
-                    edited_notes.append((n[0], n[1], n[2], float(args), n[4]))
-                except:
-                    pass
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
-
-    def do_pitch_scramble(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_pitch_scramble(self, data):
+        # type: (CmdData) -> List[Note]
         '''Scrambles the pitches in the clip, but maintains rhythm.'''
-        edited_notes = []
-        pitches = [n[0] for n in notes_to_edit]
+        pitches = [n[0] for n in data.notes_to_edit]
         random.shuffle(pitches)
-        for i in range(len(notes_to_edit)):
-            edited_notes.append((
-                pitches[i],
-                notes_to_edit[i][1],
-                notes_to_edit[i][2],
-                notes_to_edit[i][3],
-                notes_to_edit[i][4],
-            ))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+        notes = [tuple(n[1:5]) for n in data.notes_to_edit]
+        return [(pitches[i],) + n for i, n in enumerate(notes)]
 
-    def do_position_scramble(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_position_scramble(self, data):
+        # type: (CmdData) -> List[Note]
         '''Scrambles the position of notes in the clip, but maintains
         pitches.
         '''
-        edited_notes = []
-        positions = [n[1] for n in notes_to_edit]
+        positions = [n[1] for n in data.notes_to_edit]
         random.shuffle(positions)
-        for i in range(len(notes_to_edit)):
-            edited_notes.append((
-                notes_to_edit[i][0],
-                positions[i],
-                notes_to_edit[i][2],
-                notes_to_edit[i][3],
-                notes_to_edit[i][4],
-            ))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+        return [(n[0], positions[i], n[2], n[3], n[4])
+                for i, n in enumerate(data.notes_to_edit)]
 
-    def do_note_reverse(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_note_reverse(self, data):
+        # type: (CmdData) -> List[Note]
         '''Reverse the position of notes.'''
-        edited_notes = []
-        for n in notes_to_edit:
-            edited_notes.append(
-                (n[0], abs(clip.loop_end - (n[1] + n[2]) + clip.loop_start), n[2], n[3], n[4])
-            )
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+        end, start = data.clip.loop_end, data.clip.loop_start
+        reverse = lambda n: abs(end - (n[1] + n[2]) + start)
+        return [(n[0], reverse(n), n[2], n[3], n[4]) for n in data.notes_to_edit]
 
-    def do_note_invert(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_note_invert(self, data):
+        # type: (CmdData) -> List[Note]
         ''' Inverts the pitch of notes.'''
-        edited_notes = []
-        for n in notes_to_edit:
-            edited_notes.append((127 - n[0], n[1], n[2], n[3], n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+        return [(127 - n[0], n[1], n[2], n[3], n[4]) for n in data.notes_to_edit]
 
-    def do_note_compress(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_note_compress(self, data):
+        # type: (CmdData) -> List[Note]
         '''Compresses the position and duration of notes by half.'''
-        edited_notes = []
-        for n in notes_to_edit:
-            edited_notes.append((n[0], n[1] / 2, n[2] / 2, n[3], n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+        return [(n[0], n[1] / 2, n[2] / 2, n[3], n[4]) for n in data.notes_to_edit]
 
-    def do_note_expand(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_note_expand(self, data):
+        # type: (CmdData) -> List[Note]
         '''Expands the position and duration of notes by 2.'''
-        edited_notes = []
-        for n in notes_to_edit:
-            edited_notes.append((n[0], n[1] * 2, n[2] * 2, n[3], n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+        return [(n[0], n[1] * 2, n[2] * 2, n[3], n[4]) for n in data.notes_to_edit]
 
-    def do_note_split(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_note_split(self, data):
+        # type: (CmdData) -> List[Note]
         '''Split notes into 2 equal parts.
         '''
-        edited_notes = []
+        edited = []
 
-        for n in notes_to_edit:
+        for n in data.notes_to_edit:
             if n[2] / 2 < 0.03125:
                 return
             else:
-                edited_notes.append(n)
-                edited_notes.append((n[0], n[1] + (n[2] / 2), n[2] / 2, n[3], n[4]))
+                edited.append(n)
+                edited.append((n[0], n[1] + (n[2] / 2), n[2] / 2, n[3], n[4]))
 
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+        return edited
 
-    def do_note_combine(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_note_combine(self, data):
+        # type: (CmdData) -> List[Note]
         '''Combine each consecutive set of 2 notes.
         '''
-        edited_notes = []
+        edited = []
         current_note = []
         check_next_instance = False
 
-        for n in notes_to_edit:
-            edited_notes.append(n)
+        for n in data.notes_to_edit:
+            edited.append(n)
             if current_note and check_next_instance:
                 if current_note[0] == n[0] and current_note[1] + current_note[2] == n[1]:
-                    edited_notes[edited_notes.index(current_note)] = [
+                    edited[edited.index(current_note)] = [
                         current_note[0],
                         current_note[1],
                         current_note[2] + n[2],
                         current_note[3],
                         current_note[4],
                     ]
-                    edited_notes.remove(n)
+                    edited.remove(n)
                     current_note = []
                     check_next_instance = False
                 else:
@@ -380,21 +258,52 @@ class ClipNotesMixin(object):
                 current_note = n
                 check_next_instance = True
 
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+        return edited
 
-    def do_note_crescendo(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_note_velo_adjustment(self, data):
+        # type: (CmdData) -> List[Note]
+        '''Adjust/set/randomize note velocity.'''
+        edited = []
+        arg = data.args[1]  # data.args[0] == 'VELO'
+
+        if arg == 'RND':
+            for n in data.notes_to_edit:
+                # FIXME: get_random_int
+                edited.append((n[0], n[1], n[2], get_random_int(64, 64), n[4]))
+
+        elif arg.starswith(('<', '>')):
+            for n in data.notes_to_edit:
+                factor = self.get_adjustment_factor(arg)
+                new_velo = n[3] + factor
+                if 0 <= new_velo < 128:
+                    edited.append((n[0], n[1], n[2], new_velo, n[4]))
+                else:
+                    edited = []
+                    return
+
+        elif arg in ('<<', '>>'):
+            return self.do_note_crescendo(data)
+
+        else:
+            for n in data.notes_to_edit:
+                try:
+                    edited.append((n[0], n[1], n[2], float(arg), n[4]))
+                except:
+                    pass
+
+        return edited
+
+    def do_note_crescendo(self, data):
+        # type: (CmdData) -> List[Note]
         '''Applies crescendo/decrescendo to notes.'''
-        edited_notes = []
+        edited = []
         last_pos = -1
         pos_index = 0
         new_pos = -1
         new_index = 0
 
-        sorted_notes = sorted(notes_to_edit, key=lambda note: note[1], reverse=False)
-        if args == 'VELO <<':
-            sorted_notes = sorted(notes_to_edit, key=lambda note: note[1], reverse=True)
+        reverse = data.args[1] == '<<'
+        sorted_notes = sorted(data.notes_to_edit, key=lambda n: n[1], reverse=reverse)
         for n in sorted_notes:
             if n[1] != last_pos:
                 last_pos = n[1]
@@ -403,12 +312,12 @@ class ClipNotesMixin(object):
             if n[1] != new_pos:
                 new_pos = n[1]
                 new_index += 1
-            edited_notes.append((n[0], n[1], n[2], ((128 / pos_index) * new_index) - 1, n[4]))
-        if edited_notes:
-            self.write_all_notes(clip, edited_notes, other_notes)
+            edited.append((n[0], n[1], n[2], ((128 / pos_index) * new_index) - 1, n[4]))
+        return edited
 
-    def do_note_delete(self, clip, args, notes_to_edit, other_notes):
-        # type: (NoteActionSignature) -> None
+    def do_note_delete(self, data):
+        # type: (CmdData) -> None
         '''Delete notes.'''
-        self.write_all_notes(clip, [], other_notes)
+        # XXX: write here, edited would be evaluated to False
+        self.write_notes(data, [])
 # endregion

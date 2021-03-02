@@ -27,11 +27,14 @@ NOTE = dict([
     ('Bb', 10), ('A#', 10),
     ('B',  11),
 ])
-NOTE_INDEX = dict((v, k) for k, v in NOTE.items())  # returns sharp notes
 
 OCTAVE = ('-2', '-1', '0', '1', '2', '3', '4', '5', '6', '7', '8')
 
-PITCH = re.compile('({})({})'.format('|'.join(NOTE), '|'.join(OCTAVE)), re.I)
+NOTE_INDEX = dict((v, k) for k, v in NOTE.items())  # returns sharp notes
+VALUE_PTRN = r'(\d|[1-9]\d|1[0-1]\d|12[0-7])'
+PITCH_PTRN = '({})({})'.format('|'.join(NOTE), '|'.join(OCTAVE))
+PITCH = re.compile(PITCH_PTRN, re.I)
+RANGE = re.compile(r'{0}\-{0}'.format('({}|{})'.format(PITCH_PTRN, VALUE_PTRN)), re.I)
 
 
 def parse_pitch(string):
@@ -50,6 +53,23 @@ def pitch_note(pitch):
     return NOTE_INDEX[pitch  % 12], int(OCTAVE[pitch // 12])
 
 
-__all__ = ['parse_pitch', 'pitch_note']
+def first_note(string):
+    try:
+        return PITCH.search(string).group(0)
+    except AttributeError:
+        raise ValueError("No notes were found in '{}'".format(string))
 
-del (NOTE, OCTAVE, NOTE_INDEX, PITCH)
+
+def parse_range(string):
+    try:
+        _, n1, o1, v1, _, n2, o2, v2 = RANGE.match(string).groups()
+        note1 = v1 if v1 else n1 + o1
+        note2 = v2 if v2 else n2 + o2
+        return note1, note2
+    except Exception:
+        raise ValueError("Note range not found in '{}'".format(string))
+
+
+__all__ = ['parse_pitch', 'pitch_note', 'first_note', 'parse_range']
+
+del (NOTE, OCTAVE, NOTE_INDEX, VALUE_PTRN, PITCH_PTRN, PITCH, RANGE)

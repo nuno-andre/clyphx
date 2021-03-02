@@ -6,15 +6,15 @@
 
 from __future__ import absolute_import, unicode_literals
 from typing import TYPE_CHECKING, NamedTuple, List, Text, Optional, Any
-from builtins import object
+from builtins import object, tuple
 
 from ..consts import MIDI_STATUS
 from .utils import repr_slots
-from .parse_notes import parse_pitch, pitch_note
+from .parse_notes import parse_pitch, pitch_note, first_note, parse_range
 from .exceptions import InvalidParam
 
 if TYPE_CHECKING:
-    from typing import Dict, Union
+    from typing import Dict, Union, Tuple
     from numbers import Integral
 
 
@@ -38,7 +38,7 @@ IdSpec = NamedTuple('Spec', [('id',       Text),
 
 
 class Pitch(int):
-    '''Coverts either a numeric value or a note + octave string into a
+    '''Converts either a numeric value or a note + octave string into a
     constrained integer [0,127] with `note` and `octave` properties.
 
     `note` and `octave`, if not provided, are lazy evaluated.
@@ -56,6 +56,11 @@ class Pitch(int):
         if 0 <= self < 128:
             return self
         raise ValueError(int(self))
+
+    @classmethod
+    def first_note(cls, string):
+        '''Returns the first note found in the string.'''
+        return cls(first_note(string))
 
     @property
     def name(self):
@@ -107,11 +112,15 @@ class Pitch(int):
         return '{}{}'.format(self.name, self.octave)
 
 
-# TODO
+def pitch_range(string):
+    # type: (Text) -> Tuple[Pitch, Pitch]
+    return tuple(Pitch[n] for n in parse_range(string))
+
+
 Note = NamedTuple('Note', [('pitch',  int),  # TODO: Pitch
                            ('start',  float),
-                           ('length', Any),
-                           ('vel',    Any),
+                           ('length', float),
+                           ('vel',    int),
                            ('mute',   bool)])
 
 

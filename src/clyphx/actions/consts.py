@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from .global_ import XGlobalActions
 from .track import XTrackActions
-from .clip import XClipActions, ClipNotesMixin
+from .clip import XClipActions, NotesMixin
 from .device import XDeviceActions
 from .dr import XDrActions
 
@@ -155,31 +155,25 @@ CLIP_ACTIONS = dict(
     TOSIMP   = XClipActions.to_simpler,
 )  # type: Dict[Text, Callable]
 
-CLIP_NOTE_ACTIONS_CMD = dict([
-    ('REV',     ClipNotesMixin.do_note_reverse),
-    ('INV',     ClipNotesMixin.do_note_invert),
-    ('COMP',    ClipNotesMixin.do_note_compress),
-    ('EXP',     ClipNotesMixin.do_note_expand),
-    ('SCRN',    ClipNotesMixin.do_pitch_scramble),
-    ('SCRP',    ClipNotesMixin.do_position_scramble),
-    ('CMB',     ClipNotesMixin.do_note_combine),
-    ('SPLIT',   ClipNotesMixin.do_note_split),
-    ('DEL',     ClipNotesMixin.do_note_delete),
-    ('VELO <<', ClipNotesMixin.do_note_crescendo),
-    ('VELO >>', ClipNotesMixin.do_note_crescendo),
-    ('ON',      ClipNotesMixin.set_notes_on_off),
-    ('OFF',     ClipNotesMixin.set_notes_on_off),
-    (None,      ClipNotesMixin.set_notes_on_off),
-    ('',        ClipNotesMixin.set_notes_on_off),
-])  # type: Dict[Text, Callable[[Clip, Text, Sequence[Note], Sequence[Note]], None]]
+NOTES_ACTIONS = dict([
+    ('REV',   NotesMixin.do_note_reverse),
+    ('INV',   NotesMixin.do_note_invert),
+    ('COMP',  NotesMixin.do_note_compress),
+    ('EXP',   NotesMixin.do_note_expand),
+    ('GATE',  NotesMixin.do_note_gate_adjustment),
+    ('NUDGE', NotesMixin.do_note_nudge_adjustment),
+    ('SCRN',  NotesMixin.do_pitch_scramble),
+    ('SCRP',  NotesMixin.do_position_scramble),
+    ('CMB',   NotesMixin.do_note_combine),
+    ('SPLIT', NotesMixin.do_note_split),
+    ('DEL',   NotesMixin.do_note_delete),
+    ('VELO',  NotesMixin.do_note_velo_adjustment),
+    ('ON',    NotesMixin.set_notes_on_off),
+    ('OFF',   NotesMixin.set_notes_on_off),
+    (None,    NotesMixin.set_notes_on_off),
+    ('',      NotesMixin.set_notes_on_off),
+])  # type: Dict[Text, Callable[[Clip, Any], List[None]]]
 
-CLIP_NOTE_ACTIONS_PREF = dict([
-    ('GATE <',  ClipNotesMixin.do_note_gate_adjustment),
-    ('GATE >',  ClipNotesMixin.do_note_gate_adjustment),
-    ('NUDGE <', ClipNotesMixin.do_note_nudge_adjustment),
-    ('NUDGE >', ClipNotesMixin.do_note_nudge_adjustment),
-    ('VELO',    ClipNotesMixin.do_note_velo_adjustment),
-])  # type: Dict[Text, Callable[[Clip, Text, Sequence[Note], Sequence[Note]], None]]
 
 DEVICE_ACTIONS = dict(
     CSEL  = XDeviceActions.adjust_selected_chain,

@@ -103,24 +103,20 @@ the Track it is on.  You can have multiple Track Racks on a Track, but
 only one Macro should control a parameter.  So you shouldn't have two
 Macros that both control a Track's Volume for example.
 
-**RACK NAME:**
+**RACK NAME:** needs to start with `NK TRACK`.
 
-The Rack's name needs to start with `NK TRACK`.
+**MACRO NAMES:** can be the names of Track mixer parameters to control. 
+`VOL` (Track Volume), `PAN` (Track Pan) or `SEND `_`x`_ (Track Send
+where x is the Send letter).
 
-**MACRO NAMES:**
+**EXTRA FUNCTIONS:** The parameters that you've assigned to the Macros
+can be reset to their default value by toggling the Track Rack's On/Off
+switch (turn if off and then on again).
 
-Macro Names can be the names of Track mixer parameters to control. 
-*VOL* (Track Volume), *PAN* (Track Pan) or *SEND x* (Track Send where x
-is the Send letter).
-
-**EXTRA FUNCTIONS:**
-
-The parameters that you've assigned to the Macros can be reset to their
-default value by toggling the Track Rack's On/Off switch (turn if off
-and then on again).
-
-_**NOTE:** This Rack type has no effect on Tracks with no Audio Output
+> _**NOTE:** This Rack type has no effect on Tracks with no Audio Output
 or on the sub-tracks of a Drum or Instrument Track._
+
+---
 
 ## nK Receiver
 
@@ -132,13 +128,9 @@ In order to accomplish this, the name of the Receiver and Sender both
 need to contain a unique Identifier.  The format of the Identifier is
 *(\*identifier\*).*  For example:  `(*ID*)` or `(*1*)`
 
-**RACK NAME:**
+**RACK NAME:** needs to start with `NK RECEIVER`.
 
-The Rack's name needs to start with `NK RECEIVER`.
-
-**MACRO NAMES:**
-
-Macro Names can include Identifiers.
+**MACRO NAMES:** can include Identifiers.
 
 > _**NOTE:**  The names of Senders and Receivers cannot contain any
 other parentheses aside from the ones used in the Identifier._
@@ -156,9 +148,7 @@ You can have multiple DR Racks on a Track, but only one Macro should
 control a parameter.  So you shouldn't have two Macros that both
 control a Simpler's Volume for example.
 
-**RACK NAME:**
-
-The Rack's name needs to start with `NK DR`.  After this name, you will
+**RACK NAME:** needs to start with `NK DR`.  After this name, you will
 specify the name or number of the Simpler/Sampler instance to control.
 
 To specify a name, you can see the names of each Simpler/Sampler
@@ -173,35 +163,27 @@ case, you should specify the Simpler/Sampler number instead.
 To specify a number, look at the Chain List of the Drum Rack.  The first
 chain listed is 1, second is 2, etc.
 
-**MACRO NAMES:**
-
-Macro names can be the name of a [Simpler/Sampler
+**MACRO NAMES:** can be the name of a [Simpler/Sampler
 parameter](#5.-simpler/sampler-parameter-names) to control.
 
-**EXTRA FUNCTIONS:**
-
-The parameters that you've assigned to the Macros can be reset to their
-default value by toggling the DR Rack's On/Off switch (turn if off and
-then on again).
+**EXTRA FUNCTIONS:** The parameters that you've assigned to the Macros
+can be reset to their default value by toggling the DR Rack's On/Off
+switch (turn if off and then on again).
 
 ---
 
 ## nK Dr Multi
 
 The DR Multi Rack is basically the reverse of the [DR Rack](#nk-dr). It
-can control the same parameter of multiple instances of  Simpler/Sampler
+can control the same parameter of multiple instances of Simpler/Sampler
 inside of a Drum Rack on the Track it is on.
 
-**RACK NAME:**
-
-Rack name needs to start with `NK DR MULTI`.  After this name, you
+**RACK NAME:** needs to start with `NK DR MULTI`. After this name, you
 will specify the name of the [Simpler/Sampler
 parameter](#5.-simpler/sampler-parameter-names) to control.
 
-**MACRO NAMES:**
-
-Macro names can be the name or number of the Simpler/Sampler instance to
-control.  The names you specify **are** case-sensitive.
+**MACRO NAMES:** can be the name or number of the Simpler/Sampler
+instance to control. The names you specify **are** case-sensitive.
 
 ---
 
@@ -212,13 +194,9 @@ first 6 Sends respectively) of the selected Drum Rack Pad.  The DR Pad
 Mix Rack will operate on the first Drum Rack (that is not nested within
 another Rack) found on the Track.
 
-**RACK NAME:**
+**RACK NAME:** needs to start with `NK DR PAD MIX`.
 
-The Rack's name needs to start with `NK DR PAD MIX`.
-
-**MACRO NAMES:**
-
-Doesn't apply.
+**MACRO NAMES:** Doesn't apply.
 
 ---
 
@@ -233,23 +211,17 @@ You can have multiple Chain Mix Racks on a Track, but only one Macro
 should control a parameter.  So you shouldn't have two Macros that both
 control a Chain's Volume for example.
 
-**RACK NAME:**
-
-The Rack's name needs to start with `NK CHAIN MIX`.  After this name,
+**RACK NAME:** needs to start with `NK CHAIN MIX`. After this name,
 you will specify the Chain mixer parameter to control.  `VOL` (Chain
 Volume), `PAN` (Chain Pan) or `MUTE` (Chain Mute).
 
-**MACRO NAMES:**
+**MACRO NAMES:** can be the number of the Chain to operate on. To find
+the number of a Chain, look at the Chain List of the Rack. The first
+chain listed is 1, second is 2, etc.
 
-Macro Names can be the number of the Chain to operate on.  To find the
-number of a Chain, look at the Chain List of the Rack.  The first chain
-listed is 1, second is 2, etc.
-
-**EXTRA FUNCTIONS:**
-
-The parameters that you've assigned to the Macros can be reset to their
-default value by toggling the Chain Mix Rack's On/Off switch (turn if
-off and then on again).
+**EXTRA FUNCTIONS:** The parameters that you've assigned to the Macros
+can be reset to their default value by toggling the Chain Mix Rack's
+On/Off switch (turn if off and then on again).
 
 ---
 
@@ -260,13 +232,9 @@ control the Rack's Chain Selector.  The range of the Macro will change
 depending on the number of Chains in the Rack.  Of course, the Macro
 will have no functionality unless the Rack contains at least two Chains.
 
-**RACK NAME:**
+**RACK NAME:** needs to start with `NK CS`.
 
-The Rack's name needs to start with `NK CS`.
-
-**MACRO NAMES:**
-
-Doesn't apply.
+**MACRO NAMES:** Doesn't apply.
 
 ---
 
@@ -278,21 +246,15 @@ Learn Rack in your Set and it can only exist on the Master Track.
 
 You can select a parameter to control by clicking on it with your mouse.
 
-**RACK NAME:**
+**RACK NAME:** needs to start with `NK LEARN`.
 
-The Rack's name needs to start with `NK LEARN`.
+**MACRO NAMES:** Doesn't apply.
 
-**MACRO NAMES:**
+**EXTRA FUNCTIONS:** The parameter that is assigned to the first Macro
+can be reset to its default value by toggling the Learn Rack's On/Off
+switch (turn if off and then on again).
 
-Doesn't apply.
-
-**EXTRA FUNCTIONS:**
-
-The parameter that is assigned to the first Macro can be reset to its
-default value by toggling the Learn Rack's On/Off switch (turn if off
-and then on again).
-
-_**NOTE:**  Although all parameters in Live can be clicked on, not all
+> _**NOTE:**  Although all parameters in Live can be clicked on, not all
 of them are classified as parameters that can be selected and so cannot
 be controlled with the Learn Rack.  As an example, none of the
 parameters of a Clip can be controlled.  Also, each time you select a
@@ -319,26 +281,18 @@ they are located.
 RnR Racks will not affect each other or other Macrobat Racks (except for
 the [MIDI Rack](#nk-midi)), only other Devices on the Track/Device Chain.
 
-**RACK NAME:**
-
-There are four types of RnR Racks, the names of which need to start with
-the following text string:
-
-`NK RST` -- Reset the parameters of the Device to the right of this
+**RACK NAME:** There are four types of RnR Racks, the names of which need
+to start with the following text string:
+- `NK RST` -- Reset the parameters of the Device to the right of this
 Rack.
-
-`NK RST ALL` -- Reset the parameters of all Devices on the Track/Device
+- `NK RST ALL` -- Reset the parameters of all Devices on the Track/Device
 Chain.
-
-`NK RND` -- Randomize the parameters of the Device to the right of this
+- `NK RND` -- Randomize the parameters of the Device to the right of this
 Rack.
-
-`NK RND ALL` -- Randomize the parameters of all Devices on the
+- `NK RND ALL` -- Randomize the parameters of all Devices on the
 Track/Device Chain.
 
-**MACRO NAMES:**
-
-Doesn't apply.
+**MACRO NAMES:** Doesn't apply.
 
 > _**NOTE:**  Chain Selectors, on/off switches and multi-option controls
 (such as a filter type chooser) will not be reset/randomized._
@@ -350,18 +304,13 @@ Doesn't apply.
 The Macros on the Sidechain Rack can be connected to the output level of
 the Track it is on.
 
-**RACK NAME:**
+**RACK NAME:** needs to start with `NK SIDECHAIN`.
 
-The Rack's name needs to start with `NK SIDECHAIN`.
+**MACRO NAMES:** To connect a Macro to the output level of the Track,
+the Macro's name needs to start with `[SC]`.
 
-**MACRO NAMES:**
-
-To connect a Macro to the output level of the Track, the Macro's name
-needs to start with `[SC]`.
-
-**EXTRA FUNCTIONS:**
-
-You can turn the sidechaining on/off with the Rack's On/Off switch.
+**EXTRA FUNCTIONS:** You can turn the sidechaining on/off with the
+Rack's On/Off switch.
 
 > _**IMPORTANT NOTE:**  Each movement of a Macro is considered an
 > undoable action in Live.  For that reason, when using a Sidechain Rack,
@@ -375,18 +324,12 @@ You can turn the sidechaining on/off with the Rack's On/Off switch.
 The MIDI Rack allows you to send MIDI messages (Control Change, Program
 Change and SysEx) from the Macros.
 
-**RACK NAME:**
+**RACK NAME:** needs to start with `NK MIDI`.
 
-The Rack's name needs to start with `NK MIDI`.
-
-**MACRO NAMES:**
-
-Macro names can start with the following list of words/phrases:
-
-`[CC`_**x**_`]` Control Change message where _**x**_ is the Control Change
+**MACRO NAMES:** can start with the following list of words/phrases:
+- `[CC`_**x**_`]` Control Change message where _**x**_ is the Control Change
 number to send.  This number should be in the range of 0 -- 127.
-
-`[PC]` -- Program Change message.
+- `[PC]` -- Program Change message.
 
 The MIDI Rack can also send SysEx messages.  In order to access this
 functionality, you'll first need to create a SysEx List composed of the
@@ -396,12 +339,10 @@ file](#userconfig-file).
 To access the SysEx messages from Macros, you'll use the Identifiers
 you specified in your SysEx List for the Macro Names
 
-**EXTRA FUNCTIONS:**
-
-By default, the MIDI Rack will send out on MIDI Channel 1.  You can
-override this by adding `[CH`_**x**_`]` to the end of the Rack's name where x
-is the MIDI Channel number.  This number should be in the range of 1 - 16.
-For example: `NK MIDI [CH6]`
+**EXTRA FUNCTIONS:** By default, the MIDI Rack will send out on MIDI
+Channel 1. You can override this by adding `[CH`_**x**_`]` to the end of
+the Rack's name where x is the MIDI Channel number.  This number should
+be in the range of 1 - 16. For example: `NK MIDI [CH6]`
 
 ### nK MIDI Rack Routing Options
 
@@ -434,7 +375,7 @@ set to 'All Ins' or choose the loopback device as the input.  Leave
 the Track's input channel set to 'All Channels'.  Arm the Track or
 set it's Monitor to 'In'.
 
->  <a name="midi-routing-sysex">_**NOTE**:  If you'd like to use SysEx and
+  > <a name="midi-routing-sysex">_**NOTE**:  If you'd like to use SysEx and
 still maintain the flexibility that Option B provides, you can use an
 application such as [Bome's MIDI Translator
 Pro](https://www.bome.com/products/miditranslator) to receive the SysEx
@@ -462,20 +403,14 @@ mode.  You can turn them with a controller though.
 The first two Macros on the SCL Rack will control Push's Root Note and
 Scale Type respectively for use in Note Mode.
 
-**RACK NAME:**
+**RACK NAME:** needs to start with `NK SCL`.
 
-The Rack's name needs to start with `NK SCL`.
+**MACRO NAMES:** Doesn't apply.
 
-**MACRO NAMES:**
+**EXTRA FUNCTIONS:** The Rack's name will show the name of the selected
+Root Note and Scale Type.
 
-Doesn't apply.
-
-**EXTRA FUNCTIONS:**
-
-The Rack's name will show the name of the selected Root Note and Scale
-Type.
-
-_**NOTE:** The Macros and Rack name will **not** update if the Root
+> _**NOTE:** The Macros and Rack name will **not** update if the Root
 Note or Scale Type is changed from Push itself or from ClyphX's Push
 Actions._
 
@@ -488,8 +423,8 @@ which you'll find in the `./ClyphX/macrobat` folder.
 You can modify this file with any text editor (like Notepad or
 TextEdit).  The file itself includes instructions on how to modify it.
 
-_**NOTE:**  You may see two files named user_config in the
-ClyphX/macrobat folder.  One of them is a `*.pyc` file (you cannot
+> _**NOTE:**  You may see two files named user_config in the
+`ClyphX/macrobat` folder.  One of them is a `*.pyc` file (you cannot
 modify this) and the other is a `*.py` file.  You should modify the
 `*.py` file.*_
 
