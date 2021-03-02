@@ -5,20 +5,20 @@ ClyphX
 provides an extensive list of _Actions_ related to controlling different aspects
 of Live.
 
-These _Actions_ can be accessed via _X-Triggers_ (Session View Clips, Arrange
-View Locators or MIDI Controls). Each _X-Trigger_ can trigger either a single
-_Action_ or a list of _Actions_.
-
 As an example, a simple _Action_ might toggle Overdub on/off:
 ```
-OVER
+over
 ```
 
 A more complex _Action List_ might mute Tracks 1-2, unmute and arm Track 4, turn
 the 2nd Device on Track 4 on, and launch the selected Clip on track 4:
 ```
-1-2/MUTE ON; 4/MUTE OFF; 4/ARM ON; 4/DEV2 ON; 4/PLAY
+1-2/mute on; 4/mute off; 4/arm on; 4/dev2 on; 4/play
 ```
+
+These _Actions_ can be accessed via _X-Triggers_ (Session View Clips, Arrange
+View Locators or MIDI Controls). Each _X-Trigger_ can trigger either a single
+_Action_ or a list of _Actions_.
 
 **ClyphX** also includes:
 

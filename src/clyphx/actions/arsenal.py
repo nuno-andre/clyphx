@@ -135,7 +135,8 @@ class XArsenalActions(ControlSurfaceComponent):
         if mc:
             adjust_property(mc, 'selected_mode_index', 0, mc.num_modes - 1, spec[1:])
 
-    def _handle_lock_action(self, script, spec):
+    @staticmethod
+    def _handle_lock_action(script, spec):
         # type: (Any, Text) -> None
         '''Handles toggling the locking of the current track or
         mode-specific locks.
@@ -182,7 +183,8 @@ class XArsenalActions(ControlSurfaceComponent):
                     self._toggle_scale_offset(scl, value)
             scl._notify_scale_settings()
 
-    def _capture_scale_settings(self, script, xclip, ident):
+    @staticmethod
+    def _capture_scale_settings(script, xclip, ident):
         # type: (Any, Clip, Text) -> None
         '''Captures the current scale type, tonic, in key state, offset
         and orientation and adds them to the given xclip's name.
@@ -195,7 +197,8 @@ class XArsenalActions(ControlSurfaceComponent):
                 comp.orientation_is_horizontal,
             )
 
-    def _recall_scale_settings(self, comp, spec):
+    @staticmethod
+    def _recall_scale_settings(comp, spec):
         # type: (Any, Text) -> None
         '''Recalls previously stored scale settings.'''
         if len(spec) >= 5:
@@ -209,14 +212,15 @@ class XArsenalActions(ControlSurfaceComponent):
             # deprecated
             if len(spec) == 5:
                 value = ['ON'] if spec[4].strip() == 'TRUE' else ['OFF']
-                self._toggle_scale_offset(comp, value)
+                XArsenalActions._toggle_scale_offset(comp, value)
             else:
                 offset = parse_int(spec[4], None, 0, comp._offsets.num_pages - 1)
                 if offset is not None:
                     comp._offsets.set_page_index(offset)
                 comp._orientation_is_horizontal = spec[5].strip() == 'TRUE'
 
-    def _toggle_scale_offset(self, comp, arg):
+    @staticmethod
+    def _toggle_scale_offset(comp, arg):
         # type: (Any, Sequence[Text]) -> None
         '''Toggles between sequent and 4ths offsets.
 

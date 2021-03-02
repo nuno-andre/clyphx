@@ -87,6 +87,12 @@ GLOBAL_ACTIONS = dict(
     MAKE_DEV_DOC = XGlobalActions.make_instant_mapping_docs,
 )  # type: Dict[Text, Callable]
 
+SCENE_ACIONS = dict(
+    ADD  = XGlobalActions.create_scene,
+    DEL  = XGlobalActions.delete_scene,
+    DUPE = XGlobalActions.duplicate_scene,
+)
+
 TRACK_ACTIONS = dict(
     ARM       = XTrackActions.set_arm,
     MUTE      = XTrackActions.set_mute,
@@ -137,12 +143,16 @@ CLIP_ACTIONS = dict(
     DEL      = XClipActions.delete_clip,
     DUPE     = XClipActions.duplicate_clip,
     CHOP     = XClipActions.chop_clip,
+    CROP     = XClipActions.crop,
     SPLIT    = XClipActions.split_clip,
     WARPMODE = XClipActions.adjust_warp_mode,
     LOOP     = XClipActions.do_clip_loop_action,
     SIG      = XClipActions.adjust_time_signature,
     WARP     = XClipActions.set_warp,
     NAME     = XClipActions.set_clip_name,
+    # TOMIDI   = XClipActions.to_midi,
+    TODR     = XClipActions.to_drum_rack,
+    TOSIMP   = XClipActions.to_simpler,
 )  # type: Dict[Text, Callable]
 
 CLIP_NOTE_ACTIONS_CMD = dict([

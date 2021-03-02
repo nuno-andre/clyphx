@@ -16,6 +16,7 @@
 
 from __future__ import absolute_import, unicode_literals
 from builtins import super
+from typing import TYPE_CHECKING
 
 from ableton.v2.control_surface.components.session_ring import SessionRingComponent
 from ableton.v2.control_surface.elements import TouchEncoderElement
@@ -25,7 +26,6 @@ from Push import Push
 
 from .core.xcomponent import XComponent, SessionComponent
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any, Iterable, Optional, Text, Dict, List
     from .core.live import MidiRemoteScript
@@ -76,7 +76,8 @@ class PushApcCombiner(XComponent):
                     self._apc_session.add_offset_listener(self._on_apc_offset_changed)
                     self._on_apc_offset_changed()
 
-    def _get_session_component(self, script):
+    @staticmethod
+    def _get_session_component(script):
         # type: (MidiRemoteScript) -> Optional[Any]
         '''Get the session component for the given script.
         '''

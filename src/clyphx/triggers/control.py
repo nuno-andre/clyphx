@@ -15,6 +15,8 @@ from ..core.live import forward_midi_cc, forward_midi_note
 class XControlComponent(XTrigger):
     '''A control on a MIDI controller.
     '''
+    can_have_off_list = True
+
     __module__ = __name__
 
     def __init__(self, parent):
@@ -95,8 +97,7 @@ class XControlComponent(XTrigger):
                 ctrl_data = self._control_list[(bytes[0], bytes[1])]
                 ctrl_data['name'].name = ctrl_data['on_action']
             if ctrl_data:
-                self._parent.handle_action_list_trigger(self.song().view.selected_track,
-                                                        ctrl_data['name'])
+                self.handle_action_list(self.ref_rack, ctrl_data['name'])
 
     def get_user_controls(self, settings, midi_map_handle):
         # type: (Dict[Text, Text], int) -> None

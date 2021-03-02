@@ -83,13 +83,15 @@ class XClipEnvCapture(ControlSurfaceComponent):
                     if device.can_have_chains and device.chains:
                         self._capture_nested_devices(clip, device)
 
-    def _insert_envelope(self, clip, param):
+    @staticmethod
+    def _insert_envelope(clip, param):
         # type: (Clip, DeviceParameter) -> None
         env = clip.automation_envelope(param)
         if env:
             env.insert_step(clip.loop_start, 0.0, param.value)
 
-    def _get_device_range(self, args, track):
+    @staticmethod
+    def _get_device_range(args, track):
         # type: (Text, Track) -> Optional[Tuple[int, int]]
         '''Returns range of devices to capture.'''
         dev_args = args.replace('MIX', '')

@@ -11,6 +11,7 @@ from Live import (
     Chain,
     Clip,
     CompressorDevice,
+    Conversions,
     Device,
     DeviceIO,
     DeviceParameter,

@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import with_statement, absolute_import, unicode_literals
+from __future__ import absolute_import, unicode_literals
 from builtins import super
 
 from typing import TYPE_CHECKING
@@ -120,7 +120,8 @@ class MacrobatPushRack(XComponent):
                 self._push_ins._note_layout.scale.name,
             )
 
-    def scale_macro_value_to_param(self, macro, hi_value):
+    @staticmethod
+    def scale_macro_value_to_param(macro, hi_value):
         # type: (Any, Number) -> int
         '''Scale the value of the macro to the Push parameter being
         controlled.

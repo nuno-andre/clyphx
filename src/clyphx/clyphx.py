@@ -13,8 +13,8 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
-from __future__ import with_statement, absolute_import, unicode_literals
-from builtins import super, dict, range, map
+from __future__ import absolute_import, unicode_literals
+from builtins import super, dict, range, map, filter, list
 from typing import TYPE_CHECKING
 from functools import partial
 from itertools import chain
@@ -25,7 +25,8 @@ from _Framework.ControlSurface import OptimizedControlSurface
 from .core.legacy import _DispatchCommand, _SingleDispatch
 from .core.utils import repr_tracklist, set_user_profile
 from .core.live import Live, Track, DeviceIO, Clip, get_random_int
-# from .core.parse import SpecParser
+from .core.parse import IdSpecParser, ObjParser
+from .core.xcomponent import XComponent
 from .consts import LIVE_VERSION, SCRIPT_INFO
 from .extra_prefs import ExtraPrefs
 from .user_config import get_user_settings
@@ -78,7 +79,8 @@ class ClyphX(OptimizedControlSurface):
         self._PushApcCombiner = None
         self._process_xclips_if_track_muted = True
         self._user_settings = get_user_settings()
-        # self.parse = SpecParser()
+        self.parse_id = IdSpecParser()
+        self.parse_obj = ObjParser()
         with self.component_guard():
             self.macrobat = Macrobat(self)
             self._extra_prefs = ExtraPrefs(self, self._user_settings.prefs)
@@ -105,13 +107,12 @@ class ClyphX(OptimizedControlSurface):
         log.info(msg, SCRIPT_INFO, '.'.join(map(str, LIVE_VERSION)))
         self.show_message(SCRIPT_INFO)
 
-        from .dev_doc import get_device_params
-        from .core.utils import get_user_clyphx_path
-        path = get_user_clyphx_path('live_instant_mapping.md')
-        log.info('Updating Live Instant Mapping info')
-        with open(path, 'w') as f:
-            f.write(get_device_params(format='md', tables=True))  # type: ignore
-
+        # from .dev_doc import get_device_params
+        # from .core.utils import get_user_clyphx_path
+        # path = get_user_clyphx_path('live_instant_mapping.md')
+        # log.info('Updating Live Instant Mapping info')
+        # with open(path, 'w') as f:
+        #     f.write(get_device_params(format='md', tables=True))  # type: ignore
 
     def disconnect(self):
         for attr in (
@@ -165,11 +166,11 @@ class ClyphX(OptimizedControlSurface):
         Main dispatch for calling appropriate class of actions, passes
         all necessary arguments to class method.
         '''
-        name = cmd.action_name
-
         if not cmd.tracks:
-            return  # how?
+            return
 
+        name = cmd.action_name
+        log.info('CMD %s', cmd)
         if name.startswith('SNAP'):
             self.snap_actions.dispatch_actions(cmd)
         elif name.startswith('DEV'):
@@ -180,6 +181,7 @@ class ClyphX(OptimizedControlSurface):
             self.device_actions.dispatch_looper_actions(cmd)
         elif name in TRACK_ACTIONS:
             self.track_actions.dispatch_actions(cmd)
+        # elif name in GLOBAL_ACTIONS or name.startswith('SCENE'):
         elif name in GLOBAL_ACTIONS:
             self.global_actions.dispatch_action(cmd.to_single())
         elif name.startswith('DR'):
@@ -188,12 +190,13 @@ class ClyphX(OptimizedControlSurface):
             self.cs_actions.dispatch_action(cmd.to_single())
         elif name in self.user_actions._action_dict:
             self.dispatch_user_actions(cmd)
-        elif name == 'PSEQ' and cmd.args== 'RESET':
+        elif name == 'PSEQ' and cmd.args == 'RESET':
             for v in self._play_seq_clips.values():
                 v[1] = -1
         elif name == 'DEBUG':
             if isinstance(cmd.xclip, Clip):
-                cmd.xclip.name = str(cmd.xclip.name).upper().replace('DEBUG', 'Debugging Activated')
+                name = str(cmd.xclip.name).upper()
+                cmd.xclip.name = name.replace('DEBUG', 'Debugging Activated')
             self.start_debugging()
         else:
             log.error('Not found dispatcher for %r', cmd)
@@ -232,79 +235,139 @@ class ClyphX(OptimizedControlSurface):
 
     def handle_action_list_trigger(self, track, xtrigger):
         # type: (Track, XTrigger) -> None
+        log.info('ClyphX.handle_action_list_trigger'
+                 '(track=%r, xtrigger=%r)', track, xtrigger)
+
+        if xtrigger == None:  # TODO: use case?
+            return
+
+        try:
+            self.run_statement(track, xtrigger)
+        except Exception as e:
+            # snap actions parsing not implemented
+            # use legacy method as a fallback
+            log.error("Failed to run statement '%s': %r", xtrigger.name, e)
+            self._handle_action_list_trigger(track, xtrigger)
+
+    def run_statement(self, track, xtrigger):
+        # type: (Track, XTrigger) -> Any
+        stmt = xtrigger.name.strip().upper()
+        spec = self.parse_id(stmt)
+
+        log.info('run_statement: %s', spec)
+        if spec.override:
+            # control reassignment, so pass to control component
+            self.control_component.assign_new_actions(stmt)
+
+        elif isinstance(xtrigger, Clip):
+            # X-Clips can have on and off action lists
+            # TODO: if xtrigger.is_triggered?
+            log.info('Clip is triggered: %s, is_playing: %s', xtrigger.is_triggered, xtrigger.is_playing)
+            if not xtrigger.is_playing:
+                if not spec.off:
+                    return
+                elif spec.off != '*':
+                    # TODO: select actual list on dispatching
+                    spec.on = spec.off
+
+            # lseq: accessible only to X-Clips
+            if spec.seq == 'LSEQ':
+                actions = self._format_action_list(track, spec.on)
+                self._loop_seq_clips[xtrigger.name] = [spec.id, actions]
+                return self.handle_loop_seq_action_list(xtrigger, 0)
+
+        actions = self._format_action_list(track, spec.on)
+
+        # pseq: accessible to any X-Trigger (except for Startup Actions)
+        if spec.seq == 'PSEQ':
+            return self.handle_play_seq_action_list(actions, xtrigger, spec.id)
+
+        for action in actions:
+            # TODO: split in singledispatch per track?
+            command = _DispatchCommand(action['track'],
+                                       xtrigger,
+                                       spec.id,
+                                       action['action'],
+                                       action['args'])
+            self.handle_dispatch_command(command)
+
+    def _handle_action_list_trigger(self, track, xtrigger):
+        # type: (Track, XTrigger) -> None
         '''Directly dispatches snapshot recall, X-Control overrides and
         Seq X-Clips. Otherwise, separates ident from action names,
         splits up lists of action names and calls action dispatch.
         '''
-        log.debug('ClyphX.handle_action_list_trigger'
-                  '(track=%r, xtrigger=%r)', track, xtrigger)
-        if xtrigger == None:
-            # TODO: use case?
+        name = xtrigger.name.strip().upper()
+        if not (name and name[0] == '[' and ']' in name):
             return
 
-        name = xtrigger.name.strip().upper()
-        if name and name[0] == '[' and ']' in name:
+        # snap action, so pass directly to snap component
+        # TODO: xtrigger.is_triggered?
+        if ' || (' in name and isinstance(xtrigger, Clip) and xtrigger.is_playing:
+            # self.snap_actions.recall_track_snapshot(name, xtrigger)
+            self.snap_actions.recall_track_snapshot(None, xtrigger)
 
-            # snap action, so pass directly to snap component
-            if ' || (' in name and isinstance(xtrigger, Clip) and xtrigger.is_playing:
-                # self.snap_actions.recall_track_snapshot(name, xtrigger)
-                self.snap_actions.recall_track_snapshot(None, xtrigger)
+        # control reassignment, so pass directly to control component
+        elif '[[' in name and ']]' in name:
+            self.control_component.assign_new_actions(name)
 
-            # control reassignment, so pass directly to control component
-            elif '[[' in name and ']]' in name:
-                self.control_component.assign_new_actions(name)
+        # standard trigger
+        else:
+            ident = name[name.index('['):name.index(']')+1].strip()
+            raw_action_list = name.replace(ident, '', 1).strip()
+            if not raw_action_list:
+                return
+            is_play_seq = False
+            is_loop_seq = False
 
-            # standard trigger
-            else:
-                ident = name[name.index('['):name.index(']')+1].strip()
-                raw_action_list = name.replace(ident, '', 1).strip()
+            # X-Clips can have on and off action lists
+            if isinstance(xtrigger, Clip):
+                raw_action_list = get_xclip_action_list(xtrigger, raw_action_list)
                 if not raw_action_list:
                     return
-                is_play_seq = False
-                is_loop_seq = False
 
-                # X-Clips can have on and off action lists
-                if isinstance(xtrigger, Clip):
-                    raw_action_list = get_xclip_action_list(xtrigger, raw_action_list)
-                    if not raw_action_list:
-                        return
+            # check if the trigger is a PSEQ (accessible to any type of X-Trigger)
+            if raw_action_list[0] == '(' and '(PSEQ)' in raw_action_list:
+                is_play_seq = True
+                raw_action_list = raw_action_list.replace('(PSEQ)', '').strip()
 
-                # check if the trigger is a PSEQ (accessible to any type of X-Trigger)
-                if raw_action_list[0] == '(' and '(PSEQ)' in raw_action_list:
-                    is_play_seq = True
-                    raw_action_list = raw_action_list.replace('(PSEQ)', '').strip()
+            # check if the trigger is a LSEQ (accessible only to X-Clips)
+            elif (isinstance(xtrigger, Clip) and
+                    raw_action_list[0] == '(' and
+                    '(LSEQ)' in raw_action_list):
+                is_loop_seq = True
+                raw_action_list = raw_action_list.replace('(LSEQ)', '').strip()
 
-                # check if the trigger is a LSEQ (accessible only to X-Clips)
-                elif (isinstance(xtrigger, Clip) and
-                        raw_action_list[0] == '(' and
-                        '(LSEQ)' in raw_action_list):
-                    is_loop_seq = True
-                    raw_action_list = raw_action_list.replace('(LSEQ)', '').strip()
+            # build formatted action list
+            formatted_action_list = self._format_action_list(track, raw_action_list)
+            # formatted_action_list = []  # List[Dict[Text, Any]]
+            # for action_ in raw_action_list.split(';'):
+            #     action_data = self.format_action_name(track, action_.strip())
+            #     if action_data:
+            #         formatted_action_list.append(action_data)
 
-                # build formatted action list
-                formatted_action_list = []  # List[Dict[Text, Any]]
-                for action_ in raw_action_list.split(';'):
-                    action_data = self.format_action_name(track, action_.strip())
-                    if action_data:
-                        formatted_action_list.append(action_data)
+            # if seq, pass to appropriate function, else call action
+            #   dispatch for each action in the formatted action list
+            if formatted_action_list:
+                if is_play_seq:
+                    self.handle_play_seq_action_list(formatted_action_list, xtrigger, ident)
+                elif is_loop_seq:
+                    self._loop_seq_clips[xtrigger.name] = [ident, formatted_action_list]
+                    self.handle_loop_seq_action_list(xtrigger, 0)
+                else:
+                    # TODO: split in singledispatch per track?
+                    for action in formatted_action_list:
+                        command = _DispatchCommand(action['track'],
+                                                    xtrigger,
+                                                    ident,
+                                                    action['action'],
+                                                    action['args'])
+                        self.handle_dispatch_command(command)
 
-                # if seq, pass to appropriate function, else call action
-                #   dispatch for each action in the formatted action list
-                if formatted_action_list:
-                    if is_play_seq:
-                        self.handle_play_seq_action_list(formatted_action_list, xtrigger, ident)
-                    elif is_loop_seq:
-                        self._loop_seq_clips[xtrigger.name] = [ident, formatted_action_list]
-                        self.handle_loop_seq_action_list(xtrigger, 0)
-                    else:
-                        # TODO: split in singledispatch per track?
-                        for action in formatted_action_list:
-                            command = _DispatchCommand(action['track'],
-                                                       xtrigger,
-                                                       ident,
-                                                       action['action'],
-                                                       action['args'])
-                            self.handle_dispatch_command(command)
+    def _format_action_list(self, track, alist):
+        # (Text) -> List[Text]
+        alist = [self.format_action_name(track, a) for a in alist]
+        return list(filter(None, alist))
 
     def format_action_name(self, origin_track, origin_name):
         # type: (Any, Text) -> Optional[Dict[Text, Any]]
@@ -336,16 +399,15 @@ class ClyphX(OptimizedControlSurface):
         '''Handles sequenced action lists, triggered by xclip looping.
         '''
         if xclip.name in self._loop_seq_clips:
-            if count >= len(self._loop_seq_clips[xclip.name][1]):
-                count -= (
-                    (count // len(self._loop_seq_clips[xclip.name][1]))
-                    * len(self._loop_seq_clips[xclip.name][1])
-                )
-            action = self._loop_seq_clips[xclip.name][1][count]
+            entry = self._loop_seq_clips[xclip.name]
+
+            if count >= len(clip[1]):
+                count -= (count // len(entry[1])) * len(entry[1])
+            action = entry[1][count]
             # TODO: _SingleDispatch?
             command = _DispatchCommand(action['track'],
                                        xclip,
-                                       self._loop_seq_clips[xclip.name][0],
+                                       entry[0],
                                        action['action'],
                                        action['args'])
             self.handle_dispatch_command(command)
@@ -365,75 +427,11 @@ class ClyphX(OptimizedControlSurface):
         action = self._play_seq_clips[xclip.name][2][self._play_seq_clips[xclip.name][1]]
         # TODO: _SingleDispatch?
         command = _DispatchCommand(action['track'],
-                                    xclip,
-                                    self._loop_seq_clips[xclip.name][0],
-                                    action['action'],
-                                    action['args'])
+                                   xclip,
+                                   self._loop_seq_clips[xclip.name][0],
+                                   action['action'],
+                                   action['args'])
         self.handle_dispatch_command(command)
-
-    def do_parameter_adjustment(self, param, value):
-        # type: (DeviceParameter, Text) -> None
-        '''Adjust (</>, reset, random, set val) continuous params, also
-        handles quantized param adjustment (should just use +1/-1 for
-        those).
-        '''
-        if not param.is_enabled:
-            return
-        step = (param.max - param.min) / 127
-        new_value = param.value
-        if value.startswith(('<', '>')):
-            factor = self.get_adjustment_factor(value)
-            new_value += factor if param.is_quantized else (step * factor)
-        elif value == 'RESET' and not param.is_quantized:
-            new_value = param.default_value
-        elif 'RND' in value and not param.is_quantized:
-            rnd_min = 0
-            rnd_max = 128
-            if value != 'RND' and '-' in value:
-                rnd_range_data = value.replace('RND', '').split('-')
-                if len(rnd_range_data) == 2:
-                    try:
-                        new_min = int(rnd_range_data[0])
-                    except:
-                        new_min = 0
-                    try:
-                        new_max = int(rnd_range_data[1]) + 1
-                    except:
-                        new_max = 128
-                    if 0 <= new_min and new_max <= 128 and new_min < new_max:
-                        rnd_min = new_min
-                        rnd_max = new_max
-            rnd_value = (get_random_int(0, 128) * (rnd_max - rnd_min) / 127) + rnd_min
-            new_value = (rnd_value * step) + param.min
-
-        else:
-            try:
-                if 0 <= int(value) < 128:
-                    try:
-                        new_value = (int(value) * step) + param.min
-                    except:
-                        new_value = param.value
-            except:
-                pass
-        if param.min <= new_value <= param.max:
-            param.value = new_value
-            log.debug('do_parameter_adjustment called on %s, set value to %s',
-                      param.name, new_value)
-
-    def get_adjustment_factor(self, string, as_float=False):
-        # type: (Text, bool) -> Union[int, float]
-        '''Get factor for use with < > actions.'''
-        factor = 1
-
-        if len(string) > 1:
-            try:
-                factor = (float if as_float else int)(string[1:])
-            except:
-                factor = 1
-
-        if string.startswith('<'):
-            factor = -(factor)
-        return factor
 
     def get_track_to_operate_on(self, origin_name):
         # type: (Text) -> Tuple[List[Any], Text]
@@ -462,7 +460,8 @@ class ClyphX(OptimizedControlSurface):
                                 track_index = -1
                                 if spec.startswith(('<', '>')):
                                     try:
-                                        track_index = (self.get_adjustment_factor(spec)
+                                        # FIXME:
+                                        track_index = (XComponent.get_adjustment_factor(spec)
                                                        + sel_track_index)
                                     except:
                                         pass
@@ -489,7 +488,8 @@ class ClyphX(OptimizedControlSurface):
                   repr_tracklist(result_tracks), result_name)
         return (result_tracks, result_name)
 
-    def get_track_index_by_name(self, name, tracks):
+    @staticmethod
+    def get_track_index_by_name(name, tracks):
         # type: (Text, Sequence[Any]) -> Text
         '''Gets the index(es) associated with the track name(s)
         specified in name.
@@ -620,7 +620,7 @@ class ClyphX(OptimizedControlSurface):
                                         ActionList(action_list))
 
     def setup_tracks(self):
-        '''Setup component tracks on ini and track list changes. Also
+        '''Setup component tracks on init and track list changes. Also
         call Macrobat's get rack.
         '''
         for t in self.song().tracks:

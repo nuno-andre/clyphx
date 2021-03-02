@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import logging
 
 if TYPE_CHECKING:
-    from typing import Text
+    from typing import Optional, Text
     from ..core.live import Clip
 
 from .base import XTrigger
@@ -17,7 +17,7 @@ def get_xclip_action_list(xclip, full_action_list):
     # type: (Clip, Text) -> Text
     '''Get the action list to perform.
 
-    X-Clips can have an on and off action list separated by a comma.
+    X-Clips can have an on and off action list separated by a colon.
     This will return which action list to perform based on whether
     the clip is playing. If the clip is not playing and there is no
     off action, this returns None.
@@ -41,8 +41,11 @@ def get_xclip_action_list(xclip, full_action_list):
 
 
 class XClip(XTrigger):
-
+    '''A control on a Session View Clip.
+    '''
     can_have_off_list = True
+    can_loop_seq = True
+
     __module__ = __name__
 
     def __init__(self, parent, clip):
@@ -53,6 +56,23 @@ class XClip(XTrigger):
 
     def update(self):
         super().update()
+
+    @property
+    def slot(self):
+        # type: () -> int
+        return self._clip.canonical_parent.canonical_parent.playing_slot_index
+        # return self.ref_track.playing_slot_index
+
+    @property
+    def actions(self):
+        # type: () -> Optional[Text]
+        # TODO: split actions
+        if self.is_playing:
+            return self.spec.on
+        elif self.spec.off == '*':
+            return self.spec.on
+        elif self.spec.off:
+            return self.spec.off
 
     @property
     def is_playing(self):
@@ -77,3 +97,4 @@ class XClip(XTrigger):
         X-Clips, where is the host track.
         '''
         raise NotImplementedError
+        # return self._clip.canonical_parent.canonical_parent

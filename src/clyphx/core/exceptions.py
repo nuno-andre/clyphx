@@ -10,3 +10,9 @@ class InvalidSpec(ClyphXception, ValueError):
 
 class InvalidParam(ClyphXception, ValueError):
     pass
+
+class InvalidAction(ClyphXception, TypeError):
+    pass
+
+class ActionUnavailable(ClyphXception, TypeError):
+    pass

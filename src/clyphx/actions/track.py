@@ -81,7 +81,7 @@ class XTrackActions(XComponent):
         in the selected slot.
         '''
         if track.has_midi_input:
-            slot = list(self.song().scenes).index(self.song().view.selected_scene)
+            slot = self.sel_scene
             bar = (4.0 / self.song().signature_denominator) * self.song().signature_numerator
             length = bar
             if args:
@@ -173,7 +173,7 @@ class XTrackActions(XComponent):
     def set_selection(self, track, xclip, args):
         # type: (Track, None, Text) -> None
         '''Sets track/slot selection.'''
-        self.song().view.selected_track = track
+        self.sel_track = track
         if track in self.song().tracks:
             if args:
                 try:
@@ -262,14 +262,13 @@ class XTrackActions(XComponent):
 
         slot_to_play = -1
         play_slot = track.playing_slot_index
-        select_slot = list(self.song().scenes).index(self.song().view.selected_scene)
         if not args:
             if isinstance(xclip, Clip):
                 slot_to_play = xclip.canonical_parent.canonical_parent.playing_slot_index
             else:
-                slot_to_play = play_slot if play_slot >= 0 else select_slot
+                slot_to_play = play_slot if play_slot >= 0 else self.sel_scene
         elif args == 'SEL':
-            slot_to_play = select_slot
+            slot_to_play = self.sel_scene
         # TODO: repeated, check refactoring
         # don't allow randomization unless more than 1 scene
         elif 'RND' in args and len(self.song().scenes) > 1:
@@ -296,7 +295,7 @@ class XTrackActions(XComponent):
         elif args.startswith(('<', '>')) and len(self.song().scenes) > 1:
             if track.is_foldable:
                 return -1
-            factor = self._parent.get_adjustment_factor(args)
+            factor = self.get_adjustment_factor(args)
             if factor < len(self.song().scenes):
                 # only launch slots that contain clips
                 if abs(factor) == 1:
@@ -338,25 +337,25 @@ class XTrackActions(XComponent):
         # type: (Track, None, Text) -> None
         '''Adjust/set master preview volume.'''
         if track == self.song().master_track:
-            self._parent.do_parameter_adjustment(
+            self.adjust_param(
                 self.song().master_track.mixer_device.cue_volume, args.strip())
 
     def adjust_crossfader(self, track, xclip, args):
         # type: (Track, None, Text) -> None
         '''Adjust/set master crossfader.'''
         if track == self.song().master_track:
-            self._parent.do_parameter_adjustment(
+            self.adjust_param(
                 self.song().master_track.mixer_device.crossfader, args.strip())
 
     def adjust_volume(self, track, xclip, args):
         # type: (Track, None, Text) -> None
         '''Adjust/set track volume.'''
-        self._parent.do_parameter_adjustment(track.mixer_device.volume, args.strip())
+        self.adjust_param(track.mixer_device.volume, args.strip())
 
     def adjust_pan(self, track, xclip, args):
         # type: (Track, None, Text) -> None
         '''Adjust/set track pan.'''
-        self._parent.do_parameter_adjustment(track.mixer_device.panning, args.strip())
+        self.adjust_param(track.mixer_device.panning, args.strip())
 
     def adjust_sends(self, track, xclip, args):
         # type: (Track, None, Text) -> None
@@ -365,7 +364,7 @@ class XTrackActions(XComponent):
         if len(args) > 1:
             param = self.get_send_parameter(track, largs[0].strip())
             if param:
-                self._parent.do_parameter_adjustment(param, largs[1].strip())
+                self.adjust_param(param, largs[1].strip())
 
     def get_send_parameter(self, track, send_string):
         # type: (Track, Text) -> Optional[Any]
@@ -429,7 +428,7 @@ class XTrackActions(XComponent):
         new_routing = routings[current_routing]
         args = args.strip()
         if args in ('<', '>'):
-            factor = self._parent.get_adjustment_factor(args)
+            factor = self.get_adjustment_factor(args)
             if 0 <= (current_routing + factor) < len(routings):
                 new_routing = routings[current_routing + factor]
         else:

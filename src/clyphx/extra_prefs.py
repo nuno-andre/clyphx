@@ -45,7 +45,7 @@ class ExtraPrefs(XComponent):
         self._clip_record_slot = None  # type: Optional[Any]
         self._midi_clip_length = config.get('default_inserted_midi_clip_length', False)  # type: bool
         self._midi_clip_length_slot = None  # type: Optional[Any]
-        self._last_track = self.song().view.selected_track  # type: Track
+        self._last_track = self.sel_track  # type: Track
         self.on_selected_track_changed()
 
     def disconnect(self):
@@ -61,7 +61,7 @@ class ExtraPrefs(XComponent):
         functions.
         '''
         super().on_selected_track_changed()
-        track = self.song().view.selected_track
+        track = self.sel_track
         clip_slot = self.song().view.highlighted_clip_slot
         self.remove_listeners()
         if self._show_highlight:
@@ -70,9 +70,7 @@ class ExtraPrefs(XComponent):
                           (self.song().master_track,))
             if self.song().view.selected_track in tracks:
                 self._parent._set_session_highlight(
-                    tracks.index(self.song().view.selected_track),
-                    list(self.song().scenes).index(self.song().view.selected_scene),
-                    1, 1, True,
+                    tracks.index(self.song().view.selected_track), self.sel_scene, 1, 1, True,
                 )
         else:
             self._parent._set_session_highlight(-1, -1, -1, -1, False)
@@ -124,8 +122,7 @@ class ExtraPrefs(XComponent):
         '''Called on slot has clip changed. Checks if clip is recording
         and retriggers it if so.
         '''
-        track = self.song().view.selected_track
-        if self.song().clip_trigger_quantization != 0 and track.arm:
+        if self.song().clip_trigger_quantization != 0 and self.sel_track.arm:
             clip = self._clip_record_slot.clip
             if clip and clip.is_recording:
                 clip.fire()

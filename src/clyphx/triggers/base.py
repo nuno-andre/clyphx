@@ -23,6 +23,9 @@ class ActionList(object):
 
 
 class XTrigger(XComponent):
+    # only available for X-Clips
+    can_loop_seq = False
+
     def __init__(self, parent):
         # type: (Any) -> None
         super().__init__(parent)
@@ -38,4 +41,7 @@ class XTrigger(XComponent):
         It's the song's selected track for all triggers except for
         X-Clips, where is the host track.
         '''
-        return self._parent.song().selected_track
+        return self.sel_track
+
+    def handle_action_list(self, track, xtrigger):
+        self._parent.handle_action_list_trigger(track, xtrigger)

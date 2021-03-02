@@ -1,6 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 from typing import TYPE_CHECKING
 
+# TODO: get from .consts.DEVICE_BANKS
 from _Generic.Devices import DEVICE_DICT, DEVICE_BOB_DICT, BANK_NAME_DICT
 from .consts import LIVE_VERSION, DEV_NAME_TRANSLATION
 

@@ -70,7 +70,7 @@ class XM4LBrowserInterface(XComponent):
         device.
         '''
         # type: () -> List[Any]
-        device = self.song().view.selected_track.view.selected_device
+        device = self.sel_track.view.selected_device
         items = []
         if device:
             if self.application().view.browse_mode:
@@ -157,7 +157,7 @@ class XM4LBrowserInterface(XComponent):
         '''Returns whether or not the selected track contains the Device
         Browser, in which case hotswapping isn't possble.
         '''
-        for device in self.song().view.selected_track.devices:
+        for device in self.sel_track.devices:
             if device and device.name == 'Device Browser':
                 return True
         return False
@@ -165,7 +165,7 @@ class XM4LBrowserInterface(XComponent):
     def _create_devices_for_tag(self, tag):
         '''Creates dict of devices for the given tag. Special handling
         is needed for M4L tag, which only contains folders, and Drums
-        tag, which ontains devices and folders.
+        tag, which contains devices and folders.
         '''
         # type: (Text) -> Dict[Text, Any]
         device_dict = dict()

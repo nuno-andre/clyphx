@@ -84,8 +84,7 @@ class XCueComponent(XTrigger):
                 self._x_point_time_to_watch_for = -1
 
     def schedule_x_point_action_list(self, point):
-        self._parent.handle_action_list_trigger(self.song().view.selected_track,
-                                                self._x_points[point])
+        self.handle_action_list(self.ref_track, self._x_points[point])
 
     def remove_cue_point_listeners(self):
         for cp in self.song().cue_points:

@@ -135,6 +135,8 @@ class MacrobatRnRRack(XComponent):
     def get_next_device(self, rnr_rack, dev_list, store_next=False):
         # type: (RackDevice, List[RackDevice], bool) -> None
         '''Get the next non-RnR device on the track or in the chain.'''
+        from .consts import RNR_EXCLUDED
+
         for d in dev_list:
             if d and not store_next:
                 if d == rnr_rack:
@@ -145,10 +147,7 @@ class MacrobatRnRRack(XComponent):
                     isinstance(d.canonical_parent, Chain)
                 ):
                     name = d.name.upper()
-                    if d and not name.startswith(
-                        ('NK RND', 'NK RST', 'NK CHAIN MIX', 'NK DR',
-                        'NK LEARN', 'NK RECEIVER', 'NK TRACK', 'NK SIDECHAIN')
-                    ):
+                    if d and not name.startswith(RNR_EXCLUDED):
                         self._devices_to_operate_on.append(d)
                         if self._parent._can_have_nested_devices:
                             if isinstance(rnr_rack.canonical_parent, Chain):

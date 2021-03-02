@@ -226,20 +226,22 @@ class XSnapActions(XComponent):
         self._parameters_to_smooth = dict()
         self._rack_parameters_to_smooth = dict()
         is_synced = False if disable_smooth else self._init_smoothing(xclip)
+
         for track, param_data in snap_data.items():
+            pos = param_data[PLAY_SETTINGS_POS]
             if track in self.current_tracks:
                 track = self.current_tracks[track]
                 self._recall_mix_settings(track, param_data)
-                if (param_data[PLAY_SETTINGS_POS] is not None and
-                        not track.is_foldable and
-                        track is not self.song().master_track):
-                    if param_data[PLAY_SETTINGS_POS] < 0:
+                if (pos is not None and not track.is_foldable
+                        and track is not self.song().master_track):
+                    if pos < 0:
                         track.stop_all_clips()
-                    elif (track.clip_slots[param_data[PLAY_SETTINGS_POS]].has_clip and
-                            track.clip_slots[param_data[PLAY_SETTINGS_POS]].clip != xclip):
-                        track.clip_slots[param_data[PLAY_SETTINGS_POS]].fire()
-                if param_data[DEVICE_SETTINGS_POS]:
+                    elif (track.clip_slots[pos].has_clip
+                            and track.clip_slots[pos].clip != xclip):
+                        track.clip_slots[pos].fire()
+                if pos:
                     self._recall_device_settings(track, param_data)
+
         if self._is_control_track and self._parameters_to_smooth:
             if (not self._control_rack or
                     (self._control_rack and
@@ -252,47 +254,44 @@ class XSnapActions(XComponent):
     def _recall_mix_settings(self, track, param_data):
         # type: (Track, Mapping[int, Any]) -> None
         '''Recalls mixer related settings.'''
-        if param_data[MIX_STD_SETTINGS_POS]:
-            pan_value = param_data[MIX_STD_SETTINGS_POS][MIX_PAN_POS]
-            if (track.mixer_device.volume.is_enabled and
-                    param_data[MIX_STD_SETTINGS_POS][MIX_VOL_POS] != -1):
+        std = param_data[MIX_STD_SETTINGS_POS]
+        if std:
+            pan_value = std[MIX_PAN_POS]
+            if (track.mixer_device.volume.is_enabled and std[MIX_VOL_POS] != -1):
                 self._get_parameter_data_to_smooth(
-                    track.mixer_device.volume,
-                    param_data[MIX_STD_SETTINGS_POS][MIX_VOL_POS]
-                )
+                    track.mixer_device.volume, std[MIX_VOL_POS])
+
             if track.mixer_device.panning.is_enabled and not isinstance(pan_value, int):
                 self._get_parameter_data_to_smooth(
-                    track.mixer_device.panning,
-                    param_data[MIX_STD_SETTINGS_POS][MIX_PAN_POS]
-                )
+                    track.mixer_device.panning, std[MIX_PAN_POS])
+
             if track is not self.song().master_track:
-                for i in range(len(param_data[MIX_STD_SETTINGS_POS]) - MIX_SEND_START_POS):
-                    if (i <= len(track.mixer_device.sends) - 1 and
-                            track.mixer_device.sends[i].is_enabled):
+                sends = track.mixer_device.sends
+                for i in range(len(std) - MIX_SEND_START_POS):
+                    if (i <= len(sends) - 1 and sends[i].is_enabled):
                         self._get_parameter_data_to_smooth(
-                            track.mixer_device.sends[i],
-                            param_data[MIX_STD_SETTINGS_POS][MIX_SEND_START_POS+i]
-                        )
+                            sends[i], std[MIX_SEND_START_POS + i])
+
         if param_data[1] and track is not self.song().master_track:
-            track.mute = param_data[MIX_EXT_SETTINGS_POS][MIX_MUTE_POS]
-            track.solo = param_data[MIX_EXT_SETTINGS_POS][MIX_SOLO_POS]
-            track.mixer_device.crossfade_assign = param_data[MIX_EXT_SETTINGS_POS][MIX_CF_POS]
+            ext = param_data[MIX_EXT_SETTINGS_POS]
+            track.mute = ext[MIX_MUTE_POS]
+            track.solo = ext[MIX_SOLO_POS]
+            track.mixer_device.crossfade_assign = ext[MIX_CF_POS]
 
     def _recall_device_settings(self, track, param_data):
         # type: (Track, Mapping[int, Any]) -> None
         '''Recalls device related settings.'''
+        settings = param_data[DEVICE_SETTINGS_POS]
         for device in track.devices:
-            if device.name in param_data[DEVICE_SETTINGS_POS]:
-                self._recall_device_snap(device, param_data[DEVICE_SETTINGS_POS][device.name]['params'])
-                if (self._include_nested_devices and
-                        self._parent._can_have_nested_devices and
-                        device.can_have_chains and
-                        'chains' in param_data[DEVICE_SETTINGS_POS][device.name]):
+            if device.name in settings:
+                self._recall_device_snap(device, settings[device.name]['params'])
+                if (self._include_nested_devices
+                        and self._parent._can_have_nested_devices
+                        and device.can_have_chains
+                        and 'chains' in settings[device.name]):
                     self._recall_nested_device_snap(
-                        device,
-                        param_data[DEVICE_SETTINGS_POS][device.name]['chains'],
-                    )
-                del param_data[DEVICE_SETTINGS_POS][device.name]
+                        device, settings[device.name]['chains'])
+                del settings[device.name]
 
     def _recall_device_snap(self, device, stored_params):
         # type: (Device, Any) -> None
@@ -497,7 +496,8 @@ class XSnapActions(XComponent):
         else:
             parameter.value = new_value
 
-    def _get_snap_device_range(self, args, track):
+    @staticmethod
+    def _get_snap_device_range(args, track):
         # type: (Text, Track) -> Tuple[int, int]
         '''Returns range of devices to snapshot.'''
         dev_args = (args.replace('MIX', '').replace('PLAY', '')

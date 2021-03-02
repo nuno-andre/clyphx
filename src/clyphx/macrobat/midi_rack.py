@@ -117,11 +117,16 @@ class MacrobatMidiRack(XComponent):
                     send_new_val = True
                     for byte in p[1][0]:
                         if byte == -1:
-                            new_val = int((((p[1][2] - p[1][1]) / 127.0) * int(p[0].value)) + p[1][1])
-                            if int((((p[1][2] - p[1][1]) / 127.0) * p[2]) + p[1][1]) != new_val:
+                            if int(p[0].value) != p[2]:
+                                new_val = int((((p[1][2] - p[1][1]) / 127.0) * int(p[0].value)) + p[1][1])
                                 new_string.append(new_val)
                             else:
                                 send_new_val = False
+                            # new_val = int((((p[1][2] - p[1][1]) / 127.0) * int(p[0].value)) + p[1][1])
+                            # if int((((p[1][2] - p[1][1]) / 127.0) * p[2]) + p[1][1]) != new_val:
+                            #     new_string.append(new_val)
+                            # else:
+                            #     send_new_val = False
                         else:
                             new_string.append(byte)
                     if send_new_val:
@@ -155,7 +160,8 @@ class MacrobatMidiRack(XComponent):
                     result = entry[1:4]
         return result
 
-    def check_for_channel(self, name):
+    @staticmethod
+    def check_for_channel(name):
         # type: (Text) -> int
         '''Check for user-specified channel in rack name.
         '''
@@ -171,7 +177,8 @@ class MacrobatMidiRack(XComponent):
                 log.error("Invalid MIDI channel number: '%d'", value)
         return 0
 
-    def check_for_cc_num(self, name):
+    @staticmethod
+    def check_for_cc_num(name):
         # type: (Text) -> Optional[int]
         '''Check for user-specified CC# in macro name.
         '''

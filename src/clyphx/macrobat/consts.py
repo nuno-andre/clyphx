@@ -29,6 +29,16 @@ MACROBAT_RACKS = OrderedDict([
     ('NK CS',         MacrobatChainSelectorRack),  # param rack
 ])
 
+RNR_EXCLUDED = (
+    'NK RND',
+    'NK RST',
+    'NK CHAIN MIX',
+    'NK DR',
+    'NK LEARN',
+    'NK RECEIVER',
+    'NK TRACK',
+    'NK SIDECHAIN',
+)
 
 # {param: (mess_type, reset)}
 RNR_ON_OFF = dict([

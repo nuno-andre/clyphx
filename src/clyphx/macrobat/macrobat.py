@@ -73,7 +73,7 @@ class MacrobatTrackComponent(XComponent):
         super().disconnect()
 
     def update(self):
-        if self._track and self.song().view.selected_track == self._track:
+        if self._track and self.sel_track == self._track:
             self.setup_devices()
 
     def reallow_updates(self):

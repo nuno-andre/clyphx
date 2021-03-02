@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import with_statement, absolute_import, unicode_literals
+from __future__ import absolute_import, unicode_literals
 from builtins import super, dict, range
 from functools import partial
 from typing import TYPE_CHECKING
@@ -152,11 +152,11 @@ class XCsActions(XComponent):
     def dispatchers(self):
         return dict(
             SURFACE = self.dispatch_cs_action,
-            CS =      self.dispatch_cs_action,
+            CS      = self.dispatch_cs_action,
             ARSENAL = self.dispatch_arsenal_action,
-            PUSH =    self.dispatch_push_action,
-            PTX =     self.dispatch_pxt_action,
-            MTX =     self.dispatch_mxt_action,
+            PUSH    = self.dispatch_push_action,
+            PTX     = self.dispatch_pxt_action,
+            MTX     = self.dispatch_mxt_action,
         )
 
     # TODO: normalize dispatching
@@ -176,37 +176,25 @@ class XCsActions(XComponent):
     def dispatch_cs_action(self, script, xclip, ident, args):
         # type: (Any, Clip, Text, Text) -> None
         '''Dispatch appropriate control surface actions.'''
-        if 'METRO ' in args and 'metro' in self._scripts[script]:
-            self.handle_visual_metro(self._scripts[script], args)
-        elif 'RINGLINK ' in args and self._scripts[script]['session']:
-            self.handle_ring_link(
-                self._scripts[script]['session'], script, args[9:]
-            )
-        elif 'RING ' in args and self._scripts[script]['session']:
-            self.handle_session_offset(script,
-                                        self._scripts[script]['session'],
-                                        args[5:])
-        elif ('COLORS ' in args and
-                self._scripts[script]['session'] and
-                self._scripts[script]['color']):
-            self.handle_session_colors(self._scripts[script]['session'],
-                                        self._scripts[script]['color'],
-                                        args[7:])
-        elif 'DEV LOCK' in args and self._scripts[script]['device']:
-            self._scripts[script]['device'].canonical_parent.toggle_lock()
-        elif 'BANK ' in args and self._scripts[script]['mixer']:
+        _script = self._scripts[script]
+
+        if 'METRO ' in args and 'metro' in _script:
+            self.handle_visual_metro(_script, args)
+        elif 'RINGLINK ' in args and _script['session']:
+            self.handle_ring_link(_script['session'], script, args[9:])
+        elif 'RING ' in args and _script['session']:
+            self.handle_session_offset(script, _script['session'], args[5:])
+        elif ('COLORS ' in args and _script['session'] and _script['color']):
+            self.handle_session_colors(_script['session'], _script['color'], args[7:])
+        elif 'DEV LOCK' in args and _script['device']:
+            _script['device'].canonical_parent.toggle_lock()
+        elif 'BANK ' in args and _script['mixer']:
             self.handle_track_bank(
-                script, xclip, ident, self._scripts[script]['mixer'],
-                self._scripts[script]['session'], args[5:]
-            )
+                script, xclip, ident, _script['mixer'], _script['session'], args[5:])
         elif 'RPT' in args:
-            self.handle_note_repeat(
-                self._scripts[script]['script'], script, args
-            )
-        elif self._scripts[script]['mixer'] and '/' in args[:4]:
-            self.handle_track_action(
-                script, self._scripts[script]['mixer'], xclip, ident, args
-            )
+            self.handle_note_repeat(_script['script'], script, args)
+        elif _script['mixer'] and '/' in args[:4]:
+            self.handle_track_action(script, _script['mixer'], xclip, ident, args)
 
     def dispatch_push_action(self, track, xclip, ident, action, args):
         # type: (Track, Clip, Text, None, Text) -> None
@@ -307,9 +295,10 @@ class XCsActions(XComponent):
         if (0 <= track_start and track_start < track_end and
                 track_end < len(mixer._channel_strips) + 1):
             track_list = []
-            if self._scripts[script_key]['name'] == 'PUSH':
-                offset, _ = self._push_actions.get_session_offsets(self._scripts[script_key]['session'])
-                tracks_to_use = self._scripts[script_key]['session'].tracks_to_use()
+            _script = self._scripts[script_key]
+            if _script['name'] == 'PUSH':
+                offset, _ = self._push_actions.get_session_offsets(_script['session'])
+                tracks_to_use = _script['session'].tracks_to_use()
             else:
                 offset = mixer._track_offset
                 tracks_to_use = mixer.tracks_to_use()
@@ -390,15 +379,14 @@ class XCsActions(XComponent):
         specification that was parsed.
         '''
         index = default_index
-        arg_array = arg_string.split()
-        for a in arg_array:
+        for a in arg_string.split():
             if a.startswith(spec_id):
                 if a[1].isdigit():
                     index = int(a.strip(spec_id)) - 1
                     arg_string = arg_string.replace(a, '', 1).strip()
                     break
                 elif a[1] in ('<', '>'):
-                    index += self._parent.get_adjustment_factor(a.strip(spec_id))
+                    index += self.get_adjustment_factor(a.strip(spec_id))
                     arg_string = arg_string.replace(a, '', 1).strip()
                     break
                 elif a[1] == '"':
@@ -419,9 +407,10 @@ class XCsActions(XComponent):
         '''Handles linking/unliking session offsets to the selected
         track or scene with centering if specified.
         '''
-        self._scripts[script_index]['track_link'] = args == 'T' or 'T ' in args or ' T' in args
-        self._scripts[script_index]['scene_link'] = 'S' in args
-        self._scripts[script_index]['centered_link'] = 'CENTER' in args
+        script = self._scripts[script_index]
+        script['track_link'] = args == 'T' or 'T ' in args or ' T' in args
+        script['scene_link'] = 'S' in args
+        script['centered_link'] = 'CENTER' in args
 
     def handle_session_colors(self, session, colors, args):
         # type: (Any, Any, Text) -> None
@@ -449,21 +438,20 @@ class XCsActions(XComponent):
         This is a specialized version for L9 that uses component guard
         to avoid dependency issues.
         '''
-        if 'ON' in args and not script['metro']['component']:
+        metro = script['metro']
+        if 'ON' in args and not metro['component']:
             with self._parent.component_guard():
-                m = VisualMetro(self._parent,
-                                script['metro']['controls'],
-                                script['metro']['override'])
-                script['metro']['component'] = m
-        elif 'OFF' in args and script['metro']['component']:
-            script['metro']['component'].disconnect()
-            script['metro']['component'] = None
+                m = VisualMetro(self._parent, metro['controls'], metro['override'])
+                metro['component'] = m
+        elif 'OFF' in args and metro['component']:
+            metro['component'].disconnect()
+            metro['component'] = None
 
     def on_selected_track_changed(self):
         '''Moves the track offset of all track linked surfaces to the
         selected track with centering if specified.
         '''
-        trk = self.song().view.selected_track
+        trk = self.sel_track
         if trk in self.song().tracks:
             trk_id = list(self.song().visible_tracks).index(trk)
             for k, v in self._scripts.items():
@@ -496,7 +484,7 @@ class XCsActions(XComponent):
         '''Moves the scene offset of all scene linked surfaces to the
         selected scene with centering if specified.
         '''
-        scn_id = list(self.song().scenes).index(self.song().view.selected_scene)
+        scn_id = self.sel_scene
         for k, v in self._scripts.items():
             if v['scene_link']:
                 new_scn_id = scn_id

@@ -47,15 +47,12 @@ class XTrackComponent(XTrigger):
         new_clip = self.get_xclip(self._track.playing_slot_index)
         prev_clip = self.get_xclip(self._last_slot_index)
         self._last_slot_index = self._track.playing_slot_index
-        if new_clip and prev_clip and new_clip == prev_clip:
-            self._triggered_clips.append(new_clip)
-        elif new_clip:
-            if prev_clip:
-                self._triggered_clips.append(prev_clip)
-            self._triggered_clips.append(new_clip)
-        elif prev_clip:
+        if prev_clip:
             self._triggered_clips.append(prev_clip)
+        if new_clip and new_clip != prev_clip:
+            self._triggered_clips.append(new_clip)
         self._clip = new_clip
+        # FIXME
         if (self._clip and '(LSEQ)' in self._clip.name.upper() and
                 not self._clip.loop_jump_has_listener(self.on_loop_jump)):
             self._clip.add_loop_jump_listener(self.on_loop_jump)
@@ -68,6 +65,7 @@ class XTrackComponent(XTrigger):
             slot = self._track.clip_slots[slot_index]
             if slot.has_clip and not slot.clip.is_recording and not slot.clip.is_triggered:
                 clip_name = slot.clip.name
+                # TODO: make XClip
                 if len(clip_name) > 2 and clip_name[0] == '[' and ']' in clip_name:
                     clip = slot.clip
         return clip

@@ -4,7 +4,7 @@
 # Some rights reserved. See COPYING, COPYING.LESSER
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
-from __future__ import absolute_import, unicode_literals, with_statement
+from __future__ import absolute_import, unicode_literals
 from typing import TYPE_CHECKING
 from builtins import dict, object
 import logging
@@ -165,7 +165,7 @@ class UserVars(object):
     # new format: %VARNAME%
     re_var = re.compile(r'%(\w+?)%')
 
-   # legacy format: $VARNAME
+    # legacy format: $VARNAME
     re_legacy_var = re.compile(r'\$(\w+?)\b')
 
     def __getitem__(self, key):

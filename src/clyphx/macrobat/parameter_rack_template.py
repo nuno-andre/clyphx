@@ -57,11 +57,13 @@ class MacrobatParameterRackTemplate(XComponent):
             self._on_off_param = [rack.parameters[0], rack.parameters[0].value]
             rack.parameters[0].add_value_listener(self.on_off_changed)
 
-    def scale_macro_value_to_param(self, macro, param):
+    @staticmethod
+    def scale_macro_value_to_param(macro, param):
         # type: (DeviceParameter, DeviceParameter) -> float
         return (((param.max - param.min) / 127.0) * macro.value) + param.min
 
-    def scale_param_value_to_macro(self, param):
+    @staticmethod
+    def scale_param_value_to_macro(param):
         # type: (DeviceParameter) -> int
         return int(((param.value - param.min) / (param.max - param.min)) * 127.0)
 

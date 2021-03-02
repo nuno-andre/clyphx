@@ -18,6 +18,8 @@ from builtins import map, dict
 from typing import TYPE_CHECKING
 import logging
 
+from _Generic.Devices import DEVICE_DICT, DEVICE_BOB_DICT
+
 from . import __version__
 from .core.live import (GridQuantization,
                         MixerDevice,
@@ -38,15 +40,11 @@ LIVE_VERSION = (app.get_major_version(),
                 app.get_minor_version(),
                 app.get_bugfix_version())
 
-if LIVE_VERSION < (9, 5, 0):
-    raise RuntimeError('Live releases earlier than 9.5 are not supported')
-
+if LIVE_VERSION < (9, 6, 0):
+    raise RuntimeError('Live releases earlier than 9.6 are not supported')
 
 SCRIPT_NAME = 'ClyphX'
-
-SCRIPT_VERSION = __version__
-
-SCRIPT_INFO = '{} v{}'.format(SCRIPT_NAME, '.'.join(map(str, SCRIPT_VERSION)))
+SCRIPT_INFO = '{} v{}'.format(SCRIPT_NAME, '.'.join(map(str, __version__)))
 
 KEYWORDS = dict(ON=1, OFF=0)  # type: Mapping[Optional[Text], bool]
 
@@ -93,6 +91,7 @@ WARP_MODES = dict((
     # ('COUNT',       WarpMode.count),
 ))  # type: Mapping[Text, int]
 
+# region STATES
 XFADE_STATES = dict(
     A   = MixerDevice.crossfade_assignments.A,
     OFF = MixerDevice.crossfade_assignments.NONE,
@@ -112,7 +111,6 @@ LOOPER_STATES = dict(
     OVER = 3.0,
 )  # type: Mapping[Text, float]
 
-# region STATES
 # TODO: check gq, rq,r_qnrz, and clip_grid uses
 # XXX: bars vs beats
 GQ_STATES = dict((
@@ -293,4 +291,10 @@ DEV_NAME_TRANSLATION = dict(
     MidiVelocity           = 'Velocity',
     Vinyl                  = 'Vinyl Distortion',
 )
+
+# BoB is B0, device banks have the index of its label 'B1' = 1, ...
+DEVICE_BANKS = dict()
+for device, banks in DEVICE_DICT.items():
+    DEVICE_BANKS[device] = DEVICE_BOB_DICT[device] + banks
+
 # endregion

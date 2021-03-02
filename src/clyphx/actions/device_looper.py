@@ -2,6 +2,7 @@ from __future__ import absolute_import, unicode_literals
 from builtins import object
 
 from ..consts import LOOPER_STATES, switch
+from ..core.exceptions import InvalidParam
 
 
 # TODO: turn into a component?
@@ -61,4 +62,4 @@ class LooperMixin(object):
         try:
             self.get_param('State').value = LOOPER_STATES[value.upper()]
         except KeyError:
-            raise ValueError("'{}' is not a looper state".format(value))
+            raise InvalidParam("'{}' is not a looper state".format(value))

@@ -145,8 +145,8 @@ class XUserActions(XComponent):
            the action list as a string(proceeded by an identifier).
         '''
         log.info('example_action_one triggered with args=%s', args)
-        self._parent.handle_action_list_trigger(self.song().view.selected_track,
-                                                ActionList('[] METRO {}'.format(args)))
+        self._parent.handle_action_list_trigger(
+            self.sel_track,ActionList('[] METRO {}'.format(args)))
 
     def example_action_two(self, track, args):
         # type: (Track, Text) -> None

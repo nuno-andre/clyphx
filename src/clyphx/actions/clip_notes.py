@@ -16,17 +16,23 @@
 
 from __future__ import absolute_import, unicode_literals
 from builtins import object, dict, range
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple, List, Text
 import logging
 
 if TYPE_CHECKING:
-    from typing import Any, Union, Optional, Text, Dict, List, Tuple
+    from typing import Any, Union, Optional, Dict, Tuple
     Note = Tuple[int, float, Any, Any, bool]
     NoteActionSignature = Clip, Text, List[Note], List[Note]
 
 import random
 from ..consts import NOTE_NAMES, OCTAVE_NAMES
 from ..core.live import Clip, get_random_int
+
+# from ..core.models import Note
+# from ..core.parse import Pitch
+# NoteData = NamedTuple('NoteData', [('notes_to_edit', List[Note]),
+#                                    ('other_notes',   List[Note]),
+#                                    ('args',          Text)])  # TODO: Tuple[Text]
 
 
 class ClipNotesMixin(object):
@@ -81,7 +87,8 @@ class ClipNotesMixin(object):
             args          = new_args,
         )
 
-    def get_pos_range(self, clip, string):
+    @staticmethod
+    def get_pos_range(clip, string):
         # type: (Clip, Text) -> Tuple[float, float]
         '''Get note position or range to operate on.'''
         pos_range = (clip.loop_start, clip.loop_end)
@@ -124,7 +131,8 @@ class ClipNotesMixin(object):
                     pass
         return note_range
 
-    def get_note_range_from_string(self, string):
+    @staticmethod
+    def get_note_range_from_string(string):
         # type: (Text) -> Tuple[int, int]
         '''Returns a note range (specified in ints) from string.
         '''
@@ -138,7 +146,8 @@ class ClipNotesMixin(object):
             return (start, end)
         raise ValueError("Invalid range note: '{}'".format(string))
 
-    def get_note_name_from_string(self, string):
+    @staticmethod
+    def get_note_name_from_string(string):
         # type: (Text) -> Text
         '''Get the first note name specified in the given string.'''
         if len(string) >= 2:
@@ -150,7 +159,8 @@ class ClipNotesMixin(object):
             return result
         raise ValueError("'{}' does not contain a note".format(string))
 
-    def string_to_note(self, string):
+    @staticmethod
+    def string_to_note(string):
         # type: (Text) -> Any
         '''Get note value from string.'''
         base_note = None
@@ -171,7 +181,8 @@ class ClipNotesMixin(object):
 
         raise ValueError("Invalid note: '{}'".format(string))
 
-    def write_all_notes(self, clip, edited_notes, other_notes):
+    @staticmethod
+    def write_all_notes(clip, edited_notes, other_notes):
         # type: (Clip, List[Note], Any) -> None
         '''Writes new notes to clip.'''
         edited_notes.extend(other_notes)
@@ -199,7 +210,7 @@ class ClipNotesMixin(object):
         # type: (NoteActionSignature) -> None
         '''Adjust note gate.'''
         edited_notes = []
-        factor = self._parent.get_adjustment_factor(args.split()[1], True)
+        factor = self.get_adjustment_factor(args.split()[1], True)
         for n in notes_to_edit:
             new_gate = n[2] + (factor * 0.03125)
             if n[1] + new_gate > clip.loop_end or new_gate < 0.03125:
@@ -214,7 +225,7 @@ class ClipNotesMixin(object):
         # type: (NoteActionSignature) -> None
         '''Adjust note position.'''
         edited_notes = []
-        factor = self._parent.get_adjustment_factor(args.split()[1], True)
+        factor = self.get_adjustment_factor(args.split()[1], True)
         for n in notes_to_edit:
             new_pos = n[1] + (factor * 0.03125)
             if n[2] + new_pos > clip.loop_end or new_pos < 0.0:
@@ -236,7 +247,7 @@ class ClipNotesMixin(object):
                 # FIXME: get_random_int
                 edited_notes.append((n[0], n[1], n[2], get_random_int(64, 64), n[4]))
             elif args.startswith(('<', '>')):
-                factor = self._parent.get_adjustment_factor(args)
+                factor = self.get_adjustment_factor(args)
                 new_velo = n[3] + factor
                 if 0 <= new_velo < 128:
                     edited_notes.append((n[0], n[1], n[2], new_velo, n[4]))

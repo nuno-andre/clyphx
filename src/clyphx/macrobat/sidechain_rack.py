@@ -99,9 +99,8 @@ class MacrobatSidechainRack(XComponent):
         if self._rack:
             for p in self._rack.parameters:
                 name = p.name.upper()
-                if name.startswith('DEVICE'):
-                    if p.value == 0.0:
-                        return
+                if name.startswith('DEVICE') and p.value == 0.0:
+                    return
                 elif name.startswith('[SC]') and p.is_enabled:
                     if self._track.output_meter_level == 0.0 or (
                         self._track.has_audio_output and

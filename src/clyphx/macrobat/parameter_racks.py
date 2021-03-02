@@ -247,7 +247,8 @@ class MacrobatReceiverRack(MacrobatParameterRackTemplate):
                 for c in d.chains:
                     self.get_sender_macros(c.devices)
 
-    def get_ident_macros(self, rack):
+    @staticmethod
+    def get_ident_macros(rack):
         # type: (RackDevice) -> Sequence[Tuple[Text, DeviceParameter]]
         '''Get send and receiver macros.'''
         macros = []
@@ -433,7 +434,8 @@ class MacrobatChainSelectorRack(MacrobatParameterRackTemplate):
             setattr(self, attr, None)
         super().disconnect()
 
-    def scale_macro_value_to_param(self, macro, param):
+    @staticmethod
+    def scale_macro_value_to_param(macro, param):
         return (((param.max - param.min) / 126.0) * macro.value) + param.min
 
     def setup_device(self, rack):

@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from ..core.legacy import _DispatchCommand
 
 from ..core.xcomponent import XComponent
-from ..core.live import Clip
+from ..core.live import Clip, Conversions
 from .clip_env_capture import XClipEnvCapture
 from .clip_notes import ClipNotesMixin
 from ..consts import (CLIP_GRID_STATES, R_QNTZ_STATES,
@@ -49,7 +49,6 @@ class XClipActions(XComponent, ClipNotesMixin):
     def dispatch_actions(self, cmd):
         # type: (_DispatchCommand) -> None
         from .consts import CLIP_ACTIONS
-
         for scmd in cmd:
             # TODO: compare with dispatch_device_actions
             if scmd.track in self._parent.song().tracks:
@@ -61,17 +60,56 @@ class XClipActions(XComponent, ClipNotesMixin):
                         clip_args = action[1]
                     if clip_args and clip_args.split()[0] in CLIP_ACTIONS:
                         func = CLIP_ACTIONS[clip_args.split()[0]]
-                        func(self, action[0], scmd.track, scmd.xclip, scmd.ident,
+                        func(self, action[0], scmd.track, scmd.xclip,
                              clip_args.replace(clip_args.split()[0], ''))
                     elif clip_args and clip_args.split()[0].startswith('NOTES'):
                         self.dispatch_clip_note_action(action[0], cmd.args)
                     elif cmd.action_name.startswith('CLIP'):
-                        self.set_clip_on_off(action[0], scmd.track, scmd.xclip, None, cmd.args)
+                        self.set_clip_on_off(action[0], scmd.track, scmd.xclip, cmd.args)
 
     def get_clip_to_operate_on(self, track, action_name, args):
         # type: (Track, Text, Text) -> Tuple[Optional[Clip], Text]
         '''Get clip to operate on and action to perform with args.'''
+        try:
+            # TODO: add args to parsing
+            parsed = self._parent.parse_obj('clip', action_name)
+        except Exception:
+            try:
+                parsed, args = self._parse_split_name(action_name, args)
+            except Exception as e:
+                log.error('Failed to parse clip: %r', e)
+                return
+
         clip = None
+        if 'name' in parsed:                               # CLIP"Name"
+            clip = self.get_clip_by_name(track, parsed['name'])
+        elif 'sel' in parsed:                              # CLIPSEL
+            if self.application().view.is_view_visible('Arranger'):
+                clip = self.song().view.detail_clip
+        else:
+            slot_idx = None
+            if not parsed:                                 # CLIP
+                if track.playing_slot_index >= 0:
+                    slot_idx = track.playing_slot_index
+            elif 'pos' in parsed:                          # CLIPx
+                slot_idx = int(parsed['pos']) - 1
+
+            slot_idx = self.sel_scene if slot_idx is None else slot_idx
+            if track.clip_slots[slot_idx].has_clip:
+                clip = track.clip_slots[slot_idx].clip
+        return clip, args
+
+    @staticmethod
+    def get_clip_by_name(track, name):
+        # TODO: remove uppers
+        name = name.upper()
+        for slot in track.clip_slots:
+            if slot.has_clip and slot.clip.name.upper() == name:
+                return slot.clip
+
+    @staticmethod
+    def _parse_split_name(action_name, args):
+        clip_name = None
         clip_args = args
         if 'CLIP"' in action_name:
             clip_name = action_name[action_name.index('"')+1:]
@@ -80,51 +118,32 @@ class XClipActions(XComponent, ClipNotesMixin):
                 clip_args = args[args.index('"')+1:].strip()
             if '"' in clip_name:
                 clip_name = clip_name[0:clip_name.index('"')]
-            for slot in track.clip_slots:
-                if slot.has_clip and slot.clip.name.upper() == clip_name:
-                    clip = slot.clip
-                    break
-        else:
-            sel_slot_idx = list(self.song().scenes).index(self.song().view.selected_scene)
-            slot_idx = sel_slot_idx
-            if action_name == 'CLIP':
-                if track.playing_slot_index >= 0:
-                    slot_idx = track.playing_slot_index
-            elif action_name == 'CLIPSEL':
-                if self.application().view.is_view_visible('Arranger'):
-                    clip = self.song().view.detail_clip
-            else:
-                try:
-                    slot_idx = int(action_name.replace('CLIP', ''))-1
-                except:
-                    slot_idx = sel_slot_idx
-            if clip != None and track.clip_slots[slot_idx].has_clip:
-                clip = track.clip_slots[slot_idx].clip
-        log.debug('get_clip_to_operate_on -> clip=%s, clip args=%s',
-                  clip.name if clip else 'None', clip_args)
-        return (clip, clip_args)
 
-    def set_clip_name(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+        if clip_name is not None:
+            return {'name': clip_name}, clip_args
+        raise ValueError('{} {}'.format(action_name, args))
+
+    def set_clip_name(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Set clip's name.'''
         args = args.strip()
         if args:
             clip.name = args
 
-    def set_clip_on_off(self, clip, track, xclip, ident, value=None):
-        # type: (Clip, None, None, None, Optional[Text]) -> None
+    def set_clip_on_off(self, clip, track, xclip, value=None):
+        # type: (Clip, None, None, Optional[Text]) -> None
         '''Toggles or turns clip on/off.'''
         # XXX: reversed value, not fallback
         clip.muted = not KEYWORDS.get(value, clip.muted)
 
-    def set_warp(self, clip, track, xclip, ident, value=None):
-        # type: (Clip, None, None, None, Optional[Text]) -> None
+    def set_warp(self, clip, track, xclip, value=None):
+        # type: (Clip, None, None, Optional[Text]) -> None
         '''Toggles or turns clip warp on/off.'''
         if clip.is_audio_clip:
             switch(clip, 'warping', value)
 
-    def adjust_time_signature(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_time_signature(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjust clip's time signature.'''
         if '/' in args:
             try:
@@ -134,13 +153,13 @@ class XClipActions(XComponent, ClipNotesMixin):
             except Exception as e:
                 log.error('Failed to adjust time signature: %r', e)
 
-    def adjust_detune(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_detune(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjust/set audio clip detune.'''
         if clip.is_audio_clip:
             args = args.strip()
             if args.startswith(('<', '>')):
-                factor = self._parent.get_adjustment_factor(args)
+                factor = self.get_adjustment_factor(args)
                 clip.pitch_fine = clip.pitch_fine + factor
             else:
                 try:
@@ -148,14 +167,14 @@ class XClipActions(XComponent, ClipNotesMixin):
                 except Exception as e:
                     log.error('Failed to adjust detune: %r', e)
 
-    def adjust_transpose(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_transpose(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjust audio or midi clip transpose, also set audio clip
         transpose.
         '''
         args = args.strip()
         if args.startswith(('<', '>')):
-            factor = self._parent.get_adjustment_factor(args)
+            factor = self.get_adjustment_factor(args)
             if clip.is_audio_clip:
                 clip.pitch_coarse = max(-48, min(48, (clip.pitch_coarse + factor)))
             elif clip.is_midi_clip:
@@ -185,15 +204,15 @@ class XClipActions(XComponent, ClipNotesMixin):
             if edited_notes:
                 self.write_all_notes(clip, edited_notes, note_data['other_notes'])
 
-    def adjust_gain(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_gain(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjust/set clip gain for Live 9. For settings, range is
         0 - 127.
         '''
         if clip.is_audio_clip:
             args = args.strip()
             if args.startswith(('<', '>')):
-                factor = self._parent.get_adjustment_factor(args, True)
+                factor = self.get_adjustment_factor(args, True)
                 clip.gain = max(0.0, min(1.0, (clip.gain + factor * float(1.0 / 127.0))))
             else:
                 try:
@@ -201,14 +220,14 @@ class XClipActions(XComponent, ClipNotesMixin):
                 except Exception as e:
                     log.error('Failed to adjust gain: %r', e)
 
-    def adjust_start(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_start(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjust/set clip start exclusively for Live 9. In Live 8, same
         as adjust_loop_start.
         '''
         args = args.strip()
         if args.startswith(('<', '>')):
-            factor = self._parent.get_adjustment_factor(args, True)
+            factor = self.get_adjustment_factor(args, True)
             if clip.looping:
                 clip.start_marker = max(0.0, min(clip.end_marker - factor, (clip.start_marker + factor)))
             else:
@@ -222,12 +241,12 @@ class XClipActions(XComponent, ClipNotesMixin):
             except Exception as e:
                 log.error('Failed to adjust start: %r', e)
 
-    def adjust_loop_start(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_loop_start(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjust/set clip loop start if loop is on or clip start otherwise.'''
         args = args.strip()
         if args.startswith(('<', '>')):
-            factor = self._parent.get_adjustment_factor(args, True)
+            factor = self.get_adjustment_factor(args, True)
             clip.loop_start = max(0.0, min(clip.loop_end - factor, (clip.loop_start + factor)))
         else:
             try:
@@ -235,14 +254,14 @@ class XClipActions(XComponent, ClipNotesMixin):
             except Exception as e:
                 log.error('Failed to adjust loop start: %r', e)
 
-    def adjust_end(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_end(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjust/set clip end exclusively for Live 9. In Live 8, same as
         adjust_loop_end.
         '''
         args = args.strip()
         if args.startswith(('<', '>')):
-            factor = self._parent.get_adjustment_factor(args, True)
+            factor = self.get_adjustment_factor(args, True)
             if clip.looping:
                 clip.end_marker = max((clip.start_marker - factor),
                                       (clip.end_marker + factor))
@@ -258,13 +277,13 @@ class XClipActions(XComponent, ClipNotesMixin):
             except Exception as e:
                 log.error('Failed to adjust end: %r', e)
 
-    def adjust_loop_end(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_loop_end(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjust/set clip loop end if loop is on or close end otherwise.
         '''
         args = args.strip()
         if args.startswith(('<', '>')):
-            factor = self._parent.get_adjustment_factor(args, True)
+            factor = self.get_adjustment_factor(args, True)
             clip.loop_end = max((clip.loop_start - factor), (clip.loop_end + factor))
         else:
             try:
@@ -272,8 +291,8 @@ class XClipActions(XComponent, ClipNotesMixin):
             except Exception as e:
                 log.error('Failed to adjust loop end: %r', e)
 
-    def adjust_cue_point(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_cue_point(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjust clip's start point and fire (also stores cue point if
         not specified). Will not fire xclip itself as this causes a loop.
         '''
@@ -281,7 +300,7 @@ class XClipActions(XComponent, ClipNotesMixin):
             if args:
                 args = args.strip()
                 if args.startswith(('<', '>')):
-                    factor = self._parent.get_adjustment_factor(args, True)
+                    factor = self.get_adjustment_factor(args, True)
                     args = clip.loop_start + factor
                 try:
                     clip.loop_start = float(args)
@@ -297,8 +316,8 @@ class XClipActions(XComponent, ClipNotesMixin):
                 if isinstance(xclip, Clip):
                     xclip.name = '{} {}'.format(xclip.name.strip(), clip.loop_start)
 
-    def adjust_warp_mode(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_warp_mode(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjusts the warp mode of the clip. This cannot be applied if the
         warp mode is currently rex (5).
         '''
@@ -307,7 +326,7 @@ class XClipActions(XComponent, ClipNotesMixin):
             if args in WARP_MODES:
                 clip.warp_mode = WARP_MODES[args]
             elif args in ('<', '>'):
-                factor = self._parent.get_adjustment_factor(args)
+                factor = self.get_adjustment_factor(args)
                 new_mode = clip.warp_mode + factor
                 if new_mode == 5 and '>' in args:
                     new_mode = 6
@@ -316,24 +335,24 @@ class XClipActions(XComponent, ClipNotesMixin):
                 if 0 <= new_mode < 7 and new_mode != 5:
                     clip.warp_mode = new_mode
 
-    def adjust_grid_quantization(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def adjust_grid_quantization(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Adjusts clip grid quantization.'''
         args = args.strip()
         if args in CLIP_GRID_STATES:
             clip.view.grid_quantization = CLIP_GRID_STATES[args]
 
-    def set_triplet_grid(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def set_triplet_grid(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Toggles or turns triplet grid on or off.'''
         switch(clip.view, 'grid_is_triplet', args)
 
-    def capture_to_envelope(self, clip, track, xclip, ident, args):
-        # type: (Clip, Any, None, None, Text) -> None
+    def capture_to_envelope(self, clip, track, xclip, args):
+        # type: (Clip, Any, None, Text) -> None
         self._env_capture.capture(clip, track, args)
 
-    def insert_envelope(self, clip, track, xclip, ident, args):
-        # type: (Clip, Any, None, None, Text) -> None
+    def insert_envelope(self, clip, track, xclip, args):
+        # type: (Clip, Any, None, Text) -> None
         '''Inserts an envelope for the given parameter into the clip.
 
         This doesn't apply to quantized parameters.
@@ -411,8 +430,8 @@ class XClipActions(XComponent, ClipNotesMixin):
                         else:
                             env.insert_step(beat, 1.0, env_range[0])
 
-    def clear_envelope(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def clear_envelope(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Clears the envelope of the specified param or all envelopes
         from the given clip.
         '''
@@ -423,8 +442,8 @@ class XClipActions(XComponent, ClipNotesMixin):
         else:
             clip.clear_all_envelopes()
 
-    def show_envelope(self, clip, track, xclip, ident, args):
-        # type: (Clip, Any, None, None, Text) -> None
+    def show_envelope(self, clip, track, xclip, args):
+        # type: (Clip, Any, None, Text) -> None
         '''Shows the clip's envelope view and a particular envelope if
         specified. Requires 9.1 or later.
         '''
@@ -460,20 +479,20 @@ class XClipActions(XComponent, ClipNotesMixin):
                     param_array = dev_array[1].strip().split()
                     param = None
                     if len(param_array) > 1:
-                        param = self._parent.device_actions.get_banked_parameter(
-                            dev_array[0], param_array[0], param_array[1])
+                        param = self._parent.device_actions.get_bank_param(
+                            dev_array[0], param_array[1], param_array[0])
                     else:
-                        param = self._parent.device_actions.get_bob_parameter(
+                        param = self._parent.device_actions.get_bank_param(
                             dev_array[0], param_array[0])
         return param
 
-    def hide_envelopes(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, None) -> None
+    def hide_envelopes(self, clip, track, xclip, args):
+        # type: (Clip, None, None, None) -> None
         '''Hides the clip's envelope view.'''
         clip.view.hide_envelope()
 
-    def quantize(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, Text) -> None
+    def quantize(self, clip, track, xclip, args):
+        # type: (Clip, None, None, Text) -> None
         '''Quantizes notes or warp markers to the given quantization
         value, at the (optional) given strength and with the (optional)
         percentage of swing. Can optionally be applied to specific notes
@@ -519,10 +538,10 @@ class XClipActions(XComponent, ClipNotesMixin):
                     clip.quantize_pitch(note, rate_to_apply, strength)
             self.song().swing_amount = current_swing
 
-    def duplicate_clip_content(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, None) -> None
-        '''Duplicates all the content in a MIDI clip and doubles loop length.
-        Will also zoom out to show entire loop if loop is on.
+    def duplicate_clip_content(self, clip, track, xclip, args):
+        # type: (Clip, None, None, None) -> None
+        '''Duplicates all the content in a MIDI clip and doubles loop
+        length. Will also zoom out to show entire loop if loop is on.
         '''
         if clip.is_midi_clip:
             try:
@@ -530,26 +549,26 @@ class XClipActions(XComponent, ClipNotesMixin):
             except Exception as e:
                 log.error('Failed to duplicate clip content: %r', e)
 
-    def delete_clip(self, clip, track, xclip, ident, args):
-        # type: (Clip, None, None, None, None) -> None
+    def delete_clip(self, clip, track, xclip, args):
+        # type: (Clip, None, None, None) -> None
         '''Deletes the given clip.'''
         clip.canonical_parent.delete_clip()
 
-    def duplicate_clip(self, clip, track, xclip, ident, args):
-        # type: (Clip, Track, None, None, None) -> None
-        '''Duplicates the given clip. This will overwrite clips if any exist
-        in the slots used for duplication.
+    def duplicate_clip(self, clip, track, xclip, args):
+        # type: (Clip, Track, None, None) -> None
+        '''Duplicates the given clip. This will overwrite clips if any
+        exist in the slots used for duplication.
         '''
         try:
             track.duplicate_clip_slot(list(track.clip_slots).index(clip.canonical_parent))
         except Exception as e:
             log.error('Failed to duplicate clip: %r', e)
 
-    def chop_clip(self, clip, track, xclip, ident, args):
-        # type: (Clip, Track, None, None, Text) -> None
-        '''Duplicates the clip the number of times specified and sets evenly
-        distributed start points across all duplicates. This will overwrite
-        clips if any exist in the slots used for duplication.
+    def chop_clip(self, clip, track, xclip, args):
+        # type: (Clip, Track, None, Text) -> None
+        '''Duplicates the clip the number of times specified and sets
+        evenly distributed start points across all duplicates. This will
+        overwrite clips if any exist in the slots used for duplication.
         '''
         args = args.strip()
         num_chops = 8
@@ -572,10 +591,10 @@ class XClipActions(XComponent, ClipNotesMixin):
         except Exception as e:
             log.error('Failed to chop clip: %r', e)
 
-    def split_clip(self, clip, track, xclip, ident, args):
-        # type: (Clip, Track, None, None, Text) -> None
-        '''Duplicates the clip and sets each duplicate to have the length
-        specified in args.  This will overwrite clips if any exist in the
+    def split_clip(self, clip, track, xclip, args):
+        # type: (Clip, Track, None, Text) -> None
+        '''Duplicates the clip and sets each duplicate to have the
+        length specified in args. This will overwrite any clip in the
         slots used for duplication.
         '''
         try:
@@ -603,6 +622,13 @@ class XClipActions(XComponent, ClipNotesMixin):
         except Exception as e:
             log.error('Failed to split clip: %r', e)
 
+    def crop(self, clip):
+        '''Crops the clip.
+
+        If looped, removes the region outside of the loop. Otherwise,
+        removes the region outside the start and end markers.'''
+        clip.crop()
+
     def get_clip_stats(self, clip):
         # type: (Clip) -> Dict[Text, Any]
         '''Get real length and end of looping clip.'''
@@ -617,11 +643,36 @@ class XClipActions(XComponent, ClipNotesMixin):
             loop_length = loop_length,
         )
 
+    def is_convertible_to_midi(self, clip):
+        return (clip.is_audio_clip
+                and Conversions.is_convertible_to_midi(self.song(), clip))
+
+    def to_midi(self, clip, track, xclip, args):
+        # type: (Clip) -> None
+        if not self.is_convertible_to_midi(clip):
+            log.info('to_midi not implemented')
+
+        # (Live 10 only) Added CLIP CROP Action for cropping Clips.
+
+    def to_drum_rack(self, clip, track, xclip, args):
+        '''Creates a new track with a Drum Rack with a Simpler on the
+        first pad with the specified audio clip.'''
+        if self.is_convertible_to_midi(clip):
+            Conversions.create_drum_rack_from_audio_clip(self.song(), clip)
+        else:
+            log.warning('Clip not convertible to MIDI')
+
+    def to_simpler(self, clip, track, xclip, args):
+        '''Creates a new MIDI track with a Simpler including the
+        specified audio clip.'''
+        if self.is_convertible_to_midi(clip):
+            Conversions.create_midi_track_with_simpler(self.song(), clip)
+
 # TODO: make Mixin together with transport functions
 # TODO: check XGlobalActions.do_loop_action and device_looper
 # region CLIP LOOP ACTIONS
-    def do_clip_loop_action(self, clip, track, xclip, ident, args):
-        # type: (Clip, Track, Clip, None, Text) -> None
+    def do_clip_loop_action(self, clip, track, xclip, args):
+        # type: (Clip, Track, Clip, Text) -> None
         '''Handle clip loop actions.'''
         args = args.strip()
         if not args or args.upper() in KEYWORDS:
@@ -629,11 +680,11 @@ class XClipActions(XComponent, ClipNotesMixin):
         else:
             if args.startswith('START'):
                 self.adjust_loop_start(
-                    clip, track, xclip, ident, args.replace('START', '', 1).strip()
+                    clip, track, xclip, args.replace('START', '', 1).strip()
                 )
             elif args.startswith('END'):
                 self.adjust_loop_end(
-                    clip, track, xclip, ident, args.replace('END', '', 1).strip()
+                    clip, track, xclip, args.replace('END', '', 1).strip()
                 )
             elif args == 'SHOW':
                 clip.view.show_loop()
@@ -652,7 +703,7 @@ class XClipActions(XComponent, ClipNotesMixin):
                         new_end = ((clip.loop_end - clip_stats['loop_length'])
                                    + (clip_stats['loop_length'] * float(args[1:])))
                     except Exception as e:
-                        log.error('Failed to do clip action: %r', e)
+                        log.error('Failed to do clip loop action: %r', e)
                 else:
                     self.do_loop_set(clip, args, clip_stats)
                     return
@@ -670,7 +721,7 @@ class XClipActions(XComponent, ClipNotesMixin):
         if args == '<':
             factor = -(factor)
         if len(args) > 1:
-            factor = self._parent.get_adjustment_factor(args, True)
+            factor = self.get_adjustment_factor(args, True)
         new_end = clip.loop_end + factor
         new_start = clip.loop_start + factor
         if new_start < 0.0:
@@ -680,8 +731,8 @@ class XClipActions(XComponent, ClipNotesMixin):
 
     def do_loop_set(self, clip, args, clip_stats):
         # type: (Clip, Text, Dict[Text, Any]) -> None
-        '''Set loop length and (if clip is playing) position, quantizes to 1/4
-        by default or bar if specified.
+        '''Set loop length and (if clip is playing) position, quantizes
+        to 1/4 by default or bar if specified.
         '''
         try:
             qntz = False
@@ -705,8 +756,8 @@ class XClipActions(XComponent, ClipNotesMixin):
 
     def set_new_loop_position(self, clip, new_start, new_end, clip_stats):
         # type: (Clip, float, float, Dict[Text, Any]) -> None
-        '''For use with other clip loop actions, ensures that loop settings
-        are within range and applies in correct order.
+        '''For use with other clip loop actions, ensures that loop
+        settings are within range and applies in correct order.
         '''
         if new_end <= clip_stats['real_end'] and new_start >= 0:
             # FIXME: same values

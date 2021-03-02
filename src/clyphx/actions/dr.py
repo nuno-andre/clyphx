@@ -62,7 +62,7 @@ class XDrActions(XComponent):
         '''Scroll Drum Rack selector up/down.'''
         args = args.replace('SCROLL', '').strip()
         if args.startswith(('<', '>')):
-            factor = self._parent.get_adjustment_factor(args)
+            factor = self.get_adjustment_factor(args)
             pos = dr.view.drum_pads_scroll_position
             if factor > 0:
                 if pos < MAX_SCROLL_POS - factor:
@@ -125,7 +125,7 @@ class XDrActions(XComponent):
         for pad in pads:
             if pad.chains:
                 param = pad.chains[0].mixer_device.volume
-                self._parent.do_parameter_adjustment(param, action_arg)
+                self.adjust_param(param, action_arg)
 
     def _adjust_pad_pan(self, pads, action_arg):
         # type: (Sequence[Any], Text) -> None
@@ -133,7 +133,7 @@ class XDrActions(XComponent):
         for pad in pads:
             if pad.chains:
                 param = pad.chains[0].mixer_device.panning
-                self._parent.do_parameter_adjustment(param, action_arg)
+                self.adjust_param(param, action_arg)
 
     def _adjust_pad_send(self, pads, action_arg, send):
         # type: (Sequence[Any], Text, Text) -> None
@@ -142,11 +142,12 @@ class XDrActions(XComponent):
             for pad in pads:
                 if pad.chains:
                     param = pad.chains[0].mixer_device.sends[ord(send) - 65]
-                    self._parent.do_parameter_adjustment(param, action_arg)
+                    self.adjust_param(param, action_arg)
         except:
             pass
 
-    def _get_pads_to_operate_on(self, dr, pads):
+    @staticmethod
+    def _get_pads_to_operate_on(dr, pads):
         # type: (Any, Text) -> Sequence[Any]
         '''Get the Drum Rack pad or pads to operate on.'''
         pads_to_operate_on = [dr.view.selected_drum_pad]

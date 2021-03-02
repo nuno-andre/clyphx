@@ -14,9 +14,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ClyphX.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import, unicode_literals, with_statement
+from __future__ import absolute_import, unicode_literals
 from builtins import super, dict, range
 from typing import TYPE_CHECKING
+
+from pushbase.instrument_component import InstrumentComponent
+from pushbase.note_editor_component import NoteEditorComponent
+from Push2.scales_component import ScalesComponent
 
 from ..core.xcomponent import ControlSurfaceComponent
 from ..core.live import Clip
@@ -24,9 +28,6 @@ from ..consts import switch, NOTE_NAMES
 
 if TYPE_CHECKING:
     from typing import Any, Sequence, Text, List, Dict, Optional
-
-
-
 
 UNWRITABLE_INDEXES = (17, 35, 53)
 
@@ -88,12 +89,11 @@ class XPushActions(ControlSurfaceComponent):
         self._is_push2 = is_push2
         if self._script and self._script._components:
             for c in self._script._components:
-                comp_name = c.__class__.__name__
-                if comp_name == 'InstrumentComponent':
+                if isinstance(c, InstrumentComponent):
                     self._ins_component = c
-                elif comp_name.endswith('NoteEditorComponent'):
+                elif isinstance(c, NoteEditorComponent):
                     self._note_editor = c
-                elif comp_name == 'ScalesComponent':
+                elif isinstance(c, ScalesComponent):
                     self._scales_component = c
             if not self._is_push2:
                 s_mode = self._script._scales_enabler._mode_map['enabled'].mode
@@ -132,7 +132,7 @@ class XPushActions(ControlSurfaceComponent):
                 self._handle_scale_action(args.replace('SCL', '').strip(), xclip, ident)
             elif args.startswith('SEQ') and self._note_editor:
                 self._handle_sequence_action(args.replace('SEQ', '').strip())
-            elif args == 'DRINS' and self.song().view.selected_track.has_midi_input:
+            elif args == 'DRINS' and self.sel_track.has_midi_input:
                 with self._script.component_guard():
                     with self._script._push_injector:
                         self._script._note_modes.selected_mode = 'instrument'
@@ -225,7 +225,7 @@ class XPushActions(ControlSurfaceComponent):
             self._ins_component._note_layout.root_note = NOTE_NAMES.index(arg_array[1])
         except KeyError:
             if arg_array[1] in ('<', '>'):
-                new_root = (self._parent.get_adjustment_factor(arg_array[1])
+                new_root = (self.get_adjustment_factor(arg_array[1])
                             + self._ins_component._note_layout.root_note)
                 if 0 <= new_root < 12:
                     self._ins_component._note_layout.root_note = new_root
@@ -240,7 +240,7 @@ class XPushActions(ControlSurfaceComponent):
     def _handle_scale_type(self, arg_array, args):
         # type: (Sequence[Text], Text) -> None
         if arg_array[1] in ('<', '>'):
-            factor = self._parent.get_adjustment_factor(arg_array[1])
+            factor = self.get_adjustment_factor(arg_array[1])
             if self._is_push2:
                 idx = self._scales_component.selected_scale_index + factor
                 self._scales_component._set_selected_scale_index(idx)
@@ -271,15 +271,16 @@ class XPushActions(ControlSurfaceComponent):
         # type: (Clip, Text) -> None
         '''Captures scale settings and writes them to X-Clip's name.'''
         if isinstance(xclip, Clip):
-            root = str(self._ins_component._note_layout.root_note)
+            layout = self._ins_component._note_layout
+            root = str(layout.root_note)
             if self._is_push2:
                 scl_type = self._scales_component.selected_scale_index
             else:
                 scl_type = str(self._scales_component._scale_list.scrollable_list
                                .selected_item_index)
             octave = '0'
-            fixed = str(self._ins_component._note_layout.is_fixed)
-            inkey = str(self._ins_component._note_layout.is_in_key)
+            fixed = str(layout.is_fixed)
+            inkey = str(layout.is_in_key)
             orient = '0'
             xclip.name = '{} Push SCL {} {} {} {} {} {}'.format(
                 ident, root, scl_type, octave, fixed, inkey, orient
@@ -288,15 +289,16 @@ class XPushActions(ControlSurfaceComponent):
     def _recall_scale_settings(self, arg_array):
         # type: (Sequence[Text]) -> None
         '''Recalls scale settings from X-Trigger name.'''
+        layout = self._ins_component._note_layout
         try:
-            self._ins_component._note_layout.root_note = int(arg_array[0])
+            layout.root_note = int(arg_array[0])
             if self._is_push2:
                 self._scales_component._set_selected_scale_index(int(arg_array[1]))
             else:
                 self._scales_component._scale_list.scrollable_list.selected_item_index =\
                     int(arg_array[1])
-            self._ins_component._note_layout.is_fixed = arg_array[3] == 'TRUE'
-            self._ins_component._note_layout.is_in_key = arg_array[4] == 'TRUE'
+            layout.is_fixed = arg_array[3] == 'TRUE'
+            layout.is_in_key = arg_array[4] == 'TRUE'
         except:
             pass
 

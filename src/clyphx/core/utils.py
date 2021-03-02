@@ -44,8 +44,8 @@ def get_base_path(*items):
 
 
 def get_user_clyphx_path(*items):
-    base = '~/.{}'.format(SCRIPT_NAME.lower())
-    base = os.path.expanduser(base)
+    name = '.' + SCRIPT_NAME.lower()
+    base = os.path.join(os.path.expanduser('~'), name)
     dest = os.path.join(base, *items)
     return os.path.realpath(dest)
 
@@ -55,3 +55,7 @@ def set_user_profile():
     if not os.path.exists(path):
         os.mkdir(path)
         os.mkdir(os.path.join(path, 'log'))
+
+
+def logger():
+    pass
