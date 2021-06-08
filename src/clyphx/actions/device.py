@@ -119,7 +119,7 @@ class XDeviceActions(XComponent, LooperMixin):
             else:
                 try:
                     new_index = int(args) - 1
-                except:
+                except Exception:
                     new_index = list(device.chains).index(device.view.selected_chain)
             if 0 <= new_index < len(device.chains):
                 device.view.selected_chain = device.chains[new_index]
@@ -187,9 +187,9 @@ class XDeviceActions(XComponent, LooperMixin):
         # type: (Device) -> Optional[DeviceParameter]
         '''Get rack chain selector param.'''
         if device.class_name.endswith('GroupDevice'):
-            for parameter in device.parameters:
-                if str(parameter.original_name) == 'Chain Selector':
-                    return parameter
+            for param in device.parameters:
+                if str(param.original_name) == 'Chain Selector':
+                    return param
         return None
 
     @staticmethod
@@ -219,17 +219,17 @@ class XDeviceActions(XComponent, LooperMixin):
     def dispatch_chain_action(self, device, args):
         # type: (Device, List[Text]) -> None
         '''Handle actions related to device chains.'''
+        from .consts import CHAIN_ACTIONS
+
         if not (self._parent._can_have_nested_devices and device.can_have_chains and device.chains):
             raise TypeError('This device does not support chain actions.')
 
         try:
             chain_num, action, value = args[0:3]
+            chain_num = chain_num.replace('CHAIN', '').replace('CH', '')
+            chain = device.chains[int(chain_num) - 1]
 
-            chain = device.chains[int(chain_num.replace('CHAIN', '')) - 1]
-
-            if action not in {'MUTE', 'SOLO', 'VOL', 'PAN'}:
-                raise InvalidAction('Invalid device chain action: {}'.format(action))
-            elif action in {'VOL', 'PAN'} and device.class_name.startswith('Midi'):
+            if action in {'VOL', 'PAN'} and device.class_name.startswith('Midi'):
                 raise InvalidAction('Invalid MIDI device chain action: {}'.format(action))
         except Exception as e:
             log.error("Failed to parse chain action args '%s': %r", args, e)
@@ -237,16 +237,23 @@ class XDeviceActions(XComponent, LooperMixin):
 
         chain = device.view.selected_chain
         if chain:
-            func, obj, param = dict(
-                # FIXME
-                MUTE = (switch, chain, 'mute'),
-                SOLO = (switch, chain, 'solo'),
-                VOL  = (self._adjust_param, chain.mixer_device, 'volume'),
-                PAN  = (self._adjust_param, chain.mixer_device, 'panning'),
-            )
-            func(obj, param, value)
+            try:
+                func = CHAIN_ACTIONS[action]
+            except KeyError:
+                raise InvalidAction('Invalid device chain action: {}'.format(action))
+            else:
+                func(chain, value)
 
-    # FIXME:
-    def _adjust_param(self, obj, param, value):
-        self.adjust_param(getattr(obj, param), value)
+    def mute_chain(self, chain, value):
+        switch(chain, 'mute', value)
+
+    def solo_chain(self, chain, value):
+        switch(chain, 'solo', value)
+
+    def adjust_chain_volume(self, chain, value):
+        self.adjust_param(chain.mixer_device.volume, value)
+
+    def adjust_chain_panning(self, chain, value):
+        self.adjust_param(chain.mixer_device.panning, value)
+
 # endregion

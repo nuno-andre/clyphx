@@ -2,6 +2,7 @@ from __future__ import absolute_import, unicode_literals
 from builtins import object
 from typing import TYPE_CHECKING
 import logging
+from ..core.live import get_random_int
 
 if TYPE_CHECKING:
     from typing import Optional, Text, Tuple
@@ -82,11 +83,11 @@ class SceneMixin(object):
                     if len(rnd_range_data) == 2:
                         try:
                             new_min = int(rnd_range_data[0]) - 1
-                        except:
+                        except Exception:
                             new_min = 0
                         try:
                             new_max = int(rnd_range_data[1])
-                        except:
+                        except Exception:
                             new_max = num_scenes
                         if 0 < new_min and new_max < num_scenes + 1 and new_min < new_max - 1:
                             rnd_range = [new_min, new_max]
@@ -105,7 +106,8 @@ class SceneMixin(object):
                         scene = -(abs(scene) - len(self.song().scenes))
         self._last_scene_index = scene
         for t in self.song().tracks:
-            if not (t.is_foldable or (t.clip_slots[scene].has_clip and t.clip_slots[scene].clip == xclip)):
+            if not (t.is_foldable or (t.clip_slots[scene].has_clip
+                    and t.clip_slots[scene].clip == xclip)):
                 t.clip_slots[scene].fire()
 
     def get_scene_to_operate_on(self, xclip, args):
@@ -119,15 +121,19 @@ class SceneMixin(object):
             scene_name = args[args.index('"')+1:]
             if '"' in scene_name:
                 scene_name = scene_name[0:scene_name.index('"')]
-                for i in range(len(self.song().scenes)):
-                    if scene_name == self.song().scenes[i].name.upper():
+                for i, sc in enumerate(self.song().scenes):
+                    if scene_name == sc.name.upper():
                         scene = i
                         break
+                # for i in range(len(self.song().scenes)):
+                #     if scene_name == self.song().scenes[i].name.upper():
+                #         scene = i
+                #         break
         elif args and args != 'SEL':
             try:
                 if 0 <= int(args) < len(self.song().scenes) + 1:
                     scene = int(args) - 1
-            except:
+            except Exception:
                 pass
         return scene
 

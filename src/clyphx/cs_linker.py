@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from typing import Any, Iterable, Sequence, Optional, Dict, Text, List
     from .core.live import MidiRemoteScript
 
+from pushbase.push_base import PushBase
 from _Framework.ControlSurface import ControlSurface
 from .core.xcomponent import ControlSurfaceComponent, SessionComponent
 
@@ -47,7 +48,7 @@ class CsLinker(ControlSurfaceComponent):
         for obj in self._slave_objects:
             if obj is not None:
                 obj.disconnect()
-        self._slave_objects = None # type: ignore
+        self._slave_objects = None  # type: ignore
         super().disconnect()
 
     def update(self):
@@ -102,7 +103,7 @@ class CsLinker(ControlSurfaceComponent):
             log.info('Scripts found (%s)', self.canonical_parent)
             ssn_comps = []
             for script in scripts:
-                if script.__class__.__name__.upper() in ('PUSH', 'PUSH2'):
+                if isinstance(script, PushBase):
                     ssn_comps.append(script._session_ring)
                 for c in script.components:
                     if isinstance(c, SessionComponent):

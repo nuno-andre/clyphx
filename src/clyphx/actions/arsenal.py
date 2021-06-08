@@ -34,7 +34,7 @@ try:
     from _NKFW2.ScaleSettingsComponent import SEQ_OFFSET, FOURTHS_OFFSET, OFFSET_NAMES
     S_TYPES = [s.name.upper() for s in SCALE_TYPES]  # type: List[Text]
     O_NAMES = [o.upper() for o in OFFSET_NAMES]  # type: List[Text]
-except:
+except Exception:
     pass
 
 log = logging.getLogger(__name__)

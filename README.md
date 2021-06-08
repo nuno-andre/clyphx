@@ -21,7 +21,7 @@ _Action_ or a list of _Actions_.
 
 **ClyphX** also includes:
 
-- A component called **Macrobat** that adds new functionality to racks in Live
+- A component called **[Macrobat](./docs/macrobat_manual.md)** that adds new functionality to racks in Live
   such as the ability to control track mixer parameters or send MIDI messages
   from Rack Macros.
 

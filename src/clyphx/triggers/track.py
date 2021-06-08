@@ -86,7 +86,11 @@ class XTrackComponent(XTrigger):
                             self._parent._process_xclips_if_track_muted):
             if self._triggered_clips:
                 for clip in self._triggered_clips:
-                    self._parent.handle_action_list_trigger(self._track, clip)
+                    try:
+                        if clip.name.lstrip()[0] == '[':
+                            self._parent.handle_action_list_trigger(self._track, clip)
+                    except IndexError:
+                        pass
                 self._triggered_clips = []
             if self._triggered_lseq_clip:
                 self._parent.handle_loop_seq_action_list(self._triggered_lseq_clip,

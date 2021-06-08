@@ -71,7 +71,7 @@ class XTrackActions(XComponent):
             index = int(args) - 1
             if index < len(track.devices):
                 track.delete_device(index)
-        except:
+        except Exception:
             pass
 
     def create_clip(self, track, xclip, args):
@@ -91,12 +91,12 @@ class XTrackActions(XComponent):
                     if specified_slot != 'SEL':
                         try:
                             slot = int(specified_slot) - 1
-                        except:
+                        except Exception:
                             pass
                 if len(arg_array) > 1:
                     try:
                         length = float(arg_array[1].strip()) * bar
-                    except:
+                    except Exception:
                         pass
             if 0 <= slot < len(self.song().scenes):
                 if not track.clip_slots[slot].has_clip:
@@ -178,7 +178,7 @@ class XTrackActions(XComponent):
             if args:
                 try:
                     self.song().view.selected_scene = list(self.song().scenes)[int(args) - 1]
-                except:
+                except Exception:
                     pass
             elif track.playing_slot_index >= 0:
                 self.song().view.selected_scene = list(self.song().scenes)[track.playing_slot_index]
@@ -189,7 +189,7 @@ class XTrackActions(XComponent):
         if track in self.song().tracks:
             try:
                 track.jump_in_running_session_clip(float(args))
-            except:
+            except Exception:
                 pass
 
     def set_stop(self, track, xclip, value=None):
@@ -279,11 +279,11 @@ class XTrackActions(XComponent):
                 if len(rnd_range_data) == 2:
                     try:
                         new_min = int(rnd_range_data[0]) - 1
-                    except:
+                    except Exception:
                         new_min = 0
                     try:
                         new_max = int(rnd_range_data[1])
-                    except:
+                    except Exception:
                         new_max = num_scenes
                     if 0 <= new_min and new_max < num_scenes + 1 and new_min < new_max - 1:
                         rnd_range = [new_min, new_max]
@@ -323,7 +323,7 @@ class XTrackActions(XComponent):
             try:
                 if 0 <= int(args) < len(self.song().scenes) + 1:
                     slot_to_play = int(args) - 1
-            except:
+            except Exception:
                 pass
 
         if ((not track.clip_slots[slot_to_play].has_clip and allow_empty_slots)
@@ -373,7 +373,7 @@ class XTrackActions(XComponent):
         if track != self.song().master_track:
             try:
                 param = track.mixer_device.sends[ord(send_string) - 65]
-            except:
+            except Exception:
                 pass
         return param
 

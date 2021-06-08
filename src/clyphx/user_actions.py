@@ -87,7 +87,7 @@ from .core.xcomponent import XComponent
 from .triggers import ActionList
 
 if TYPE_CHECKING:
-    from typing import Any, Text, Dict, List, Optional
+    from typing import Any, Text, Dict
     from .live import Track
 
 

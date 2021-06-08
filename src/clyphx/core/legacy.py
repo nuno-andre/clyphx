@@ -12,7 +12,7 @@ import logging
 from .utils import repr_tracklist
 
 if TYPE_CHECKING:
-    from typing import Union, Text, Sequence, Iterator
+    from typing import Text, Sequence, Iterator
     from .live import Track, Clip
 
 log = logging.getLogger(__name__)
@@ -57,6 +57,7 @@ class _SingleDispatch(_DispatchCommand):
             if len(track) == 1:
                 track = track[0]
             else:
-                raise TypeError('SingleDispatch should receive an only track: %s', track)
+                msg = 'SingleDispatch should receive an only track: {}'
+                raise TypeError(msg.format(track))
         super().__init__([track], xclip, ident, action_name, args)
         self.track = track

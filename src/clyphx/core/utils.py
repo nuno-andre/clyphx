@@ -18,7 +18,7 @@ def repr_slots(self):
     return str('{}({})'.format(
         type(self).__name__,
         ', '.join('{}={}'.format(k, getattr(self, k))
-                    for k in self.__slots__),
+                  for k in self.__slots__),
     ))
 
 
@@ -32,7 +32,7 @@ def repr_tracklist(tracks):
     else:
         try:
             return '[{}]'.format(', '.join(t.name for t in tracks))
-        except:
+        except Exception:
             return '[ERROR {}]'.format(tracks)
 
 

@@ -2,7 +2,6 @@ from __future__ import absolute_import, unicode_literals
 
 
 # region USER SETTINGS TEST
-
 RESULT = {
     'snapshot_settings': {
         'include_nested_devices_in_snapshots': True,
@@ -43,11 +42,10 @@ def test_user_settings(user_settings):
     assert cfg.cslinker == RESULT['cslinker']
     assert cfg.vars == cfg.user_variables == RESULT['user_variables']
     assert cfg.identifier_note == RESULT['identifier_note']
-
 # endregion
 
-# region USER CONTROLS
 
+# region USER CONTROLS
 def test_user_controls():
     from clyphx.core.models import UserControl, STATUS_BYTE
 
@@ -61,11 +59,10 @@ def test_user_controls():
         uc = UserControl.parse(name, data)
         for attr, val in asserts.items():
             assert getattr(uc, attr) == val
-
 # endregion
 
-# region COMMAND PARSER TEST
 
+# region COMMAND PARSER TEST
 def test_specs():
     from clyphx.core.parse import Parser
 
@@ -94,7 +91,7 @@ def test_specs():
             for i, value in enumerate(target.get(step, [])):
                 assert getattr(res, step)[i].tracks == value
 
+
 def test_actions():
     pass
-
-# rendregion
+# endregion

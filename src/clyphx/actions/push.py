@@ -115,7 +115,7 @@ class XPushActions(ControlSurfaceComponent):
                 return
             session.set_offsets(new_track, new_scene)
             return return_val
-        except:
+        except Exception:
             pass
 
     def get_session_offsets(self, session):
@@ -299,7 +299,7 @@ class XPushActions(ControlSurfaceComponent):
                     int(arg_array[1])
             layout.is_fixed = arg_array[3] == 'TRUE'
             layout.is_in_key = arg_array[4] == 'TRUE'
-        except:
+        except Exception:
             pass
 
     def _update_scale_display_and_buttons(self):

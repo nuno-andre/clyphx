@@ -155,7 +155,7 @@ CLIP_ACTIONS = dict(
     TOSIMP   = XClipActions.to_simpler,
 )  # type: Dict[Text, Callable]
 
-NOTES_ACTIONS = dict([
+NOTES_ACTIONS = dict((
     ('REV',   NotesMixin.do_note_reverse),
     ('INV',   NotesMixin.do_note_invert),
     ('COMP',  NotesMixin.do_note_compress),
@@ -172,8 +172,7 @@ NOTES_ACTIONS = dict([
     ('OFF',   NotesMixin.set_notes_on_off),
     (None,    NotesMixin.set_notes_on_off),
     ('',      NotesMixin.set_notes_on_off),
-])  # type: Dict[Text, Callable[[Clip, Any], List[None]]]
-
+))  # type: Dict[Text, Callable[[Clip, Any], List[None]]]
 
 DEVICE_ACTIONS = dict(
     CSEL  = XDeviceActions.adjust_selected_chain,
@@ -208,6 +207,13 @@ LOOPER_ACTIONS = dict(
     REC    = XDeviceActions.set_looper_state,
     STOP   = XDeviceActions.set_looper_state,
 )  # type: Dict[Text, Callable[[XDeviceActions, Optional[Text]], None]]
+
+CHAIN_ACTIONS = dict(
+    MUTE = XDeviceActions.mute_chain,
+    SOLO = XDeviceActions.solo_chain,
+    VOL  = XDeviceActions.adjust_chain_volume,
+    PAN  = XDeviceActions.adjust_chain_panning,
+)
 
 DR_ACTIONS = dict(
     SCROLL = XDrActions.scroll_selector,

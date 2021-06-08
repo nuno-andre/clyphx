@@ -92,7 +92,7 @@ class NotesMixin(object):
         user_range = string.split('-')
         try:
             start = float(user_range[0].replace('@', ''))
-        except:
+        except Exception:
             pass
         else:
             if start >= 0.0:
@@ -100,7 +100,7 @@ class NotesMixin(object):
                 if len(user_range) > 1:
                     try:
                         pos_range = (start, float(user_range[1]))
-                    except:
+                    except Exception:
                         pass
         return pos_range or (clip.loop_start, clip.loop_end)
 
@@ -113,7 +113,7 @@ class NotesMixin(object):
         if len(string) > 1:
             try:
                 note_range = pitch_range(string)
-            except:
+            except Exception:
                 try:
                     start_note = Pitch.first_note(string)
                     note_range = (start_note, start_note + 1)
@@ -288,7 +288,7 @@ class NotesMixin(object):
             for n in data.notes_to_edit:
                 try:
                     edited.append((n[0], n[1], n[2], float(arg), n[4]))
-                except:
+                except Exception:
                     pass
 
         return edited

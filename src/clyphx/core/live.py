@@ -10,25 +10,25 @@ from Live import (
     Browser,
     Chain,
     Clip,
-    CompressorDevice,
+    # CompressorDevice,
     Conversions,
     Device,
-    DeviceIO,
+    # DeviceIO,
     DeviceParameter,
     DrumChain,
     DrumPad,
     Eq8Device,
-    LomObject,
+    # LomObject,
     MidiMap,
     MixerDevice,
     PluginDevice,
     RackDevice,
-    Sample,
+    # Sample,
     Scene,
-    SimplerDevice,
+    # SimplerDevice,
     Song,
     Track,
-    WavetableDevice,
+    # WavetableDevice,
 )
 
 # import classes and functions
@@ -42,20 +42,17 @@ from Browser import (
 )
 from Chain import Chain
 from Clip import Clip, AutomationEnvelope, GridQuantization, WarpMode
-from CompressorDevice import CompressorDevice
+# from CompressorDevice import CompressorDevice
 from Device import Device, DeviceType
 from DeviceParameter import DeviceParameter, ParameterState, AutomationState
 from DrumPad import DrumPad
-from LomObject import LomObject
-from MidiMap import (
-    forward_midi_cc,
-    forward_midi_note,
-)
+# from LomObject import LomObject
+from MidiMap import forward_midi_cc, forward_midi_note
 from MixerDevice import MixerDevice
 from RackDevice import RackDevice
-from Sample import Sample, TransientLoopMode, SlicingStyle, SlicingBeatDivision
+# from Sample import Sample, TransientLoopMode, SlicingStyle, SlicingBeatDivision
 from Scene import Scene
-from SimplerDevice import SimplerDevice, SlicingPlaybackMode, PlaybackMode
+# from SimplerDevice import SimplerDevice, SlicingPlaybackMode, PlaybackMode
 from Song import Song, RecordingQuantization
 from Track import (
     Track, DeviceContainer, RoutingTypeCategory,

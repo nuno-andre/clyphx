@@ -20,7 +20,6 @@ from functools import partial
 
 if TYPE_CHECKING:
     from typing import Any, Optional, Callable, Iterable, Sequence, Text
-    from ..core.legacy import _DispatchCommand
     from ..core.live import Track, Clip, Device
 
 from ..core.xcomponent import XComponent
@@ -36,33 +35,34 @@ class XDrActions(XComponent):
 
     def dispatch_dr_actions(self, cmd):
         if cmd.args:
+            args = [a.strip() for a in cmd.args.split() if a.strip()]
             for scmd in cmd:
-                self.dispatch_dr_action(scmd.track, scmd.xclip, scmd.ident, scmd.args)
+                # self.dispatch_dr_action(scmd.track, scmd.args)
+                self.dispatch_dr_action(scmd.track, *args)
 
-    def dispatch_dr_action(self, track, xclip, ident, args):
+    def dispatch_dr_action(self, track, action, *args):
         # type: (Track, Clip, Text, Text) -> None
         from .consts import DR_ACTIONS
 
-        arg_action = DR_ACTIONS.get(args.split()[0].upper())
-        if arg_action:
-            action = partial(arg_action, self)   # type: Callable
-        elif 'PAD' in args:
-            action = self.dispatch_pad_action
+        func = DR_ACTIONS.get(action.upper())
+        if func:
+            method = partial(func, self)   # type: Callable
+        elif 'PAD' in args[0]:
+            method = self.dispatch_pad_action
         else:
             return
 
         # get dr to operate on
         for device in track.devices:
             if device.can_have_drum_pads:
-                action(device, args)
+                method(device, *args)
                 break
 
-    def scroll_selector(self, dr, args):
+    def scroll_selector(self, dr, factor):
         # type: (Device, Text) -> None
         '''Scroll Drum Rack selector up/down.'''
-        args = args.replace('SCROLL', '').strip()
-        if args.startswith(('<', '>')):
-            factor = self.get_adjustment_factor(args)
+        if factor.startswith(('<', '>')):
+            factor = self.get_adjustment_factor(factor)
             pos = dr.view.drum_pads_scroll_position
             if factor > 0:
                 if pos < MAX_SCROLL_POS - factor:
@@ -76,89 +76,90 @@ class XDrActions(XComponent):
                     value = 0
             dr.view.drum_pads_scroll_position = value
 
-    def unmute_all(self, dr, args):
-        # type: (Device, None) -> None
+    def unmute_all(self, dr):
+        # type: (Device) -> None
         '''Unmute all pads in the Drum Rack.'''
         for pad in dr.drum_pads:
             pad.mute = False
 
-    def unsolo_all(self, dr, args):
-        # type: (Device, None) -> None
+    def unsolo_all(self, dr):
+        # type: (Device) -> None
         '''Unsolo all pads in the Drum Rack.'''
         for pad in dr.drum_pads:
             pad.solo = False
 
 # region PAD ACTIONS
-    def dispatch_pad_action(self, dr, track, xclip, ident, _args):
-        # type: (Any, None, None, None, Text) -> None
+    def dispatch_pad_action(self, dr, pad, *args):
+        # type: (Any, Text) -> None
         '''Dispatches pad-based actions.'''
         from .consts import PAD_ACTIONS
 
-        args = _args.split()
-        if len(args) > 1:
-            pads = self._get_pads_to_operate_on(dr, args[0].replace('PAD', '').strip())
+        if args:
+            pads = self._get_pads_to_operate_on(dr, pad.replace('PAD', '').strip())
             if pads:
-                action = args[1].upper()
-                action_arg = args[2] if len(args) > 2 else None
+                action = args[0].upper()
+                action_arg = args[1] if len(args) > 1 else None
                 if action in PAD_ACTIONS:
                     PAD_ACTIONS[action](self, pads, action_arg)
                 elif action == 'SEL':
                     dr.view.selected_drum_pad = pads[-1]
-                elif 'SEND' in action and action_arg and len(args) > 3:
-                    self._adjust_pad_send(pads, args[3], action_arg)
+                elif 'SEND' in action and action_arg and len(args) > 2:
+                    self._adjust_pad_send(pads, args[2], action_arg)
 
-    def _mute_pads(self, pads, action_arg):
+    def _mute_pads(self, pads, arg):
         # type: (Iterable[Any], Optional[Text]) -> None
         '''Toggles or turns on/off pad mute.'''
         for pad in pads:
-            switch(pad, 'mute', action_arg)
+            switch(pad, 'mute', arg)
 
-    def _solo_pads(self, pads, action_arg):
+    def _solo_pads(self, pads, arg):
         # type: (Iterable[Any], Optional[Text]) -> None
         '''Toggles or turns on/off pad solo.'''
         for pad in pads:
-            switch(pad, 'solo', action_arg)
+            switch(pad, 'solo', arg)
 
-    def _adjust_pad_volume(self, pads, action_arg):
+    def _adjust_pad_volume(self, pads, arg):
         # type: (Sequence[Any], Text) -> None
         '''Adjust/set pad volume.'''
         for pad in pads:
             if pad.chains:
                 param = pad.chains[0].mixer_device.volume
-                self.adjust_param(param, action_arg)
+                self.adjust_param(param, arg)
 
-    def _adjust_pad_pan(self, pads, action_arg):
+    def _adjust_pad_pan(self, pads, arg):
         # type: (Sequence[Any], Text) -> None
         '''Adjust/set pad pan.'''
         for pad in pads:
             if pad.chains:
                 param = pad.chains[0].mixer_device.panning
-                self.adjust_param(param, action_arg)
+                self.adjust_param(param, arg)
 
-    def _adjust_pad_send(self, pads, action_arg, send):
+    def _adjust_pad_send(self, pads, arg, send):
         # type: (Sequence[Any], Text, Text) -> None
         '''Adjust/set pad send.'''
         try:
             for pad in pads:
                 if pad.chains:
                     param = pad.chains[0].mixer_device.sends[ord(send) - 65]
-                    self.adjust_param(param, action_arg)
-        except:
+                    self.adjust_param(param, arg)
+        except Exception:
             pass
 
     @staticmethod
-    def _get_pads_to_operate_on(dr, pads):
+    def _get_pads_to_operate_on(dr, arg):
         # type: (Any, Text) -> Sequence[Any]
         '''Get the Drum Rack pad or pads to operate on.'''
-        pads_to_operate_on = [dr.view.selected_drum_pad]
-        if pads == 'ALL':
-            pads_to_operate_on = dr.visible_drum_pads
-        elif pads:
+        pads = None
+        if arg == 'ALL':
+            pads = dr.visible_drum_pads
+        elif arg:
             try:
-                index = int(pads) - 1
+                index = int(arg) - 1
                 if 0 <= index < 16:
-                    pads_to_operate_on = [dr.visible_drum_pads[index]]
-            except:
+                    pads = [dr.visible_drum_pads[index]]
+            except Exception:
                 pass
-        return pads_to_operate_on
+        if pads is None:
+            return [dr.view.selected_drum_pad]
+        return pads
 # endregion

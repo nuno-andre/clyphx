@@ -245,7 +245,7 @@ class XCsActions(XComponent):
                     if v['name'] == script_spec:
                         script = k
                         break
-        except:
+        except Exception:
             script = None
         return script
 
@@ -289,7 +289,7 @@ class XCsActions(XComponent):
             else:
                 track_start = int(track_range) - 1
                 track_end = track_start + 1
-        except:
+        except Exception:
             return
 
         if (0 <= track_start and track_start < track_end and
@@ -333,7 +333,7 @@ class XCsActions(XComponent):
                 offset = int(args)
                 if 0 <= (offset + t_offset) < len(tracks):
                     new_offset = offset + t_offset
-            except:
+            except Exception:
                 return
 
         if new_offset >= 0:
@@ -369,7 +369,7 @@ class XCsActions(XComponent):
             if new_track == -1 or new_scene == -1:
                 return
             session.set_offsets(new_track, new_scene)
-        except:
+        except Exception:
             pass
 
     def _parse_ring_spec(self, spec_id, arg_string, default_index, list_to_search):
@@ -477,7 +477,7 @@ class XCsActions(XComponent):
                                 if 0 <= centered_id < len(self.song().visible_tracks):
                                     new_trk_id = centered_id
                         session.set_offsets(new_trk_id, s_offset)
-                    except:
+                    except Exception:
                         pass
 
     def on_selected_scene_changed(self):
@@ -509,7 +509,7 @@ class XCsActions(XComponent):
                             if 0 <= centered_id < len(self.song().scenes):
                                 new_scn_id = centered_id
                     session.set_offsets(t_offset, new_scn_id)
-                except:
+                except Exception:
                     pass
 
 

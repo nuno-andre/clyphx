@@ -26,7 +26,7 @@ try:
     from _NKFW.Scales import SCALE_TYPES
     from _NKFW.ScalesComponent import EDITABLE_SCALE
     HAS_PXT = True
-except:
+except Exception:
     HAS_PXT = False
 
 UNWRITABLE_INDEXES = (17, 35, 53)
@@ -127,7 +127,7 @@ class XPxtActions(XComponent):
                         if 0 <= lane_num < comp._num_note_lanes:
                             notes = str(comp._note_lane_components[lane_num]._note)
                         args = args.replace(lane_spec, '')
-                    except:
+                    except Exception:
                         pass
                 if notes:
                     start = comp._position_component._start_position

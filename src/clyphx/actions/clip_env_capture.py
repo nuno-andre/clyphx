@@ -106,13 +106,13 @@ class XClipEnvCapture(ControlSurfaceComponent):
                     s, e = dev_args.split('-')
                     start = int(s) - 1
                     end = int(e)
-                except:
+                except Exception:
                     start, end = 0, 1
             else:
                 try:
                     start = int(dev_args) - 1
                     end = start + 1
-                except:
+                except Exception:
                     pass
         if 0 <= start and end <= len(track.devices) and start <= end:
             return (start, end)

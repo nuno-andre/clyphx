@@ -24,7 +24,7 @@ import os
 from _Framework.ControlSurface import OptimizedControlSurface
 from .core.legacy import _DispatchCommand, _SingleDispatch
 from .core.utils import repr_tracklist, set_user_profile
-from .core.live import Live, Track, DeviceIO, Clip, get_random_int
+from .core.live import Live, Track, Clip, get_random_int
 from .core.parse import IdSpecParser, ObjParser
 from .core.xcomponent import XComponent
 from .consts import LIVE_VERSION, SCRIPT_INFO
@@ -261,8 +261,6 @@ class ClyphX(OptimizedControlSurface):
 
         elif isinstance(xtrigger, Clip):
             # X-Clips can have on and off action lists
-            # TODO: if xtrigger.is_triggered?
-            log.info('Clip is triggered: %s, is_playing: %s', xtrigger.is_triggered, xtrigger.is_playing)
             if not xtrigger.is_playing:
                 if not spec.off:
                     return
@@ -332,9 +330,9 @@ class ClyphX(OptimizedControlSurface):
                 raw_action_list = raw_action_list.replace('(PSEQ)', '').strip()
 
             # check if the trigger is a LSEQ (accessible only to X-Clips)
-            elif (isinstance(xtrigger, Clip) and
-                    raw_action_list[0] == '(' and
-                    '(LSEQ)' in raw_action_list):
+            elif (isinstance(xtrigger, Clip)
+                    and raw_action_list[0] == '('
+                    and '(LSEQ)' in raw_action_list):
                 is_loop_seq = True
                 raw_action_list = raw_action_list.replace('(LSEQ)', '').strip()
 
@@ -365,7 +363,7 @@ class ClyphX(OptimizedControlSurface):
                         self.handle_dispatch_command(command)
 
     def _format_action_list(self, track, alist):
-        # (Text) -> List[Text]
+        # (Text) -> List[Dict[Text, Any]]
         alist = [self.format_action_name(track, a) for a in alist]
         return list(filter(None, alist))
 
@@ -442,47 +440,48 @@ class ClyphX(OptimizedControlSurface):
             tracks = self.song().tracks + self.song().return_tracks + (self.song().master_track,)  # type: Tuple[Track]
             sel_track_index = tracks.index(self.song().view.selected_track)
             if origin_name.index('/') > 0:
-                track_spec = origin_name.split('/')[0].strip()
-                if '"' in track_spec:
-                    track_spec = self.get_track_index_by_name(track_spec, tracks)
-                if 'SEL' in track_spec:
-                    track_spec = track_spec.replace('SEL', str(sel_track_index + 1), 1)
-                if 'MST' in track_spec:
-                    track_spec = track_spec.replace('MST', str(len(tracks)), 1)
-                if track_spec == 'ALL':
+                spec = origin_name.split('/')[0].strip()
+                if '"' in spec:
+                    spec = self.get_track_index_by_name(spec, tracks)
+                if 'SEL' in spec:
+                    spec = spec.replace('SEL', str(sel_track_index + 1), 1)
+                if 'MST' in spec:
+                    spec = spec.replace('MST', str(len(tracks)), 1)
+                if spec == 'ALL':
                     result_tracks = tracks
                 else:
-                    track_range_spec = track_spec.split('-')
-                    if len(track_range_spec) <= 2:
+                    range_spec = spec.split('-')
+                    if len(range_spec) <= 2:
                         track_range = []
                         try:
-                            for spec in track_range_spec:
+                            for spec in range_spec:
                                 track_index = -1
                                 if spec.startswith(('<', '>')):
                                     try:
                                         # FIXME:
                                         track_index = (XComponent.get_adjustment_factor(spec)
                                                        + sel_track_index)
-                                    except:
+                                    except Exception:
                                         pass
                                 else:
                                     try:
                                         track_index = int(spec) - 1
-                                    except:
+                                    except Exception:
                                         track_index = ((ord(spec) - 65)
                                                        + len(self.song().tracks))
                                 if 0 <= track_index < len(tracks):
                                     track_range.append(track_index)
-                        except:
+                        except Exception as e:
+                            log.error("Failed to parse tracks '%s': %r", spec, e)
                             track_range = []
 
                         if track_range:
-                            if len(track_range) == 2:
-                                if track_range[0] < track_range[1]:
-                                    for i in range(track_range[0], track_range[1] + 1):
-                                        result_tracks.append(tracks[i])
-                            else:
+                            try:
+                                indices = range(track_range[0], track_range[1] + 1)
+                            except IndexError:
                                 result_tracks = [tracks[track_range[0]]]
+                            else:
+                                result_tracks = [tracks[i] for i in indices]
             result_name = origin_name[origin_name.index('/') + 1:].strip()
         log.debug('get_track_to_operate_on -> result_tracks=%s, result_name=%s',
                   repr_tracklist(result_tracks), result_name)

@@ -7,7 +7,7 @@ from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.SessionComponent import SessionComponent
 
 if TYPE_CHECKING:
-    from typing import Any
+    from typing import Any, Text, Union
     from .live import Track
 
 log = logging.getLogger(__name__)
@@ -89,11 +89,11 @@ class XComponent(ControlSurfaceComponent):
                 if len(rnd_range_data) == 2:
                     try:
                         new_min = int(rnd_range_data[0])
-                    except:
+                    except Exception:
                         new_min = 0
                     try:
                         new_max = int(rnd_range_data[1]) + 1
-                    except:
+                    except Exception:
                         new_max = 128
                     if 0 <= new_min and new_max <= 128 and new_min < new_max:
                         rnd_min = new_min
@@ -106,9 +106,9 @@ class XComponent(ControlSurfaceComponent):
                 if 0 <= int(value) < 128:
                     try:
                         new_value = (int(value) * step) + param.min
-                    except:
+                    except Exception:
                         new_value = param.value
-            except:
+            except Exception:
                 pass
         if param.min <= new_value <= param.max:
             param.value = new_value
@@ -124,7 +124,7 @@ class XComponent(ControlSurfaceComponent):
         if len(string) > 1:
             try:
                 factor = (float if as_float else int)(string[1:])
-            except:
+            except Exception:
                 factor = 1
 
         if string.startswith('<'):

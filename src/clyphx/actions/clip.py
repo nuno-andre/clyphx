@@ -23,7 +23,7 @@ import logging
 if TYPE_CHECKING:
     from typing import Any, Optional, Text, Dict, List, Tuple
     from ..core.live import DeviceParameter, Track
-    from ..core.legacy import _DispatchCommand
+    from ..core.legacy import _DispatchCommand, _SingleDispatch
 
 from ..core.xcomponent import XComponent
 from ..core.live import Clip, Conversions
@@ -52,8 +52,7 @@ class XClipActions(XComponent, NotesMixin):
         for scmd in cmd:
             # TODO: compare with dispatch_device_actions
             if scmd.track in self._parent.song().tracks:
-                _args = scmd.track, scmd.action_name, scmd.args
-                action = self.get_clip_to_operate_on(*_args)
+                action = self.get_clip_to_operate_on(scmd)
                 clip_args = None
                 if action[0]:
                     if len(action) > 1:
@@ -63,41 +62,42 @@ class XClipActions(XComponent, NotesMixin):
                         func(self, action[0], scmd.track, scmd.xclip,
                              clip_args.replace(clip_args.split()[0], ''))
                     elif clip_args and clip_args.split()[0].startswith('NOTES'):
-                        args = [a.strip() for a in cmd.args.split() if a.strip()]
-                        self.dispatch_clip_note_action(action[0], args)
+                        # args = [a.strip() for a in cmd.args.split() if a.strip()]
+                        self.dispatch_clip_note_action(action[0], scmd.args)
                     elif cmd.action_name.startswith('CLIP'):
-                        self.set_clip_on_off(action[0], scmd.track, scmd.xclip, cmd.args)
+                        self.set_clip_on_off(action[0], scmd.track, scmd.xclip, scmd.args)
 
-    def get_clip_to_operate_on(self, track, action_name, args):
-        # type: (Track, Text, Text) -> Tuple[Optional[Clip], Text]
+    def get_clip_to_operate_on(self, scmd):
+        # type: (_SingleDispatch) -> Tuple[Optional[Clip], Text]
         '''Get clip to operate on and action to perform with args.'''
+        args = scmd.args
         try:
             # TODO: add args to parsing
-            parsed = self._parent.parse_obj('clip', action_name)
+            parsed = self._parent.parse_obj('clip', scmd.action_name)
         except Exception:
             try:
-                parsed, args = self._parse_split_name(action_name, args)
+                parsed, args = self._parse_split_name(scmd.action_name, args)
             except Exception as e:
                 log.error('Failed to parse clip: %r', e)
                 return
 
         clip = None
         if 'name' in parsed:                               # CLIP"Name"
-            clip = self.get_clip_by_name(track, parsed['name'])
+            clip = self.get_clip_by_name(scmd.track, parsed['name'])
         elif 'sel' in parsed:                              # CLIPSEL
             if self.application().view.is_view_visible('Arranger'):
                 clip = self.song().view.detail_clip
         else:
             slot_idx = None
             if not parsed:                                 # CLIP
-                if track.playing_slot_index >= 0:
-                    slot_idx = track.playing_slot_index
+                if scmd.track.playing_slot_index >= 0:
+                    slot_idx = scmd.track.playing_slot_index
             elif 'pos' in parsed:                          # CLIPx
                 slot_idx = int(parsed['pos']) - 1
 
             slot_idx = self.sel_scene if slot_idx is None else slot_idx
-            if track.clip_slots[slot_idx].has_clip:
-                clip = track.clip_slots[slot_idx].clip
+            if scmd.track.clip_slots[slot_idx].has_clip:
+                clip = scmd.track.clip_slots[slot_idx].clip
         return clip, args
 
     @staticmethod
@@ -386,7 +386,7 @@ class XClipActions(XComponent, NotesMixin):
                             if 0 <= min_factor and max_factor < 101 and min_factor < max_factor:
                                 env_range = ((min_factor / 100.0) * param.max,
                                              (max_factor / 100.0) * param.max)
-                        except:
+                        except Exception:
                             pass
                     self.song().view.detail_clip = clip
                     clip.view.show_envelope()
@@ -519,14 +519,14 @@ class XClipActions(XComponent, NotesMixin):
                     strength = float(arg_array[1 + array_offset]) / 100.0
                     if strength > 1.0 or strength < 0.0:
                         strength = 1.0
-                except:
+                except Exception:
                     strength = 1.0
             if len(arg_array) > 2 + array_offset:
                 try:
                     swing_to_apply = float(arg_array[2 + array_offset]) / 100.0
                     if swing_to_apply > 1.0 or swing_to_apply < 0.0:
                         swing_to_apply = 0.0
-                except:
+                except Exception:
                     swing_to_apply = 0.0
             self.song().swing_amount = swing_to_apply
             # apply standard qntz to all
@@ -576,7 +576,7 @@ class XClipActions(XComponent, NotesMixin):
         if args:
             try:
                 num_chops = int(args)
-            except:
+            except Exception:
                 pass
         slot_index = list(track.clip_slots).index(clip.canonical_parent)
         current_start = clip.start_marker

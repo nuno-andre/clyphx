@@ -124,6 +124,11 @@ Note = NamedTuple('Note', [('pitch',  int),  # TODO: Pitch
                            ('mute',   bool)])
 
 
+Location = NamedTuple('Location', [('bar',       int),
+                                   ('beat',      int),
+                                   ('sixteenth', int)])
+
+
 class UserControl(object):
     '''
     X-Controls defined in user settings.

@@ -131,7 +131,7 @@ class UserSettings(object):
                     value = config.get(section, option)
                 getattr(self, section)[option] = value
 
-    xcontrols  = property(lambda s: getattr(s, 'user_controls', {}))
+    xcontrols = property(lambda s: getattr(s, 'user_controls', {}))
     snapshots = property(lambda s: getattr(s, 'snapshot_settings', {}))
 
 

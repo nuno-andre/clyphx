@@ -35,28 +35,28 @@ from ..core.xcomponent import XComponent
 
 # SNAP DATA ARRAY
 # Positions of the main categories
-MIX_STD_SETTINGS_POS = 0
-MIX_EXT_SETTINGS_POS = 1
-PLAY_SETTINGS_POS = 2
-DEVICE_SETTINGS_POS = 3
+MIX_STD_SETTINGS = 0
+MIX_EXT_SETTINGS = 1
+PLAY_SETTINGS = 2
+DEVICE_SETTINGS = 3
 
 
 # ASSOCIATED ARRAY
 # Positions of standard mix settings
-MIX_VOL_POS = 0
-MIX_PAN_POS = 1
-MIX_SEND_START_POS = 2
+MIX_VOL = 0
+MIX_PAN = 1
+MIX_SEND_START = 2
 
 # Positions of extended mix settings
-MIX_MUTE_POS = 0
-MIX_SOLO_POS = 1
-MIX_CF_POS = 2
+MIX_MUTE = 0
+MIX_SOLO = 1
+MIX_CF = 2
 
 # Positions of chain mix settings
-CHAIN_VOL_POS = 0
-CHAIN_PAN_POS = 1
-CHAIN_MUTE_POS = 2
-CHAIN_SEND_START_POS = 3
+CHAIN_VOL = 0
+CHAIN_PAN = 1
+CHAIN_MUTE = 2
+CHAIN_SEND_START = 3
 
 
 class XSnapActions(XComponent):
@@ -120,7 +120,7 @@ class XSnapActions(XComponent):
                     if not args or 'MIX' in args:
                         param_count += self._store_mix_settings(track, args)
                     if 'PLAY' in args and track in self.song().tracks:
-                        self._current_track_data[PLAY_SETTINGS_POS] = track.playing_slot_index
+                        self._current_track_data[PLAY_SETTINGS] = track.playing_slot_index
                         param_count += 1
                     if (not args or 'DEV' in args) and track.devices:
                         param_count += self._store_device_settings(track, args)
@@ -147,9 +147,9 @@ class XSnapActions(XComponent):
         if not 'MIX-' in args:
             mix_vals.extend([s.value for s in track.mixer_device.sends])
         param_count += len(mix_vals)
-        self._current_track_data[MIX_STD_SETTINGS_POS] = mix_vals
+        self._current_track_data[MIX_STD_SETTINGS] = mix_vals
         if ('MIX+' in args or 'MIX-' in args) and track != self.song().master_track:
-            self._current_track_data[MIX_EXT_SETTINGS_POS] = [
+            self._current_track_data[MIX_EXT_SETTINGS] = [
                 int(track.mute), int(track.solo), track.mixer_device.crossfade_assign
             ]
             param_count += 3
@@ -183,7 +183,7 @@ class XSnapActions(XComponent):
                                 current_device, track_devices[current_device.name], 0
                             )
             if track_devices:
-                self._current_track_data[DEVICE_SETTINGS_POS] = track_devices
+                self._current_track_data[DEVICE_SETTINGS] = track_devices
 
         return param_count
 
@@ -228,7 +228,7 @@ class XSnapActions(XComponent):
         is_synced = False if disable_smooth else self._init_smoothing(xclip)
 
         for track, param_data in snap_data.items():
-            pos = param_data[PLAY_SETTINGS_POS]
+            pos = param_data[PLAY_SETTINGS]
             if track in self.current_tracks:
                 track = self.current_tracks[track]
                 self._recall_mix_settings(track, param_data)
@@ -254,34 +254,34 @@ class XSnapActions(XComponent):
     def _recall_mix_settings(self, track, param_data):
         # type: (Track, Mapping[int, Any]) -> None
         '''Recalls mixer related settings.'''
-        std = param_data[MIX_STD_SETTINGS_POS]
+        std = param_data[MIX_STD_SETTINGS]
         if std:
-            pan_value = std[MIX_PAN_POS]
-            if (track.mixer_device.volume.is_enabled and std[MIX_VOL_POS] != -1):
+            pan_value = std[MIX_PAN]
+            if (track.mixer_device.volume.is_enabled and std[MIX_VOL] != -1):
                 self._get_parameter_data_to_smooth(
-                    track.mixer_device.volume, std[MIX_VOL_POS])
+                    track.mixer_device.volume, std[MIX_VOL])
 
             if track.mixer_device.panning.is_enabled and not isinstance(pan_value, int):
                 self._get_parameter_data_to_smooth(
-                    track.mixer_device.panning, std[MIX_PAN_POS])
+                    track.mixer_device.panning, std[MIX_PAN])
 
             if track is not self.song().master_track:
                 sends = track.mixer_device.sends
-                for i in range(len(std) - MIX_SEND_START_POS):
+                for i in range(len(std) - MIX_SEND_START):
                     if (i <= len(sends) - 1 and sends[i].is_enabled):
                         self._get_parameter_data_to_smooth(
-                            sends[i], std[MIX_SEND_START_POS + i])
+                            sends[i], std[MIX_SEND_START + i])
 
         if param_data[1] and track is not self.song().master_track:
-            ext = param_data[MIX_EXT_SETTINGS_POS]
-            track.mute = ext[MIX_MUTE_POS]
-            track.solo = ext[MIX_SOLO_POS]
-            track.mixer_device.crossfade_assign = ext[MIX_CF_POS]
+            ext = param_data[MIX_EXT_SETTINGS]
+            track.mute = ext[MIX_MUTE]
+            track.solo = ext[MIX_SOLO]
+            track.mixer_device.crossfade_assign = ext[MIX_CF]
 
     def _recall_device_settings(self, track, param_data):
         # type: (Track, Mapping[int, Any]) -> None
         '''Recalls device related settings.'''
-        settings = param_data[DEVICE_SETTINGS_POS]
+        settings = param_data[DEVICE_SETTINGS]
         for device in track.devices:
             if device.name in settings:
                 self._recall_device_snap(device, settings[device.name]['params'])
@@ -329,26 +329,26 @@ class XSnapActions(XComponent):
                         if chain.mixer_device.volume.is_enabled:
                             self._get_parameter_data_to_smooth(
                                 chain.mixer_device.volume,
-                                stored_chain['mixer'][CHAIN_VOL_POS],
+                                stored_chain['mixer'][CHAIN_VOL],
                             )
                         if chain.mixer_device.panning.is_enabled:
                             self._get_parameter_data_to_smooth(
                                 chain.mixer_device.panning,
-                                stored_chain['mixer'][CHAIN_PAN_POS],
+                                stored_chain['mixer'][CHAIN_PAN],
                             )
                         if chain.mixer_device.chain_activator.is_enabled:
                             self._get_parameter_data_to_smooth(
                                 chain.mixer_device.chain_activator,
-                                stored_chain['mixer'][CHAIN_MUTE_POS],
+                                stored_chain['mixer'][CHAIN_MUTE],
                             )
                         sends = chain.mixer_device.sends
                         if sends:
                             num_sends = len(sends)
-                            for i in range(len(stored_chain['mixer']) - CHAIN_SEND_START_POS):
+                            for i in range(len(stored_chain['mixer']) - CHAIN_SEND_START):
                                 if i < num_sends and sends[i].is_enabled:
                                     self._get_parameter_data_to_smooth(
                                         sends[i],
-                                        stored_chain['mixer'][CHAIN_SEND_START_POS + i],
+                                        stored_chain['mixer'][CHAIN_SEND_START + i],
                                     )
 
     def _init_smoothing(self, xclip):
@@ -372,7 +372,7 @@ class XSnapActions(XComponent):
                 is_synced = 'S' in speed
                 try:
                     new_speed = int(speed.replace('S', ''))
-                except:
+                except Exception:
                     new_speed = 8
             else:
                 if '[' and ']' in track_name:
@@ -380,7 +380,7 @@ class XSnapActions(XComponent):
                     is_synced = 'S' in speed
                     try:
                         new_speed = int(speed.replace('S', ''))
-                    except:
+                    except Exception:
                         new_speed = 8
             if is_synced:
                 new_speed *= self.song().signature_numerator
@@ -512,13 +512,13 @@ class XSnapActions(XComponent):
                 try:
                     start, end = map(int, dev_args.split('-'))
                     start -= 1
-                except:
+                except Exception:
                     pass
             else:
                 try:
                     start = int(dev_args) - 1
                     end = start + 1
-                except:
+                except Exception:
                     pass
 
         if end > len(track.devices) or start < 0 or end < start:

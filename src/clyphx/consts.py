@@ -16,6 +16,7 @@
 from __future__ import absolute_import, unicode_literals
 from builtins import map, dict
 from typing import TYPE_CHECKING
+# from fraction import Fraction
 import logging
 
 from _Generic.Devices import DEVICE_DICT, DEVICE_BOB_DICT
@@ -28,7 +29,7 @@ from .core.live import (GridQuantization,
                         get_application)
 
 if TYPE_CHECKING:
-    from typing import Any, Optional, Sequence, Text, Dict, Mapping, TypeVar
+    from typing import Any, Optional, Sequence, Text, Mapping, TypeVar
     from .core.live import Application
     T = TypeVar('T')
 
@@ -48,6 +49,7 @@ SCRIPT_INFO = '{} v{}'.format(SCRIPT_NAME, '.'.join(map(str, __version__)))
 
 KEYWORDS = dict(ON=1, OFF=0)  # type: Mapping[Optional[Text], bool]
 
+
 def switch(obj, attr, value, fallback=unset):
     # type: (T, Text, Text, Any) -> None
     '''Turns object attribute on/off or toggles (if there is no fallback).
@@ -57,6 +59,7 @@ def switch(obj, attr, value, fallback=unset):
     except (AttributeError, KeyError):
         v = (not getattr(obj, attr)) if fallback is unset else fallback
     setattr(obj, attr, v)
+
 
 ONOFF = dict(ON=True, OFF=False)  # type: Mapping[Text, bool]
 
@@ -73,9 +76,12 @@ ENV_TYPES = (
 )
 
 MIDI_STATUS = dict(
-    NOTE = 144,
-    CC   = 176,
-    PC   = 192,
+    NOTE  = 144,
+    CC    = 176,
+    PC    = 192,  # program change
+    CA    = 208,  # channel aftertouch
+    PB    = 224,  # pitch bend change
+    SYSEX = 240,
 )  # type: Mapping[Text, int]
 
 WARP_MODES = dict((
@@ -183,6 +189,19 @@ REPEAT_STATES = dict((
     ('1/32',  0.125),
     ('1/32T', 0.0833333333333),
 ))  # type: Mapping[Text, float]
+
+# REPEAT_STATES = dict((
+#     ('OFF',   Fraction(1, 1)),
+#     ('1/4',   Fraction(1, 1)),
+#     ('1/4T',  Fraction(2, 3)),
+#     ('1/8',   Fraction(1, 2)),
+#     ('1/8T',  Fraction(1, 3)),
+#     ('1/16',  Fraction(1, 4)),
+#     ('1/16T', Fraction(1, 6)),
+#     ('1/32',  Fraction(1, 8)),
+#     ('1/32T', Fraction(1, 12)),
+# ))  # type: Mapping[Text, Fraction]
+
 # endregion
 
 # region DEVICES
@@ -255,14 +274,19 @@ INS_DEVS = dict((dev.upper(), dev) for dev in _INS_DEVS)
 
 MIDI_DEVS = dict((dev.upper(), dev) for dev in _MIDI_DEVS)
 
+# TODO: Wavetable, Ping Pong Delay
+# TODO: update previous dicts
 #: Translation table between API names and friendly names.
 DEV_NAME_TRANSLATION = dict(
     UltraAnalog            = 'Analog',
     MidiArpeggiator        = 'Arpeggiator',
     AudioEffectGroupDevice = 'Audio Effect Rack',
+    AutoFilter             = 'Auto Filter',
+    AutoPan                = 'Auto Pan',
     BeatRepeat             = 'Beat Repeat',
     MidiChord              = 'Chord',
     Compressor2            = 'Compressor',
+    DrumBuss               = 'Drum Buss',
     DrumGroupDevice        = 'Drum Rack',
     Tube                   = 'Dynamic Tube',
     LoungeLizard           = 'Electric',
@@ -279,9 +303,10 @@ DEV_NAME_TRANSLATION = dict(
     MidiNoteLength         = 'Note Length',
     MidiPitcher            = 'Pitch',
     MidiRandom             = 'Random',
+    Resonator              = 'Resonators',
     MultiSampler           = 'Sampler',
     MidiScale              = 'Scale',
-    CrossDelay             = 'Simple Delay',
+    CrossDelay             = 'Simple Delay',  # FIXME: missing
     OriginalSimpler        = 'Simpler',
     SpectrumAnalyzer       = 'Spectrum',
     StringStudio           = 'Tension',

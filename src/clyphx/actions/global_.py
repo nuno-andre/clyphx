@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from ..core.legacy import _SingleDispatch
 
 from ..core.xcomponent import XComponent
-from ..core.live import Application, Clip, DeviceType, get_random_int
+from ..core.live import Application, Clip, DeviceType
 from ..consts import KEYWORDS, switch
 from ..consts import (AUDIO_DEVS, MIDI_DEVS, INS_DEVS,
                       GQ_STATES, REPEAT_STATES, RQ_STATES,
@@ -77,73 +77,71 @@ class XGlobalActions(XComponent, SceneMixin):
         # type: (_SingleDispatch) -> None
         from .consts import GLOBAL_ACTIONS
 
-        if cmd.action_name == 'SCENE':
-            # TODO:
-            # action = SCENE_ACTIONS[]
-            pass
-        else:
-            action = GLOBAL_ACTIONS[cmd.action_name]
-        action(self, cmd.track, cmd.xclip, cmd.args)
+        # if cmd.action_name == 'SCENE' and False:
+        #     # TODO:
+        #     # action = SCENE_ACTIONS[]
+        #     pass
+        # else:
+        #     action = GLOBAL_ACTIONS[cmd.action_name]
+        action = GLOBAL_ACTIONS[cmd.action_name]
+        args = cmd.args.strip().split() if cmd.args and cmd.args.strip() else ()
+        action(self, cmd.track, cmd.xclip, *args)
 
-    def make_instant_mapping_docs(self, track, xclip, args):
-        # type: (None, Clip, Text) -> None
+    def make_instant_mapping_docs(self, track, xclip, *args):
+        # type: (None, Clip, None) -> None
         from ..instant_doc import InstantMappingMakeDoc
         InstantMappingMakeDoc()
         if isinstance(xclip, Clip):
             xclip.name = str(xclip.name).upper().replace('MAKE_DEV_DOC', 'Doc saved')
 
-    def send_midi_message(self, track, xclip, args):
+    def send_midi_message(self, track, xclip, *args):
         # type: (None, None, Text) -> None
         '''Send formatted NOTE/CC/PC message or raw MIDI message.'''
         message = []
-        if args:
-            byte_array = args.split()
-            if len(byte_array) >= 3 and byte_array[0] in MIDI_STATUS:
-                try:
-                    data_bytes = list(map(int, byte_array[1:]))
-                except:
-                    pass
-                else:
-                    if 1 <= data_bytes[0] < 17:
-                        message = [MIDI_STATUS[byte_array[0]] + data_bytes[0] - 1]
-                        for byte in data_bytes[1:]:
-                            if 0 <= byte < 128:
-                                message.append(byte)
-                        if ((byte_array[0] != 'PC' and len(message) != 3) or
-                                (byte_array[0] == 'PC' and len(message) != 2)):
-                            return
-            elif len(byte_array) >= 2:
-                try:
-                    message = list(map(int, byte_array))
-                except:
-                    pass
-            if message:
-                try:
-                    self._parent._send_midi(tuple(message))
-                    # send matching note off for note messages
-                    if byte_array[0] == 'NOTE':
-                        message[-1] = 0
-                        self._parent.schedule_message(
-                            1, partial(self._parent._send_midi, tuple(message))
-                        )
-                except:
-                    pass
 
-    def do_variable_assignment(self, track, xclip, args):
+        if len(args) >= 3 and args[0] in MIDI_STATUS:
+            try:
+                data_bytes = list(map(int, args[1:]))
+            except Exception:
+                pass
+            else:
+                if 1 <= data_bytes[0] < 17:
+                    message = [MIDI_STATUS[args[0]] + data_bytes[0] - 1]
+                    for byte in data_bytes[1:]:
+                        if 0 <= byte < 128:
+                            message.append(byte)
+                    if ((args[0] != 'PC' and len(message) != 3) or
+                            (args[0] == 'PC' and len(message) != 2)):
+                        return
+        elif len(args) >= 2:
+            try:
+                message = list(map(int, args))
+            except Exception:
+                pass
+
+        if message:
+            try:
+                self._parent._send_midi(tuple(message))
+                # send matching note off for note messages
+                if args[0] == 'NOTE':
+                    message[-1] = 0
+                    self._parent.schedule_message(
+                        1, partial(self._parent._send_midi, tuple(message))
+                    )
+            except Exception:
+                pass
+
+    def do_variable_assignment(self, track, xclip, name, start, length):
         # type: (None, None, Text) -> None
         '''Creates numbered variables for the name given in args from
         the offset given in args and in the quantity given in args.
         '''
-        args = args.strip()
-        arg_array = args.split()
-        if len(arg_array) == 3:
-            try:
-                start = int(arg_array[1])
-                length = int(arg_array[2])
-                for i in range(length):
-                    self._parent._user_variables[arg_array[0] + str(i + 1)] = str(i + start)
-            except:
-                pass
+        try:
+            start = int(start)
+            for i in range(int(length)):
+                self._parent._user_variables['{}{}'.format(name, i + 1)] = str(i + start)
+        except Exception:
+            pass
 
 # region TRACKS
 
@@ -152,7 +150,7 @@ class XGlobalActions(XComponent, SceneMixin):
         '''Creates audio track at end of track list or at the specified
         index.
         '''
-        if value and value.strip():
+        if value:
             try:
                 index = int(value) - 1
                 if 0 <= index < len(self.song().tracks):
@@ -167,7 +165,7 @@ class XGlobalActions(XComponent, SceneMixin):
         '''Creates MIDI track at end of track list or at the specified
         index.
         '''
-        if value and value.strip():
+        if value:
             try:
                 index = int(value) - 1
                 if 0 <= index < len(self.song().tracks):
@@ -177,19 +175,19 @@ class XGlobalActions(XComponent, SceneMixin):
         else:
             self.song().create_midi_track(-1)
 
-    def create_return_track(self, track, xclip, value=None):
+    def create_return_track(self, track, xclip, *args):
         # type: (None, None, None) -> None
         '''Creates return track at end of return list.'''
         self.song().create_return_track()
 
-    def insert_and_configure_audio_track(self, track, xclip, value=None):
+    def insert_and_configure_audio_track(self, track, xclip, *args):
         # type: (None, None, None) -> None
         '''Inserts an audio track next to the selected track routed from
         the selected track and armed.
         '''
         self._insert_and_configure_track(is_midi=False)
 
-    def insert_and_configure_midi_track(self, track, xclip, value=None):
+    def insert_and_configure_midi_track(self, track, xclip, *args):
         # type: (None, None, None) -> None
         '''Inserts a midi track next to the selected track routed from
         the selected track and armed.
@@ -217,12 +215,12 @@ class XGlobalActions(XComponent, SceneMixin):
             new_track.name = 'From {}'.format(sel_track.name)
             new_track.current_input_routing = sel_track.name
             new_track.arm = True
-        except:
+        except Exception:
             pass
 
 # endregion
 
-    def swap_device_preset(self, track, xclip, args):
+    def swap_device_preset(self, track, xclip, *args):
         # type: (Track, None, Text) -> None
         '''Activates swapping for the selected device or swaps out the
         preset for the given device with the given preset or navigates
@@ -237,7 +235,7 @@ class XGlobalActions(XComponent, SceneMixin):
                     self.application().view.toggle_browse()
                 tag_target = None
                 dev_name = device.class_display_name
-                args = args.strip()
+
                 if device.type == DeviceType.audio_effect:
                     tag_target = self.application().browser.audio_effects
                 elif device.type == DeviceType.midi_effect:
@@ -247,14 +245,14 @@ class XGlobalActions(XComponent, SceneMixin):
                 if tag_target:
                     for dev in tag_target.children:
                         if dev.name == dev_name:
-                            self._handle_swapping(device, dev, args)
+                            self._handle_swapping(device, dev, *args)
                             break
 
-    def _handle_swapping(self, device, browser_item, args):
+    def _handle_swapping(self, device, browser_item, arg):
         # type: (Device, Any, Text) -> None
         dev_items = self._create_device_items(browser_item, [])
-        if args in ('<', '>'):
-            factor = self.get_adjustment_factor(args)
+        if arg in ('<', '>'):
+            factor = self.get_adjustment_factor(arg)
             index = self._get_current_preset_index(device, dev_items)
             new_index = index + factor
             if new_index > len(dev_items) - 1:
@@ -263,9 +261,10 @@ class XGlobalActions(XComponent, SceneMixin):
                 new_index = -1
             self._load_preset(dev_items[new_index])
         else:
-            args += '.ADG' if device.can_have_chains else '.ADV'
+            ext = 'ADG' if device.can_have_chains else 'ADV'
+            arg = '{}.{}'.format(arg.upper(), ext)
             for item in dev_items:
-                if item.name.upper() == args:
+                if item.name.upper() == arg:
                     self._load_preset(item)
                     break
 
@@ -301,50 +300,57 @@ class XGlobalActions(XComponent, SceneMixin):
                 item_array.append(item)
         return item_array
 
-    def load_device(self, track, xclip, args):
-        # type: (None, None, Text) -> None
-        '''Loads one of Live's built-in devices onto the selected Track.
-        '''
-        # XXX: using a similar method for loading plugins doesn't seem to work!
-        args = args.strip()
-
-        if args in AUDIO_DEVS:
+    def get_device(self, arg):
+        if arg in AUDIO_DEVS:
             tag_target = self.application().browser.audio_effects
-            name = AUDIO_DEVS[args]
-        elif args in MIDI_DEVS:
+            name = AUDIO_DEVS[arg]
+        elif arg in MIDI_DEVS:
             tag_target = self.application().browser.midi_effects
-            name = MIDI_DEVS[args]
-        elif args in INS_DEVS:
+            name = MIDI_DEVS[arg]
+        elif arg in INS_DEVS:
             tag_target = self.application().browser.instruments
-            name = INS_DEVS[args]
+            name = INS_DEVS[arg]
         else:
-            log.warning("Device '%s' not found", args)
+            log.warning("Device '%s' not found", arg)
             return
 
         for dev in tag_target.children:
             if dev.name == name:
-                self.application().browser.load_item(dev)
-                break
+                return dev
+        else:
+            log.warning("Device '%s' not found", name)
 
-    def load_m4l(self, track, xclip, args):
-        # type: (None, None, Text) -> None
-        '''Loads M4L device onto the selected Track. The .amxd should be
-        omitted by the user.
-        '''
-        args = '{}.AMXD'.format(args.strip())
-        found_dev = False
+    def get_m4l_device(self, arg):
+        if not arg.endswith('.AMXD'):
+            arg = '{}.AMXD'.format(arg)
         for m in self.application().browser.max_for_live.children:
             for device in m.children:
                 if device.is_folder:
                     for dev in device.children:
-                        if dev.name.upper() == args:
-                            found_dev = dev
-                            break
-                elif device.name.upper() == args:
-                    found_dev = device
-                if found_dev:
-                    self.application().browser.load_item(found_dev)
-                    break
+                        if dev.name.upper() == arg:
+                            return dev
+                elif device.name.upper() == arg:
+                    return device
+        else:
+            log.warning('M4L device not found: %s', arg)
+
+    def load_device(self, track, xclip, arg):
+        # type: (None, None, Text) -> None
+        '''Loads one of Live's built-in devices onto the selected Track.
+        '''
+        # XXX: using a similar method for loading plugins doesn't seem to work
+        dev = self.get_device(arg)
+        if dev is not None:
+            self.application().browser.load_item(dev)
+
+    def load_m4l(self, track, xclip, arg):
+        # type: (None, None, Text) -> None
+        '''Loads M4L device onto the selected Track. The .amxd should be
+        omitted by the user.
+        '''
+        dev = self.get_m4l_device(arg.upper())
+        if dev is not None:
+            self.application().browser.load_item(dev)
 
     def set_session_record(self, track, xclip, value=None):
         # type: (None, None, Optional[Text]) -> None
@@ -369,7 +375,7 @@ class XGlobalActions(XComponent, SceneMixin):
             bar = (4.0 / self.song().signature_denominator) * self.song().signature_numerator
             try:
                 length = float(value) * bar
-            except:
+            except Exception:
                 length = bar
             self.song().trigger_session_record(length)
 
@@ -378,10 +384,7 @@ class XGlobalActions(XComponent, SceneMixin):
         '''Returns whether the given track has an empty slot existing
         after the starting slot index.
         '''
-        for s in track.clip_slots[start:]:
-            if not s.has_clip:
-                return True
-        return False
+        return any(not s.has_clip for s in track.clip_slots[start:])
 
     def set_session_automation_record(self, track, xclip, value=None):
         # type: (None, None, Optional[Text]) -> None
@@ -466,6 +469,12 @@ class XGlobalActions(XComponent, SceneMixin):
 
 # region NAVIGATION
 
+    def _move_nav(self, direction):
+        # type: (int) -> None
+        self.application().view.scroll_view(
+            Application.View.NavDirection(direction), '', False
+        )
+
     def move_up(self, track, xclip, value=None):
         # type: (None, None, None) -> None
         '''Scroll up.'''
@@ -486,11 +495,23 @@ class XGlobalActions(XComponent, SceneMixin):
         '''Scroll right.'''
         self._move_nav(3)
 
-    def _move_nav(self, direction):
-        # type: (int) -> None
-        self.application().view.scroll_view(
-            Application.View.NavDirection(direction), '', False
-        )
+    def show(self, what):
+        # type: (Text) -> None
+        self.application().view.show_view(what)
+
+    def hide(self, what):
+        # type: (Text) -> None
+        self.application().view.hide_view(what)
+
+    def focus(self, what):
+        # type: (Text) -> None
+        self.application().view.focus_view(what)
+
+    # TODO: zoom, scroll
+
+    def is_visible(self, what):
+        # type: (Text) -> bool
+        return self.application().view.is_view_visible(what)
 
     def move_to_first_device(self, track, xclip, value=None):
         # type: (None, None, None) -> None
@@ -503,9 +524,10 @@ class XGlobalActions(XComponent, SceneMixin):
         '''Move to the last device on the track and scroll the view.'''
         self.focus_devices()
         if self.sel_track.devices:
-            self.song().view.select_device(
-                self.sel_track.devices[len(self.sel_track.devices) - 1]
-            )
+            self.song().view.select_device(self.sel_track.devices[-1])
+            # self.song().view.select_device(
+            #     self.sel_track.devices[len(self.sel_track.devices) - 1]
+            # )
             self.application().view.scroll_view(
                 Application.View.NavDirection(3), 'Detail/DeviceChain', False
             )
@@ -531,78 +553,78 @@ class XGlobalActions(XComponent, SceneMixin):
 
     def focus_devices(self):
         '''Make sure devices are in focus and visible.'''
-        self.application().view.show_view('Detail')
-        self.application().view.show_view('Detail/DeviceChain')
+        self.show('Detail')
+        self.show('Detail/DeviceChain')
 
     def show_clip_view(self, track, xclip, value=None):
         # type: (None, None, None) -> None
         '''Show clip view.'''
-        self.application().view.show_view('Detail')
-        self.application().view.show_view('Detail/Clip')
+        self.show('Detail')
+        self.show('Detail/Clip')
 
     def show_track_view(self, track, xclip, value=None):
         # type: (None, None, None) -> None
         '''Show track view.'''
-        self.application().view.show_view('Detail')
-        self.application().view.show_view('Detail/DeviceChain')
+        self.show('Detail')
+        self.show('Detail/DeviceChain')
 
     def show_detail_view(self, track, xclip, value=None):
         # type: (None, None, None) -> None
         '''Toggle between showing/hiding detail view.'''
-        if self.application().view.is_view_visible('Detail'):
-            self.application().view.hide_view('Detail')
+        if self.is_visible('Detail'):
+            self.hide('Detail')
         else:
-            self.application().view.show_view('Detail')
+            self.show('Detail')
 
     def toggle_browser(self, track, xclip, value=None):
         # type: (None, None, None) -> None
         '''Hide/show browser and move focus to or from browser.'''
-        if self.application().view.is_view_visible('Browser'):
-            self.application().view.hide_view('Browser')
-            self.application().view.focus_view('')
+        if self.is_visible('Browser'):
+            self.hide('Browser')
+            self.focus('')
         else:
-            self.application().view.show_view('Browser')
-            self.application().view.focus_view('Browser')
+            self.show('Browser')
+            self.focus('Browser')
 
     def toggle_detail_view(self, track, xclip, value=None):
         # type: (None, None, None) -> None
         '''Toggle between clip and track view.'''
-        self.application().view.show_view('Detail')
-        if self.application().view.is_view_visible('Detail/Clip'):
-            self.application().view.show_view('Detail/DeviceChain')
+        self.show('Detail')
+        if self.is_visible('Detail/Clip'):
+            self.show('Detail/DeviceChain')
         else:
-            self.application().view.show_view('Detail/Clip')
+            self.show('Detail/Clip')
 
     def toggle_main_view(self, track, xclip, value=None):
         # type: (None, None, None) -> None
         '''Toggle between session and arrange view.'''
-        if self.application().view.is_view_visible('Session'):
-            self.application().view.show_view('Arranger')
+        if self.is_visible('Session'):
+            self.show('Arranger')
         else:
-            self.application().view.show_view('Session')
+            self.show('Session')
 
     def focus_browser(self, track, xclip, value=None):
         # type: (None, None, None) -> None
         '''Move the focus to the browser, show browser first if
         necessary.
         '''
-        if not self.application().view.is_view_visible('Browser'):
-            self.application().view.show_view('Browser')
-        self.application().view.focus_view('Browser')
+        if not self.is_visible('Browser'):
+            self.show('Browser')
+        self.focus('Browser')
 
     def focus_detail(self, track, xclip, value=None):
         # type: (None, None, None) -> None
         '''Move the focus to the detail view, show detail first if
         necessary.
         '''
-        if not self.application().view.is_view_visible('Detail'):
-            self.application().view.show_view('Detail')
-        self.application().view.focus_view('Detail')
+        if not self.is_visible('Detail'):
+            self.show('Detail')
+        self.focus('Detail')
 
     def focus_main(self, track, xclip, value=None):
         # type: (None, None, None) -> None
         '''Move the focus to the main focu.'''
-        self.application().view.focus_view('')
+        self.focus('')
 
     def adjust_horizontal_zoom(self, track, xclip, value):
         # type: (None, None, Text) -> None
@@ -613,7 +635,7 @@ class XGlobalActions(XComponent, SceneMixin):
         value = value.replace('ALL', '').strip()
         try:
             val = int(value)
-        except:
+        except Exception:
             return
         else:
             # TODO
@@ -633,7 +655,7 @@ class XGlobalActions(XComponent, SceneMixin):
         value = value.replace('ALL', '').strip()  # type: Text
         try:
             v = int(value)  # type: int
-        except:
+        except Exception:
             return
         direct = (v > 0)
         for _ in range(abs(v) + 1):
@@ -641,38 +663,36 @@ class XGlobalActions(XComponent, SceneMixin):
 
 # endregion
 
-    def adjust_tempo(self, track, xclip, args):
+    def adjust_tempo(self, track, xclip, arg, *rest):
         # type: (None, None, Text) -> None
         '''Adjust/set tempo or apply smooth synced ramp.'''
         self._tempo_ramp_active = False
         self._tempo_ramp_settings = []
-        args = args.strip()
-        if args.startswith(('<', '>')):
-            factor = self.get_adjustment_factor(args, True)
+        if arg.startswith(('<', '>')):
+            factor = self.get_adjustment_factor(arg, True)
             self.song().tempo = max(20, min(999, (self.song().tempo + factor)))
-        elif args.startswith('*'):
+        elif arg.startswith('*'):
             try:
-                self.song().tempo = max(20, min(999, (self.song().tempo * float(args[1:]))))
-            except:
+                self.song().tempo = max(20, min(999, (self.song().tempo * float(arg[1:]))))
+            except Exception:
                 pass
-        elif args.startswith('RAMP'):
-            arg_array = args.split()
-            if len(arg_array) == 3:
+        elif arg.startswith('RAMP'):
+            if len(rest) == 2:
                 try:
-                    ramp_factor = float("%.2f" % (int(arg_array[1]) * self.song().signature_numerator))
-                    if arg_array[2].startswith('*'):
-                        target_tempo = max(20, min(999, (self.song().tempo * float(arg_array[2][1:]))))
+                    if rest[1].startswith('*'):
+                        target_tempo = max(20, min(999, (self.song().tempo * float(rest[1][1:]))))
                     else:
-                        target_tempo = float("%.2f" % float(arg_array[2]))
-                    if target_tempo >= 20.0 and target_tempo <= 999.0:
+                        target_tempo = float("%.2f" % float(rest[1]))
+                    if 20.0 <= target_tempo <= 999.0:
+                        ramp_factor = float("%.2f" % (int(rest[0]) * self.song().signature_numerator))
                         self._tempo_ramp_settings = [target_tempo, (target_tempo - self.song().tempo) / ramp_factor]
                         self._tempo_ramp_active = True
-                except:
+                except Exception:
                     pass
         else:
             try:
-                self.song().tempo = float(args)
-            except:
+                self.song().tempo = float(arg)
+            except Exception:
                 pass
 
     def on_time_changed(self):
@@ -699,55 +719,51 @@ class XGlobalActions(XComponent, SceneMixin):
         else:
             self.song().tempo += self._tempo_ramp_settings[1]
 
-    def adjust_groove(self, track, xclip, args):
+    def adjust_groove(self, track, xclip, arg):
         # type: (None, None, Text) -> None
         '''Adjust/set global groove.'''
-        args = args.strip()
-        if args.startswith(('<', '>')):
-            factor = self.get_adjustment_factor(args, True)
+        if arg.startswith(('<', '>')):
+            factor = self.get_adjustment_factor(arg, True)
             self.song().groove_amount = max(0.0, min(1.3125, self.song().groove_amount + factor * float(1.3125 / 131.0)))
         else:
             try:
-                self.song().groove_amount = int(args) * float(1.3125 / 131.0)
-            except:
+                self.song().groove_amount = int(arg) * float(1.3125 / 131.0)
+            except Exception:
                 pass
 
-    def set_note_repeat(self, track, xclip, args):
+    def set_note_repeat(self, track, xclip, arg=None):
         # type: (None, None, Text) -> None
         '''Set/toggle note repeat.'''
-        args = args.strip()
-        if args == 'OFF':
+        if arg == 'OFF':
             self._parent._c_instance.note_repeat.enabled = False
             self._repeat_enabled = False
-        elif args in REPEAT_STATES:
-            self._parent._c_instance.note_repeat.repeat_rate = REPEAT_STATES[args]
+        elif arg in REPEAT_STATES:
+            self._parent._c_instance.note_repeat.repeat_rate = REPEAT_STATES[arg]
             self._parent._c_instance.note_repeat.enabled = True
             self._repeat_enabled = True
         else:
             self._repeat_enabled = not self._repeat_enabled
             self._parent._c_instance.note_repeat.enabled = self._repeat_enabled
 
-    def adjust_swing(self, track, xclip, args):
+    def adjust_swing(self, track, xclip, arg):
         # type: (None, None, Text) -> None
         '''Adjust swing amount for use with note repeat.'''
-        args = args.strip()
-        if args.startswith(('<', '>')):
-            factor = self.get_adjustment_factor(args, True)
+        if arg.startswith(('<', '>')):
+            factor = self.get_adjustment_factor(arg, True)
             self.song().swing_amount = max(0.0, min(1.0, (self.song().swing_amount + factor * 0.01)))
         else:
             try:
-                self.song().swing_amount = int(args) * 0.01
-            except:
+                self.song().swing_amount = int(arg) * 0.01
+            except Exception:
                 pass
 
-    def adjust_global_quantize(self, track, xclip, args):
+    def adjust_global_quantize(self, track, xclip, arg=None):
         # type: (None, None, Text) -> None
         '''Adjust/set/toggle global quantization.'''
-        args = args.strip()
-        if args in GQ_STATES:
-            self.song().clip_trigger_quantization = GQ_STATES[args]
-        elif args in ('<', '>'):
-            factor = self.get_adjustment_factor(args)
+        if arg in GQ_STATES:
+            self.song().clip_trigger_quantization = GQ_STATES[arg]
+        elif arg.startswith(('<', '>')):
+            factor = self.get_adjustment_factor(arg)
             new_gq = self.song().clip_trigger_quantization + factor
             if 0 <= new_gq < 14:
                 self.song().clip_trigger_quantization = new_gq
@@ -757,14 +773,13 @@ class XGlobalActions(XComponent, SceneMixin):
         else:
             self.song().clip_trigger_quantization = self._last_gqntz
 
-    def adjust_record_quantize(self, track, xclip, args):
+    def adjust_record_quantize(self, track, xclip, arg):
         # type: (None, None, Text) -> None
         '''Adjust/set/toggle record quantization.'''
-        args = args.strip()
-        if args in RQ_STATES:
-            self.song().midi_recording_quantization = RQ_STATES[args]
-        elif args in ('<', '>'):
-            factor = self.get_adjustment_factor(args)
+        if arg in RQ_STATES:
+            self.song().midi_recording_quantization = RQ_STATES[arg]
+        elif arg.startswith(('<', '>')):
+            factor = self.get_adjustment_factor(arg)
             new_rq = self.song().midi_recording_quantization + factor
             if 0 <= new_rq < 9:
                 self.song().midi_recording_quantization = new_rq
@@ -774,46 +789,49 @@ class XGlobalActions(XComponent, SceneMixin):
         else:
             self.song().midi_recording_quantization = self._last_rqntz
 
-    def adjust_time_signature(self, track, xclip, args):
+    def adjust_time_signature(self, track, xclip, arg):
         # type: (None, None, Text) -> None
         '''Adjust global time signature.'''
-        if '/' in args:
-            try:
-                num, denom = args.split('/')
-                self.song().signature_numerator = int(num)
-                self.song().signature_denominator = int(denom)
-            except:
-                pass
+        try:
+            num, denom = map(int, arg.split('/'))
+            self.song().signature_numerator = num
+            self.song().signature_denominator = denom
+        except Exception as e:
+            log.error("Failed to set time signature '%s': %r", arg, e)
 
-    def set_jump_all(self, track, xclip, args):
+    def set_jump_all(self, track, xclip, arg):
         # type: (None, None, Text) -> None
         '''Jump arrange position forward/backward.'''
         try:
-            self.song().jump_by(float(args))
-        except:
+            self.song().jump_by(float(arg))
+        except Exception:
             pass
 
-    def set_unarm_all(self, track, xclip, args):
+    # TODO: to track actions
+    def set_unarm_all(self, track, xclip, *args):
         # type: (None, None, None) -> None
         '''Unarm all armable track.'''
         for t in self.song().tracks:
             if t.can_be_armed and t.arm:
                 t.arm = 0
 
-    def set_unmute_all(self, track, xclip, args):
+    # TODO: to track actions
+    def set_unmute_all(self, track, xclip, *args):
         # type: (None, None, None) -> None
         '''Unmute all track.'''
         for t in chain(self.song().tracks, self.song().return_tracks):
             if t.mute:
                 t.mute = 0
 
-    def set_unsolo_all(self, track, xclip, args):
+    # TODO: to track actions
+    def set_unsolo_all(self, track, xclip, *args):
         # type: (None, None, None) -> None
         '''Unsolo all track.'''
         for t in chain(self.song().tracks, self.song().return_tracks):
             if t.solo:
                 t.solo = 0
 
+    # TODO: to track actions
     def set_fold_all(self, track, xclip, value):
         # type: (None, None, None) -> None
         '''Toggle or turn/on fold for all track.'''
@@ -824,66 +842,64 @@ class XGlobalActions(XComponent, SceneMixin):
                     state_to_set = not t.fold_state
                 switch(t, 'fold_state', value, state_to_set)
 
-    def set_locator(self, track, xclip, args):
+    def set_locator(self, track, xclip, *args):
         # type: (None, None, None) -> None
         '''Set/delete a locator at the current playback position.'''
         self.song().set_or_delete_cue()
 
-    def do_locator_loop_action(self, track, xclip, args):
+    def do_locator_loop_action(self, track, xclip, arg):
         # type: (None, None, Text) -> None
         '''Same as do_locator_action with name argument, but also sets
         arrangement loop start to pos of locator.
         '''
-        self.do_locator_action(track, xclip, args, True)
+        self.do_locator_action(track, xclip, arg, True)
 
-    def do_locator_action(self, track, xclip, args, move_loop_too=False):
+    def do_locator_action(self, track, xclip, arg, move_loop_too=False):
         # type: (None, None, Text, bool) -> None
         '''Jump between locators or to a particular locator. Can also
         move loop start to pos of locator if specified.
         '''
-        args = args.strip()
-        if args == '>' and self.song().can_jump_to_next_cue:
+        if arg == '>' and self.song().can_jump_to_next_cue:
             self.song().jump_to_next_cue()
-        elif args == '<' and self.song().can_jump_to_prev_cue:
+        elif arg == '<' and self.song().can_jump_to_prev_cue:
             self.song().jump_to_prev_cue()
         else:
             try:
                 for cp in self.song().cue_points:
-                    if cp.name.upper() == args:
+                    if cp.name.upper() == arg:
                         cp.jump()
                         if move_loop_too:
                             self.song().loop_start = cp.time
                         break
-            except:
+            except Exception:
                 pass
 
-    def do_loop_action(self, track, xclip, args):
+    def do_loop_action(self, track, xclip, arg=None):
         # type: (None, None, Text) -> None
         '''Handle arrange loop action.'''
-        args = args.strip()
-        if not args or args.upper() in KEYWORDS:
-            self.set_loop_on_off(args)
+        if not arg or arg.upper() in KEYWORDS:
+            self.set_loop_on_off(arg)
         else:
             new_start = self.song().loop_start
             new_length = self.song().loop_length
-            if args.startswith(('<', '>')):
-                self.move_loop_by_factor(args)
+            if arg.startswith(('<', '>')):
+                self.move_loop_by_factor(arg)
                 return
-            elif args == 'RESET':
+            elif arg == 'RESET':
                 new_start = 0
-            elif args.startswith('*'):
+            elif arg.startswith('*'):
                 try:
-                    new_length = self.song().loop_length * float(args[1:])
-                except:
+                    new_length = self.song().loop_length * float(arg[1:])
+                except Exception:
                     pass
             else:
                 try:
                     # TODO: int?
-                    new_length = float(args) * (
+                    new_length = float(arg) * (
                         (4.0 / self.song().signature_denominator)
                         * self.song().signature_numerator
                     )
-                except:
+                except Exception:
                     pass
             self.set_new_loop_position(new_start, new_length)
 
@@ -892,15 +908,15 @@ class XGlobalActions(XComponent, SceneMixin):
         '''Toggles or turns on/off arrange loop.'''
         switch(self.song(), 'loop', value)
 
-    def move_loop_by_factor(self, args):
+    def move_loop_by_factor(self, arg):
         # type: (Text) -> None
         '''Move arrangement loop by its length or by a specified factor.
         '''
         factor = self.song().loop_length
-        if args == '<':
+        if arg == '<':
             factor = -(factor)
-        elif len(args) > 1:
-            factor = self.get_adjustment_factor(args, True)
+        elif len(ars) > 1:
+            factor = self.get_adjustment_factor(arg, True)
         new_start = self.song().loop_start + factor
         if new_start < 0.0:
             new_start = 0.0

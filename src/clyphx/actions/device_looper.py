@@ -1,8 +1,13 @@
 from __future__ import absolute_import, unicode_literals
 from builtins import object
+from typing import TYPE_CHECKING
 
 from ..consts import LOOPER_STATES, switch
 from ..core.exceptions import InvalidParam
+
+if TYPE_CHECKING:
+    from typing import Text
+    from ..core.legacy import _DispatchCommand
 
 
 # TODO: turn into a component?

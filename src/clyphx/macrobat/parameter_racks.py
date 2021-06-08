@@ -294,7 +294,7 @@ class MacrobatTrackRack(MacrobatParameterRackTemplate):
                 if name.startswith('SEND') and self._track != self.song().master_track:
                     try:
                         param = self._track.mixer_device.sends[ord(name[5]) - 65]
-                    except:
+                    except Exception:
                         param = None
                 elif name.startswith('VOL'):
                     param = self._track.mixer_device.volume
